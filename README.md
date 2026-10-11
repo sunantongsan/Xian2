@@ -10,7 +10,7 @@ Run `npm run serve`, then open http://localhost:8080. No npm packages are needed
 - Hero atlases connected to idle/walk, attack, skill, hurt and death states.
 - 100 Chinese fantasy monsters in ten regions, including ten bosses.
 - Every monster has an idle pose and an attack pose connected to its combat state.
-- Tap to move or target; keyboard WASD/arrows, Space attack, Q skill, E dodge, R potion.
+- Analog left joystick (independent multi-touch), tap to move or target; keyboard WASD/arrows, Space attack, Q skill, E dodge, R potion.
 - Town, shop, weapon upgrades, level progression, local save and bestiary.
 - Transparent WebP atlases, region-based loading and bundled Thai font for offline display.
 
@@ -22,11 +22,11 @@ Run `npm run serve`, then open http://localhost:8080. No npm packages are needed
 
 ## Current art limitations
 
-Hero animation uses the existing 6×4 sheets with mirrored left/right facing, not eight-direction animation. Monster sheets use a 5×4 layout: rows 0/2 are idle, rows 1/3 are attack. Each monster currently has two poses, not a complete walk/attack frame sequence. The ten regions use prototype scenery. Online play and release Android packaging are separate unfinished work.
+Walking uses dedicated front/back atlases, mirrored for four diagonal facings: 12 frames per direction for Sword male, 8 for the other heroes. Gait is driven by actual travel distance; attack/cast startup briefly plants the feet. Atlas metadata records actual cell boundaries and foot anchors. Combat retains the original 6×4 sheets. These are stylized 2D cycles, not skeletal or full eight-direction animation. Monster sheets use a 5×4 layout: rows 0/2 are idle, rows 1/3 are attack. Each monster currently has two poses, not a complete walk/attack frame sequence. The ten regions use prototype scenery. Online play and production Android release signing remain unfinished. CI publishes signed test APKs through GitHub Releases.
 
 ## Assets
 
-The game consumes only `web/sprites/*.webp`, plus Noto Sans Thai and its accompanying open-font license. Each `monsters-N.webp` contains the ten monsters of region N, indexed by `zone` and `slot` in `web/catalog.js`. Character filenames match hero IDs. The assets were generated for this project.
+The game consumes `web/sprites/*.webp`, `web/walk/*.webp`, `web/vfx/*.webp`, plus Noto Sans Thai and its accompanying open-font license. Each `monsters-N.webp` contains the ten monsters of region N, indexed by `zone` and `slot` in `web/catalog.js`. Character filenames match hero IDs. The assets were generated for this project.
 
 ## Skill system
 
@@ -43,3 +43,9 @@ Twenty sect techniques now use two generated transparent animation atlases in `w
 These are original generated xianxia effects; four-frame sequences remain stylized and are not full high-frame-count 3D simulations. Custom recipe fragment art (50 pieces) is deferred; custom techniques retain procedural effects for now. The skill-upgrade system is also not included in this update.
 
 Generation: built-in Imagegen. Prompt specification: transparent 8×5 game animation atlases, no characters or scenery, four phases (gather, expand, strike, fade), ornate luminous isometric Chinese fantasy spells. Sword motifs: crescent, lightning thrust, frost sweep, fire sword, sword circle, jade cyclone, ice lotus, seven-sword fan, azure dragon, heavenly sword rain. Demon motifs: blood claw, infernal orb, frost shadow, poison skull, blood lotus, soul chains, demon wing, spectral serpent, eclipse sigil, nine-lotus storm. Original art with premium fantasy MMORPG visual ambition.
+
+## Mobile UI 0.1.1
+
+Original light fantasy panels with blue window headers, persistent close buttons, top-right shortcuts, left analog joystick and radial right-hand combat buttons. Inspired by mobile MMORPG control conventions; no Ragnarok artwork or branding is included. Safe-area margins and compact landscape layout support small screens. Settings, shops, crafting, bestiary and skill windows share the same visual theme. Existing save key and Android application ID are preserved.
+
+Verified in Chromium: four heroes front/back, analog movement, action movement lock, endpoint clamping, world bounds, simultaneous joystick/attack pointers and independent release, modal pause/close, small-landscape control bounds, and skill crafting/equipping/casting/save persistence. Physical Android playtesting is still needed.

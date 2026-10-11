@@ -42,14 +42,14 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp']+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','walk.js']+[f'walk/{h}.webp' for h in ['sword-male','sword-female','demon-male','demon-female']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
                   assert 'assets/'+p in names,p
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.0-test.apk
-          sha256sum Road-to-Immortality-0.1.0-test.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.1-test.apk
+          sha256sum Road-to-Immortality-0.1.1-test.apk > SHA256SUMS.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'Road to Immortality — Android test' --notes 'Offline test APK. Android 8 or newer. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.0-test.apk SHA256SUMS.txt
+        run: gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'Road to Immortality — Android test' --notes 'Offline test APK. Android 8 or newer. New directional walking, analog joystick, radial combat controls and light RPG windows. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.1-test.apk SHA256SUMS.txt
