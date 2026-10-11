@@ -1,0 +1,8 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#142b32"><title>Road to Immortality • ถนนสู่เซียน</title><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="game" aria-label="พื้นที่เกม"></canvas>
+<div id="loading"><h1>ROAD TO IMMORTALITY</h1><p>ถนนสู่เซียน</p><progress id="progress" max="5" value="0"></progress><p id="loadText">กำลังเตรียมสำนัก…</p><button id="retry" hidden>ลองอีกครั้ง</button></div>
+<header id="hud" hidden><div class="panel"><b id="heroName"></b><span id="level"></span><div class="meter"><i id="hp"></i></div><small id="hpText"></small><div class="meter xp"><i id="xp"></i></div></div><div class="panel right"><b id="zoneName"></b><span id="money"></span><button id="menuBtn">☰ เมนู</button></div></header>
+<div id="hint" hidden>แตะพื้นเพื่อเดิน • แตะศัตรูเพื่อล็อกเป้า</div><div id="toast" role="status"></div>
+<div id="controls" hidden><button id="townBtn">⌂ เมือง</button><div class="combat"><button id="potionBtn">ยา</button><button id="dashBtn">หลบ</button><button id="skillBtn">สกิล</button><button id="attackBtn">ฟัน</button></div></div>
+<dialog id="modal"><div id="modalContent"></div></dialog>
+<script type="module" src="game.js"></script></body></html>
