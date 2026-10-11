@@ -1,0 +1,57 @@
+name: Android test APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-test-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test && npm run check && python3 tools/validate_assets.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: xian2-test-signing-v1
+      - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+      - name: Verify packaged assets and APK signature
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
+              names=set(z.namelist())
+              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp']+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+                  assert 'assets/'+p in names,p
+              assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
+          PY
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.0-test.apk
+          sha256sum Road-to-Immortality-0.1.0-test.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Road-to-Immortality-APK
+          path: |
+            Road-to-Immortality-0.1.0-test.apk
+            SHA256SUMS.txt
+      - name: Publish downloadable test build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'Road to Immortality — Android test' --notes 'Offline test APK. Android 8 or newer. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.0-test.apk SHA256SUMS.txt
