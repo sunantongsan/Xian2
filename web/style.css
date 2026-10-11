@@ -18,3 +18,7 @@ dialog{background:linear-gradient(#fffdf6,#edf1f3);color:var(--ink);border:2px s
 #zoomControls{display:flex;gap:5px;justify-content:flex-end;margin-top:6px}#zoomControls[hidden]{display:none}#zoomControls button{width:34px;min-height:30px;margin:0;padding:0;font-size:20px;border-radius:8px}
 
 #hud{align-items:flex-start}
+
+
+#autoBtn{position:absolute;bottom:4px;left:154px;min-width:98px;min-height:44px;pointer-events:auto}#autoBtn[aria-pressed="true"]{background:linear-gradient(#d5ffd6,#58b37d);color:#173d2b;box-shadow:0 0 10px #8be8b2}.quick-menu{flex-wrap:wrap}
+@media(max-height:450px){#autoBtn{bottom:4px;min-height:36px}}

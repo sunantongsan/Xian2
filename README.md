@@ -1,4 +1,4 @@
-# Road to Immortality — ถนนสู่เซียน
+# วิถีเชียน
 
 Offline isometric cultivation action RPG prototype. Not yet a production-ready or Play Store approved release.
 
@@ -40,7 +40,7 @@ Buy ingredients for G in town. Crafting validates level, ingredient counts and m
 
 Twenty sect techniques now use two generated transparent animation atlases in `web/vfx/`, ten spells per sheet. Each sheet is 8 columns × 5 rows, four consecutive frames per spell. IDs s1–s10 and d1–d10 map to the sheet in row-major groups of four. Actual image dimensions are 1586×992; sampling uses fractional cell dimensions. Normal quality cross-fades adjacent frames; low quality draws one frame, without runtime blur. Both sheets are loaded before play to avoid a first-cast loading pause. Real-device frame-rate testing remains outstanding.
 
-These are original generated xianxia effects; four-frame sequences remain stylized and are not full high-frame-count 3D simulations. Custom recipe fragment art (50 pieces) is deferred; custom techniques retain procedural effects for now. The skill-upgrade system is also not included in this update.
+These are original generated xianxia effects; four-frame sequences remain stylized and are not full high-frame-count 3D simulations. Custom recipe fragment art (50 pieces) is deferred; custom techniques retain procedural effects for now. Skill upgrades are available from version 0.1.4.
 
 Generation: built-in Imagegen. Prompt specification: transparent 8×5 game animation atlases, no characters or scenery, four phases (gather, expand, strike, fade), ornate luminous isometric Chinese fantasy spells. Sword motifs: crescent, lightning thrust, frost sweep, fire sword, sword circle, jade cyclone, ice lotus, seven-sword fan, azure dragon, heavenly sword rain. Demon motifs: blood claw, infernal orb, frost shadow, poison skull, blood lotus, soul chains, demon wing, spectral serpent, eclipse sigil, nine-lotus storm. Original art with premium fantasy MMORPG visual ambition.
 
@@ -67,3 +67,14 @@ Qingyun town replaces the geometric town with original painted Chinese sect arch
 Backgrounds are baked paintings; buildings, ponds, roofs and dense boundary vegetation are outside the navigable area rather than fake traversable 3D geometry. The existing walking rig is unchanged in this map update and is still awaiting a satisfactory visual revision. No claim of matching a reference game's production quality has been verified.
 
 Validation: safe spawn/POI reachability, swept collision against pond/roof boundaries, projection round trips, browser interaction with all three town services, travel both ways, ten valid monster spawns and pursuit, and small landscape layout. CI checks both painted assets are packaged in the APK.
+
+## วิถีเชียน — 0.1.4
+
+Renamed the visible game and Android label; application ID and save key stay compatible. Character progression now grants 10 attribute points and 10 skill points per level, including previously earned levels on old saves. Vitality changes HP and defense, strength changes attack, spirit changes mana and spell power, and agility changes bounded critical chance, attack speed and movement speed. Techniques train to rank 20, gaining 6% base skill power per rank. Reputation grants 1 per monster and 25 per boss with display titles. All progression persists locally.
+
+The auto button switches nearby-target selection, pursuit and basic attacks on/off. Manual movement takes priority. When off, tapping a monster selects it; hold attack to pursue and attack. Turning auto off clears pursuit immediately. Auto does not cast skills or consume potions.
+
+Walking uses a longer distance-driven stride, hip weight shift, upper-body counterbalance and separate skirt sections following the thighs. This removes the static long-robe overlay that concealed upper-leg movement. Monsters now patrol near their spawn, pause independently, breathe, sway with movement, anticipate and lunge when attacking; hit monsters react by becoming aggressive. These remain procedural animations from existing artwork, not newly painted full frame sequences.
+
+Validation: 22 Node tests including legacy save migration, spending, rank limits, stat combat effects, actual runtime auto on/off and monster roaming; JavaScript syntax check. Browser visual verification was unavailable in this environment (Chromium download failed). Physical Android assessment of the revised gait and UI remains required.
+

@@ -1,1 +1,2 @@
-{"name":"road-to-immortality","version":"0.1.3","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check web/game.js","serve":"python3 -m http.server 8080 --directory web"}}
+{"name":"road-to-immortality","version":"0.1.4","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check web/game.js","serve":"python3 -m http.server 8080 --directory web"}}
+

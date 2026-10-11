@@ -47,10 +47,11 @@ jobs:
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.3-test.apk
-          sha256sum Road-to-Immortality-0.1.3-test.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.4-test.apk
+          sha256sum Road-to-Immortality-0.1.4-test.apk > SHA256SUMS.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'Road to Immortality — Android test' --notes 'Offline test APK. Android 8 or newer. Two painted playable wuxia maps: Qingyun town and Jade Bamboo Valley. Navigation, scene collisions, services, monster arena and map zoom. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.3-test.apk SHA256SUMS.txt
+          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. Renamed to วิถีเชียน. Attribute and skill training, reputation, auto-attack toggle, full-leg/robe gait and living monster patrols. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.4-test.apk SHA256SUMS.txt
+
