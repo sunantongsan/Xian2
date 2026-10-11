@@ -4,7 +4,7 @@ import struct
 assets = Path(__file__).resolve().parents[1] / 'web' / 'sprites'
 files = [f'monsters-{i}.webp' for i in range(10)] + [f'{s}-{g}.webp' for s in ['sword', 'demon'] for g in ['male', 'female']]
 total = 0
-files += [f'../walk/{s}-{g}.webp' for s in ['sword','demon'] for g in ['male','female']]
+files += [f'../rig/{s}-{g}.webp' for s in ['sword','demon'] for g in ['male','female']]
 for name in files:
     data = (assets / name).read_bytes()
     assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', name
@@ -16,4 +16,4 @@ for name in files:
     print(name, w, h, len(data))
 assert (assets.parent / 'assets' / 'NotoSansThai.ttf').is_file()
 assert (assets.parent / 'assets' / 'NotoSansThai-LICENSE.txt').is_file()
-print(f'Validated 4 combat, 4 walking, and 10 monster atlases: {total:,} bytes')
+print(f'Validated 4 combat, 4 cutout walking, and 10 monster atlases: {total:,} bytes')

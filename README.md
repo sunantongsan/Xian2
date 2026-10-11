@@ -22,11 +22,11 @@ Run `npm run serve`, then open http://localhost:8080. No npm packages are needed
 
 ## Current art limitations
 
-Walking uses dedicated front/back atlases, mirrored for four diagonal facings: 12 frames per direction for Sword male, 8 for the other heroes. Gait is driven by actual travel distance; attack/cast startup briefly plants the feet. Atlas metadata records actual cell boundaries and foot anchors. Combat retains the original 6×4 sheets. These are stylized 2D cycles, not skeletal or full eight-direction animation. Monster sheets use a 5×4 layout: rows 0/2 are idle, rows 1/3 are attack. Each monster currently has two poses, not a complete walk/attack frame sequence. The ten regions use prototype scenery. Online play and production Android release signing remain unfinished. CI publishes signed test APKs through GitHub Releases.
+Walking now uses painted cutout parts with a two-bone leg rig, front/back artwork mirrored for four facings. Both legs alternate through contact, weight bearing, passing, swing and opposite contact. The gait is tied to actual travel distance. Legs are solved in the vertical walking plane before isometric projection so camera depth does not force a crouch. Foot placement cancels root displacement during the stance phase; start/stop blends into a resting pose. Body scale and hip anchors stay fixed. Combat retains the original 6×4 sheets. This is a lightweight 2D rig, not a full 3D character animation system. Monster sheets use a 5×4 layout: rows 0/2 are idle, rows 1/3 are attack. Each monster currently has two poses, not a complete walk/attack frame sequence. The ten regions use prototype scenery. Online play and production Android release signing remain unfinished. CI publishes signed test APKs through GitHub Releases.
 
 ## Assets
 
-The game consumes `web/sprites/*.webp`, `web/walk/*.webp`, `web/vfx/*.webp`, plus Noto Sans Thai and its accompanying open-font license. Each `monsters-N.webp` contains the ten monsters of region N, indexed by `zone` and `slot` in `web/catalog.js`. Character filenames match hero IDs. The assets were generated for this project.
+The game consumes `web/sprites/*.webp`, `web/rig/*.webp`, `web/vfx/*.webp`, plus Noto Sans Thai and its accompanying open-font license. Each `monsters-N.webp` contains the ten monsters of region N, indexed by `zone` and `slot` in `web/catalog.js`. Character filenames match hero IDs. The assets were generated for this project.
 
 ## Skill system
 
@@ -49,3 +49,11 @@ Generation: built-in Imagegen. Prompt specification: transparent 8×5 game anima
 Original light fantasy panels with blue window headers, persistent close buttons, top-right shortcuts, left analog joystick and radial right-hand combat buttons. Inspired by mobile MMORPG control conventions; no Ragnarok artwork or branding is included. Safe-area margins and compact landscape layout support small screens. Settings, shops, crafting, bestiary and skill windows share the same visual theme. Existing save key and Android application ID are preserved.
 
 Verified in Chromium: four heroes front/back, analog movement, action movement lock, endpoint clamping, world bounds, simultaneous joystick/attack pointers and independent release, modal pause/close, small-landscape control bounds, and skill crafting/equipping/casting/save persistence. Physical Android playtesting is still needed.
+
+## Walking correction 0.1.2
+
+The 0.1.1 generated walk sheets did not actually alternate leading legs; adding frames alone did not fix them. They are replaced by isolated torso, thigh and shin/boot artwork in `web/rig/`, source rectangles and joint pivots in `web/rig.js`, and deterministic continuous gait in `web/gait.js`. No static painted legs remain beneath the animated legs. The failed walk sheets are no longer packaged.
+
+Validation: 13 unit tests including opposite leading feet, lifted passing legs, planted-foot cancellation, continuous cycle seam and fixed world-space bone lengths. Browser review rendered eight phases for all four heroes from front and back; touch, movement endpoints, action startup lock, modal pause and small-screen controls remain covered. Physical-device gait assessment remains for the test APK.
+
+Art: built-in Imagegen, identity references from the original hero atlases. Prompt: six isolated cutout parts per hero, three columns × two rows; front torso with split robe and no legs, separate thigh, separate shin/boot; corresponding back views; original costume and identity, transparent background, no floor or text. A background-removal pass was also evaluated. Sprite cutting uses original alpha component bounds and runtime clipping; hip anchors remain fixed instead of following each frame’s foot centroid.
