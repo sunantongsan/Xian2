@@ -19,3 +19,16 @@ export function normalizeSkills(s,v={}){const sect=s.hero.startsWith('sword')?'s
 export function knownSkills(s){return [...SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon')),...s.recipes];}
 export function craft(s,r){if(s.level<60)return 'ต้องถึงเลเวล 60';if(s.recipes.length>=10)return 'บันทึกได้สูงสุด 10 วิชา';if(!r||!FORMS[r.form]||!ELEMENTS[r.element]||!Array.isArray(r.mods)||new Set(r.mods).size!==r.mods.length||r.mods.some(m=>!MODS[m]||m==='none'))return 'สูตรไม่ถูกต้อง';if(r.mods.length>(s.level>=120?2:1))return 'สองคุณสมบัติต้องเลเวล 120';const advanced=r.mods.length===2,cost=advanced?12000:3000;if(s.gold<cost||s.materials.ink<1||s.materials[r.element]<3||(advanced&&s.materials.core<2))return 'เงินหรือวัตถุดิบไม่พอ';s.gold-=cost;s.materials.ink--;s.materials[r.element]-=3;if(advanced)s.materials.core-=2;s.recipes.push({id:'custom'+s.recipes.length,name:String(r.name||'วิชาไร้นาม').trim().slice(0,32)||'วิชาไร้นาม',form:r.form,element:r.element,mods:r.mods,level:advanced?120:60});return null;}
 export function skillTargets(skill,origin,aim,enemies){const dx=aim.x-origin.x,dy=aim.y-origin.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;const live=enemies.filter(e=>e.hp>0);if(skill.form==='circle')return live.filter(e=>Math.hypot(e.x-origin.x,e.y-origin.y)<=skill.radius);if(skill.form==='field')return live.filter(e=>Math.hypot(e.x-aim.x,e.y-aim.y)<=skill.radius);const line=live.filter(e=>{const x=e.x-origin.x,y=e.y-origin.y,along=x*ux+y*uy;return along>=0&&along<=skill.range&&Math.abs(x*uy-y*ux)<=(skill.radius||40)}).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y));return skill.form==='bolt'?line.slice(0,skill.mods.includes('pierce')?3:1):line;}
+
+SCHOOL.push(
+{id:'s6',sect:'sword',name:'กระบี่วายุหยก',level:80,form:'circle',element:'wind',mods:['wide']},
+{id:'s7',sect:'sword',name:'บัวกระบี่เหมันต์',level:100,form:'field',element:'ice',mods:['lasting']},
+{id:'s8',sect:'sword',name:'เจ็ดกระบี่พิพากษา',level:140,form:'wave',element:'lightning',mods:['pierce','force']},
+{id:'s9',sect:'sword',name:'มังกรครามทะลวงฟ้า',level:160,form:'wave',element:'ice',mods:['wide','force']},
+{id:'s10',sect:'sword',name:'ฝนกระบี่ประตูสวรรค์',level:180,form:'field',element:'lightning',mods:['wide','force']},
+{id:'d6',sect:'demon',name:'โซ่วิญญาณวนสูญ',level:80,form:'circle',element:'ice',mods:['drain']},
+{id:'d7',sect:'demon',name:'ปีกมารสะบั้นจันทร์',level:100,form:'wave',element:'fire',mods:['force']},
+{id:'d8',sect:'demon',name:'อสรพิษกลืนวิญญาณ',level:140,form:'bolt',element:'poison',mods:['pierce','lasting']},
+{id:'d9',sect:'demon',name:'คราสโลหิตเก้าผนึก',level:160,form:'circle',element:'fire',mods:['wide','drain']},
+{id:'d10',sect:'demon',name:'พายุเก้าบัวอเวจี',level:180,form:'field',element:'poison',mods:['wide','force']}
+);

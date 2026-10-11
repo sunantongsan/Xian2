@@ -30,8 +30,16 @@ The game consumes only `web/sprites/*.webp`, plus Noto Sans Thai and its accompa
 
 ## Skill system
 
-The Skills menu contains five techniques per sect, unlocked at levels 1/20/40/60/120. Equip up to three; use the touch buttons or keys 1/2/3 (Q also casts slot 1). Mana regenerates at 5 per second, and each technique has its own cooldown.
+The Skills menu contains ten techniques per sect, unlocked progressively from level 1 to 180. Equip up to three; use the touch buttons or keys 1/2/3 (Q also casts slot 1). Mana regenerates at 5 per second, and each technique has its own cooldown.
 
 At level 60, craft a named technique from wave/circle/bolt/dash/field, one of five elements, and up to one modifier. At level 120, use two distinct modifiers. Fire/poison deal damage over time, ice slows, wind pushes and lightning increases direct damage. Modifiers implement piercing, life drain, wider area, higher power, faster casting cooldown, and longer status duration. Fields pulse four times. Life drain is capped per cast; damage-over-time effects of the same element refresh instead of stacking.
 
-Buy ingredients for G in town. Crafting validates level, ingredient counts and money before deducting any resource. Recipes, ingredients and equipped slots persist in old or new saves. Current version has ten recipe slots; editing existing recipes, training-dummy preview and chained advanced techniques are not implemented yet. Skill effects are lightweight procedural effects using the existing hero cast animation, not new raster sprite sheets.
+Buy ingredients for G in town. Crafting validates level, ingredient counts and money before deducting any resource. Recipes, ingredients and equipped slots persist in old or new saves. Current version has ten recipe slots; editing existing recipes, training-dummy preview and chained advanced techniques are not implemented yet. Custom recipe effects currently use lightweight procedural effects; sect techniques use the painted atlases described below.
+
+## Painted spell VFX (20 techniques)
+
+Twenty sect techniques now use two generated transparent animation atlases in `web/vfx/`, ten spells per sheet. Each sheet is 8 columns × 5 rows, four consecutive frames per spell. IDs s1–s10 and d1–d10 map to the sheet in row-major groups of four. Actual image dimensions are 1586×992; sampling uses fractional cell dimensions. Normal quality cross-fades adjacent frames; low quality draws one frame, without runtime blur. Both sheets are loaded before play to avoid a first-cast loading pause. Real-device frame-rate testing remains outstanding.
+
+These are original generated xianxia effects; four-frame sequences remain stylized and are not full high-frame-count 3D simulations. Custom recipe fragment art (50 pieces) is deferred; custom techniques retain procedural effects for now. The skill-upgrade system is also not included in this update.
+
+Generation: built-in Imagegen. Prompt specification: transparent 8×5 game animation atlases, no characters or scenery, four phases (gather, expand, strike, fade), ornate luminous isometric Chinese fantasy spells. Sword motifs: crescent, lightning thrust, frost sweep, fire sword, sword circle, jade cyclone, ice lotus, seven-sword fan, azure dragon, heavenly sword rain. Demon motifs: blood claw, infernal orb, frost shadow, poison skull, blood lotus, soul chains, demon wing, spectral serpent, eclipse sigil, nine-lotus storm. Original art with premium fantasy MMORPG visual ambition.
