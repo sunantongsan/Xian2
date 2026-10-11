@@ -1,11 +1,12 @@
 package com.sunantongsan.xian2;
-import android.app.Activity;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
 import android.os.Bundle;
 import android.webkit.*;
 import android.view.View;
 import androidx.webkit.WebViewAssetLoader;
 import java.io.ByteArrayInputStream;
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
  private WebView web;
  private static final String ORIGIN="https://appassets.androidplatform.net";
  @Override public void onCreate(Bundle b){super.onCreate(b);web=new WebView(this);setContentView(web);
@@ -15,10 +16,11 @@ public class MainActivity extends Activity {
   web.setWebViewClient(new WebViewClient(){
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){WebResourceResponse r=loader.shouldInterceptRequest(request.getUrl());return r!=null?r:new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));}
    @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest r){return !r.getUrl().toString().startsWith(ORIGIN+"/assets/");}
+  });getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){
+   @Override public void handleOnBackPressed(){web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn').click();})()",null);}
   });web.loadUrl(ORIGIN+"/assets/index.html");
  }
  @Override protected void onPause(){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();web.pauseTimers();super.onPause();}
  @Override protected void onResume(){super.onResume();if(web!=null){web.onResume();web.resumeTimers();}}
- @Override public void onBackPressed(){web.evaluateJavascript("(()=>{const d=document.getElementById('modal'); if(!d.open)document.getElementById('menuBtn').click();})()",null);}
  @Override protected void onDestroy(){if(web!=null)web.destroy();super.onDestroy();}
 }
