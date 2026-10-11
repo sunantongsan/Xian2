@@ -17,3 +17,10 @@ for name in files:
 assert (assets.parent / 'assets' / 'NotoSansThai.ttf').is_file()
 assert (assets.parent / 'assets' / 'NotoSansThai-LICENSE.txt').is_file()
 print(f'Validated 4 combat, 4 cutout walking, and 10 monster atlases: {total:,} bytes')
+
+for name in ['town','bamboo']:
+    data=(assets.parent/'maps'/f'{name}.webp').read_bytes()
+    assert data[:4]==b'RIFF' and data[8:12]==b'WEBP'
+    assert struct.unpack('<I',data[4:8])[0]+8==len(data)
+    assert len(data)>100000
+    print('Painted map',name,len(data))
