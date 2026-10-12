@@ -1,27 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {bodyPose,walkingFoot,WALK_CYCLE,drawPuppet} from '../web/puppet.js';
+import {bodyPose,WALK_CYCLE,drawPuppet} from '../web/puppet.js';
+import {sampleCapture} from '../web/captured-walk.js';
+import {WALK_CAPTURE} from '../web/walk-capture.js';
 import {PUPPET_ATLASES} from '../web/puppet-atlas.js';
-test('both whole arms counter-swing with their corresponding leg',()=>{
- for(const phase of [0,.125,.25,.5,.625,.75]){const p=bodyPose(phase*WALK_CYCLE,1,0,1);for(let i=0;i<2;i++){const foot=walkingFoot(phase+i*.5);assert(p.arms[i].world.end.x*foot.x<=.000001);}}
- const a=bodyPose(0,1,0,1),b=bodyPose(WALK_CYCLE*.5,1,0,1);
- assert(a.arms[0].hand.x<a.arms[0].shoulder.x);assert(b.arms[0].hand.x>b.arms[0].shoulder.x);
- assert(a.legs[0].foot.x>b.legs[0].foot.x);
-});
-test('shoulder, pelvis and head move rather than keeping a static torso',()=>{
- const a=bodyPose(WALK_CYCLE*.25,1,0,1),b=bodyPose(WALK_CYCLE*.75,1,0,1);
- assert(a.chestAngle!==b.chestAngle);assert(a.hipAngle!==b.hipAngle);assert(a.headAngle!==b.headAngle);assert(a.chestAngle*a.hipAngle<0);assert(b.chestAngle*b.hipAngle<0);
-});
-test('cycle seam is continuous and planted feet cancel distance, at all camera headings',()=>{
- for(const [dx,dy]of [[1,0],[0,1],[-1,0],[0,-1],[.707,.707]]){
- const a=bodyPose(0,dx,dy,1,0),b=bodyPose(WALK_CYCLE,dx,dy,1,0);
- for(let i=0;i<2;i++)for(const key of ['hip','knee','foot'])assert(Math.hypot(a.legs[i][key].x-b.legs[i][key].x,a.legs[i][key].y-b.legs[i][key].y)<1e-8);
+const samples=Array.from({length:128},(_,i)=>sampleCapture(i/128*WALK_CYCLE));
+const range=values=>Math.max(...values)-Math.min(...values);
+test('captured gait preserves whole-body movement and opposing arm/leg swing',()=>{
+ assert.equal(WALK_CAPTURE.frames.length,64);
+ assert(WALK_CAPTURE.duration>1&&WALK_CAPTURE.duration<1.2);
+ for(const name of ['Hips','Neck1','LeftArm','RightArm'])assert(range(samples.map(j=>j[name][1]))>.02,name);
+ for(const side of ['Left','Right']){
+  assert(range(samples.map(j=>j[side+'Hand'][2]))>.2);
+  let opposite=0;for(const j of samples)if((j[side+'Hand'][2]-j[side+'Arm'][2])*(j[side+'Foot'][2]-j[side+'UpLeg'][2])<0)opposite++;
+  assert(opposite>90,`${side}: ${opposite}`);
  }
- const a=walkingFoot(.1),b=walkingFoot(.5);assert(Math.abs(b.x-a.x+.4*WALK_CYCLE/110)<1e-8);
 });
-test('limb lengths are stable throughout the cycle and blend to a grounded idle',()=>{
- for(let i=0;i<80;i++){const p=bodyPose(i/80*WALK_CYCLE,1,0,1);for(const l of p.legs){const w=l.world;assert(Math.abs(Math.hypot(w.joint.x-w.root.x,w.joint.y-w.root.y )-.27)<1e-8);assert(Math.abs(Math.hypot(w.end.x-w.joint.x,w.end.y-w.joint.y )-.285)<1e-8);}for(const a of p.arms){const w=a.world;assert(Math.abs(Math.hypot(w.joint.x,w.joint.y)-.145)<1e-8);}}
- assert(bodyPose(30,1,0,0).legs.every(l=>Math.abs(l.world.end.y)<1e-8));
+test('captured limbs retain their lengths rather than rubber-stretching',()=>{
+ for(const side of ['Left','Right'])for(const [a,b] of [['UpLeg','Leg'],['Leg','Foot'],['Arm','ForeArm'],['ForeArm','Hand']]){
+ const lengths=samples.map(j=>Math.hypot(...j[side+a].map((v,k)=>v-j[side+b][k])));
+ assert(range(lengths)<1e-7,`${side} ${a}: ${range(lengths)}`);
+ }
+});
+test('loop has no pose jump and transforms correctly in all eight headings',()=>{
+ for(let i=0;i<8;i++){
+  const dx=Math.cos(i*Math.PI/4),dy=Math.sin(i*Math.PI/4);
+  const a=bodyPose(0,dx,dy,1),b=bodyPose(WALK_CYCLE,dx,dy,1),near=bodyPose(WALK_CYCLE-0.001,dx,dy,1);
+  for(let l=0;l<2;l++)for(const key of ['hip','knee','foot','toe']){
+   assert.deepEqual(a.legs[l][key],b.legs[l][key]);
+   assert(Math.hypot(a.legs[l][key].x-near.legs[l][key].x,a.legs[l][key].y-near.legs[l][key].y)<.0001);
+  }
+ }
+});
+test('idle transition is grounded and walking includes ankle articulation',()=>{
+ for(let i=0;i<64;i++){
+ const p=bodyPose(i/64*WALK_CYCLE,1,0,1);
+ const toes=['LeftToeBase','RightToeBase','LeftToeBaseEnd','RightToeBaseEnd'].map(n=>p.joints[n][1]);
+ assert(Math.abs(Math.min(...toes))<1e-8);
+ }
+ const idle=bodyPose(50,1,0,0);assert.equal(idle.joints.LeftFoot[1],idle.joints.RightFoot[1]);
+ const angles=samples.map(j=>Math.atan2(j.LeftToeBaseEnd[1]-j.LeftFoot[1],j.LeftToeBaseEnd[2]-j.LeftFoot[2]));
+ assert(range(angles)>.4);
 });
 test('all four new characters render both facings and combat states without invalid draws',()=>{
  let count=0;const ctx=new Proxy({globalAlpha:1},{get(o,k){if(k in o)return o[k];return (...args)=>{if(k==='drawImage'){count++;for(const v of args.slice(1))assert(Number.isFinite(v));assert(args[3]>0&&args[4]>0);}else for(const v of args)if(typeof v==='number')assert(Number.isFinite(v));};}});

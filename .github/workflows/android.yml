@@ -42,16 +42,16 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','puppet.js','puppet-atlas.js','maps.js','maps/town.webp','maps/bamboo.webp']+[f'puppets/{h}.webp' for h in ['sword-male','sword-female','demon-male','demon-female']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','puppet.js','captured-walk.js','walk-capture.js','assets/MOTION-LICENSE.txt','puppet-atlas.js','maps.js','maps/town.webp','maps/bamboo.webp']+[f'puppets/{h}.webp' for h in ['sword-male','sword-female','demon-male','demon-female']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
                   assert 'assets/'+p in names,p
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.5-test.apk
-          sha256sum Road-to-Immortality-0.1.5-test.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.6-test.apk
+          sha256sum Road-to-Immortality-0.1.6-test.apk > SHA256SUMS.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. Renamed to วิถีเชียน. Four redrawn heroes with continuous full-body animation, counter-swinging arms, hip/shoulder motion and flowing sashes. New artwork used in walking, idle and combat. Includes stats, reputation and auto-attack. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.5-test.apk SHA256SUMS.txt docs/new-character-walk.mp4
+          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. Renamed to วิถีเชียน. Human motion-captured walking replaces the procedural gait for all four heroes. Articulated ankles, captured arm/shoulder/hip timing and natural walking cadence. New artwork used in walking, idle and combat. Includes stats, reputation and auto-attack. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.6-test.apk SHA256SUMS.txt docs/new-character-walk.mp4
 
