@@ -4,7 +4,7 @@ import struct
 assets = Path(__file__).resolve().parents[1] / 'web' / 'sprites'
 files = [f'monsters-{i}.webp' for i in range(10)] + [f'{s}-{g}.webp' for s in ['sword', 'demon'] for g in ['male', 'female']]
 total = 0
-files += [f'../rig/{s}-{g}.webp' for s in ['sword','demon'] for g in ['male','female']]
+files += [f'../puppets/{s}-{g}.webp' for s in ['sword','demon'] for g in ['male','female']]
 for name in files:
     data = (assets / name).read_bytes()
     assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', name
@@ -16,7 +16,7 @@ for name in files:
     print(name, w, h, len(data))
 assert (assets.parent / 'assets' / 'NotoSansThai.ttf').is_file()
 assert (assets.parent / 'assets' / 'NotoSansThai-LICENSE.txt').is_file()
-print(f'Validated 4 combat, 4 cutout walking, and 10 monster atlases: {total:,} bytes')
+print(f'Validated 4 legacy combat, 4 full-body puppet, and 10 monster atlases: {total:,} bytes')
 
 for name in ['town','bamboo']:
     data=(assets.parent/'maps'/f'{name}.webp').read_bytes()
@@ -24,3 +24,4 @@ for name in ['town','bamboo']:
     assert struct.unpack('<I',data[4:8])[0]+8==len(data)
     assert len(data)>100000
     print('Painted map',name,len(data))
+

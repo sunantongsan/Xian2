@@ -1,5 +1,7 @@
 # วิถีเชียน
 
+Current test version: **0.1.5**. All four playable heroes have been redrawn and use continuous full-body animation, including articulated shoulders, elbows, hips, knees, torso and sash. See [character redraw notes and prompts](docs/character-redraw.md) and [animation preview](docs/new-character-walk.mp4). Older version notes below describe superseded artwork.
+
 Offline isometric cultivation action RPG prototype. Not yet a production-ready or Play Store approved release.
 
 ## Play locally
