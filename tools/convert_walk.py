@@ -63,7 +63,7 @@ for side in ['Left','Right']:
   length=float(np.median(np.linalg.norm(a[:,selection.index(c)]-a[:,selection.index(p)],axis=1)))
   bones.append([p,c,round(length,8)])
 out={'source':'CMU Graphics Lab 07_01; Bruce Hahne BVH conversion','duration':round(period*dt,5),'cycleDistance':round(stride,5),'sourceFrames':[start,start+period],'jointNames':selection,'bones':bones,'frames':np.round(result,6).tolist()}
-(base/'web/walk-capture.js').write_text('// Derived from CMU walking capture 07_01. Credits: assets/MOTION-LICENSE.txt\nexport const WALK_CAPTURE='+json.dumps(out,separators=(',',':'))+';\n')
+(base/'tools/mocap/walk-capture.js').write_text('// Derived from CMU walking capture 07_01. Credits: assets/MOTION-LICENSE.txt\nexport const WALK_CAPTURE='+json.dumps(out,separators=(',',':'))+';\n')
 (base/'tools/mocap/walk-analysis.json').write_text(json.dumps({'source_dt':dt,'source_frames':len(data),'height':height,'floor':floor,'forward':forward.tolist(),'best_loop_error':float(error),'seam_max_distance':float(np.max(np.linalg.norm(mismatch,axis=1))),'cycle_frames':period,'duration':out['duration'],'cycle_distance':stride},indent=2))
 print((base/'tools/mocap/walk-analysis.json').read_text())
 print('Joint heights frame mid:',{n:np.round(a[start+period//2,i],3).tolist() for i,n in enumerate(selection)})

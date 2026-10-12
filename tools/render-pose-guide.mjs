@@ -1,0 +1,8 @@
+import fs from 'node:fs';import {createRequire} from 'node:module';const sharp=createRequire(import.meta.url)(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/sharp':'sharp');
+import {capturedBodyPose,WALK_CYCLE} from './mocap/project-pose.js';
+const width=2048,height=1024;let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ecebe7"/>`;
+for(let i=0;i<8;i++){const p=capturedBodyPose(i/8*WALK_CYCLE,process.argv.includes('--back')?0:1,process.argv.includes('--back')?-1:0,1),x=(i%4)*512+256,y=Math.floor(i/4)*512+462,z=390;const xy=v=>[x+v.x*z,y+v.y*z];const line=(a,b,color,w=14)=>{a=xy(a);b=xy(b);svg+=`<path d="M${a}L${b}" stroke="${color}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`};
+svg+=`<path d="M${x-140},${y}H${x+140}" stroke="#bbc1c3" stroke-width="2"/>`;
+line(p.hips,p.neck,'#647078',24);line(p.arms[0].shoulder,p.arms[1].shoulder,'#647078',16);line(p.legs[0].hip,p.legs[1].hip,'#647078',18);
+p.legs.forEach((l,j)=>{line(l.hip,l.knee,j?'#1c597b':'#aa4b39',20);line(l.knee,l.foot,j?'#1c597b':'#aa4b39',16);line(l.foot,l.toe,j?'#1c597b':'#aa4b39',12)});p.arms.forEach((a,j)=>{line(a.shoulder,a.elbow,j?'#1c597b':'#aa4b39',13);line(a.elbow,a.hand,j?'#1c597b':'#aa4b39',11)});let n=xy(p.neck);svg+=`<ellipse cx="${n[0]}" cy="${n[1]-22}" rx="20" ry="28" fill="#647078"/><text x="${x}" y="${Math.floor(i/4)*512+28}" font-size="22" text-anchor="middle">${i+1}</text>`;
+}svg+='</svg>';await sharp(Buffer.from(svg)).png().toFile(process.argv.includes('--back')?'/tmp/walk-pose-guide-back.png':'/tmp/walk-pose-guide.png');

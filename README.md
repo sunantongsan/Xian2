@@ -1,6 +1,6 @@
 # วิถีเชียน
 
-Current test version: **0.1.6**. All four heroes now walk using a loop derived from a recorded CMU human walking performance, replacing the rejected procedural gait. Ankles articulate separately, the full body follows one captured performance, and default movement speed matches the walking cadence. See [motion notes](docs/captured-walk.md) and [animation preview](docs/new-character-walk.mp4). Older animation notes describe superseded movement.
+Current test version: **0.1.7**. All four heroes are completely redrawn as full-body sprites, with front/back walking and new idle/combat/defeated poses. The old cutout characters and rigging code are removed. See [rebuild notes](docs/hero-rebuild.md) and [animation preview](docs/new-character-walk.mp4). Previous animation approaches are superseded.
 
 Offline isometric cultivation action RPG prototype. Not yet a production-ready or Play Store approved release.
 
@@ -54,7 +54,7 @@ Verified in Chromium: four heroes front/back, analog movement, action movement l
 
 ## Walking correction 0.1.2
 
-The 0.1.1 generated walk sheets did not actually alternate leading legs; adding frames alone did not fix them. They are replaced by isolated torso, thigh and shin/boot artwork in `web/rig/`, source rectangles and joint pivots in `web/rig.js`, and deterministic continuous gait in `web/gait.js`. No static painted legs remain beneath the animated legs. The failed walk sheets are no longer packaged.
+Historical note (superseded and removed in 0.1.7): the 0.1.1 generated walk sheets did not actually alternate leading legs; adding frames alone did not fix them. They are replaced by isolated torso, thigh and shin/boot artwork in `web/rig/`, source rectangles and joint pivots in `web/rig.js`, and deterministic continuous gait in `web/gait.js`. No static painted legs remain beneath the animated legs. The failed walk sheets are no longer packaged.
 
 Validation: 13 unit tests including opposite leading feet, lifted passing legs, planted-foot cancellation, continuous cycle seam and fixed world-space bone lengths. Browser review rendered eight phases for all four heroes from front and back; touch, movement endpoints, action startup lock, modal pause and small-screen controls remain covered. Physical-device gait assessment remains for the test APK.
 
