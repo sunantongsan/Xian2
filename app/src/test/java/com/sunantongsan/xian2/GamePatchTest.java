@@ -13,7 +13,7 @@ import java.security.MessageDigest;
 import java.util.*;
 import java.util.zip.*;
 import static org.junit.Assert.*;
-@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28, manifest=Config.NONE, application=android.app.Application.class)
 public class GamePatchTest {
  Context context;
  @Before public void before(){context=RuntimeEnvironment.getApplication();GamePatch.reset(context);}

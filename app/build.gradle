@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
-    testOptions { unitTests.includeAndroidResources = true }
+    testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { exceptionFormat = "full"; events "passed", "failed" } } }
     defaultConfig {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
