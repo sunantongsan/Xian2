@@ -1,17 +1,33 @@
 import {MONSTERS} from './catalog.js';
-import {MAPS,REGIONS,toWorld,walkable,traceStep} from './maps.js';
-export const PACK_SIZE=6,PACKS_PER_REGION=3,POPULATION=6*(PACK_SIZE*PACKS_PER_REGION+1);
-const packOffsets=[[-.048,-.015],[.048,-.015],[0,.05]];
+import {MAPS,REGIONS,FOREST_COLS,FOREST_ROWS,toWorld,walkable,traceStep} from './maps.js';
+export const PACK_SIZE=6,PACKS_PER_REGION=27,POPULATION=6*(PACK_SIZE*PACKS_PER_REGION+1);
+// Nine full-size clearings in each level band, with three hunting packs per clearing.
+// Tile geometry and texture retain their original scale; the world gains actual land.
+export const CAMPS=REGIONS.flatMap(region=>{
+ const baseCol=Math.floor(region.center[0]*3)*3,baseRow=region.id<3?3:0;
+ const camps=[];
+ for(let row=0;row<3;row++)for(let col=0;col<3;col++){
+  for(const [index,u,v] of [[0,.38,.46],[1,.62,.46],[2,.50,.65]]){
+   const tier=Math.min(9,(2-row)*3+col+(index===2?0:1));
+   camps.push({id:`${region.id}-${row}-${col}-${index}`,region:region.id,tier,uv:[(baseCol+col+u)/FOREST_COLS,(baseRow+row+v)/FOREST_ROWS]});
+  }
+ }
+ return camps;
+});
 export function makePopulation(){
  const units=[];
- for(const region of REGIONS){
-  for(let i=0;i<PACK_SIZE*PACKS_PER_REGION;i++){
-   const pack=Math.floor(i/PACK_SIZE),[du,dv]=packOffsets[pack],center=toWorld([region.center[0]+du,region.center[1]+dv],MAPS.forest),a=(i%PACK_SIZE)*Math.PI*2/PACK_SIZE;
-   const position=traceStep(MAPS.forest,center,{x:center.x+Math.cos(a)*95,y:center.y+Math.sin(a)*95});
-   const tiers=[[3,3,4,4,5,5],[6,6,7,7,8,9],[0,0,1,1,2,2]];
-   const def=MONSTERS[region.id*10+tiers[pack][i%PACK_SIZE]];units.push(makeUnit(def,position,region.id+'-'+i));
+ for(const camp of CAMPS){
+  const center=toWorld(camp.uv,MAPS.forest);
+  for(let i=0;i<PACK_SIZE;i++){
+   const a=i*Math.PI*2/PACK_SIZE;
+   const position=traceStep(MAPS.forest,center,{x:center.x+Math.cos(a)*75,y:center.y+Math.sin(a)*75});
+   const def=MONSTERS[camp.region*10+Math.min(9,camp.tier+i%2)];
+   units.push(makeUnit(def,position,`${camp.id}-${i}`));
   }
-  const position=toWorld([region.center[0],region.center[1]-.068],MAPS.forest);
+ }
+ for(const region of REGIONS){
+  const col=Math.floor(region.center[0]*3)*3+1,row=region.id<3?3:0;
+  const position=toWorld([(col+.5)/FOREST_COLS,(row+.34)/FOREST_ROWS],MAPS.forest);
   units.push(makeUnit(MONSTERS.find(m=>m.boss&&m.region===region.id),position,region.id+'-boss'));
  }
  return units;
@@ -24,3 +40,4 @@ export function updateRespawns(enemies,player,dt){
   if(next){Object.assign(e,makeUnit(e.def,home,e.spawnId),next);e.inv=0;delete e.dots;delete e.roamGoal;delete e.navPath;e.slow=0;e.aggroUntil=0;}
  }
 }
+
