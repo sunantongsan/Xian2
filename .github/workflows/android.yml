@@ -24,6 +24,7 @@ jobs:
           npx playwright install --with-deps chromium
           node tools/browser-smoke.mjs
       - name: Attach UI test screenshots
+        continue-on-error: true
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +69,7 @@ jobs:
           grep "com.sunantongsan.networkcokcro.preview" package.txt
           grep "versionCode='89'" package.txt
       - name: Attach downloadable APK and patch
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: Cockro-89-APK-and-patch
