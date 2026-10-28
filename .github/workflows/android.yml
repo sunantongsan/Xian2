@@ -1,7 +1,7 @@
 name: COCKRO 2.5D Android 90
 on:
   push:
-    branches: [cockro/large-hunting-world]
+    branches: [cockro/2d-app-86]
   workflow_dispatch:
 permissions:
   contents: write
@@ -52,9 +52,12 @@ jobs:
         with:
           gradle-version: '8.13'
       - uses: actions/cache@v4
+        id: preview-signing
         with:
           path: ~/.android/debug.keystore
           key: cockro-2d-preview-signing-v1
+      - name: Require existing preview signing key
+        run: test '${{ steps.preview-signing.outputs.cache-hit }}' = 'true'
       - run: |
           gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug || { cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; exit 1; }
       - name: Verify packaged assets and APK signature
@@ -76,6 +79,15 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-90-preview.apk | head -1 | tee package.txt
           grep "com.sunantongsan.networkcokcro.preview" package.txt
           grep "versionCode='90'" package.txt
+      - name: Verify upgrade signing compatibility with version 89
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p previous-apk
+          gh release download cockro-89-25 --pattern Cockro-89-preview.apk --dir previous-apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs previous-apk/Cockro-89-preview.apk | grep 'certificate SHA-256 digest' > previous-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs Cockro-90-preview.apk | grep 'certificate SHA-256 digest' > current-cert.txt
+          diff previous-cert.txt current-cert.txt
       - name: Attach downloadable APK and patch
         continue-on-error: true
         uses: actions/upload-artifact@v4
@@ -92,6 +104,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "cockro-90-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 90 — Aurora alien world, levels 1–60' --notes 'New Aurora hero outpost and expanded alien forest for levels 1–60. Six connected regions, 972 regular monsters plus six bosses; 162 hunting packs across 54 clearings, warm-colored aliens and respawn. Old maps removed. Compatible ZIP patch for APK engine 88; local saves retained. Offline preview, automatic patch download and online play are not included. Character animation is still experimental. Unsigned AAB is not ready for Play upload.' Cockro-90-preview.apk Cockro-90-unsigned.aab Cockro-patch-4.5.0.zip SHA256SUMS.txt
-
 
 
