@@ -25,7 +25,7 @@ try{
  }
  await page.evaluate(()=>reviewGame.resume());
  const timings=await page.evaluate(()=>{const values=[];for(let i=0;i<120;i++){const start=performance.now();reviewGame.update(1/60);reviewGame.draw();values.push(performance.now()-start);}values.sort((a,b)=>a-b);return {median:values[60],p95:values[114]};});
- await page.mouse.click(480,50);await page.locator('#modal').waitFor({state:'visible'});assert.equal(await page.locator('[id^="region-"]').count(),6);
+ await page.mouse.click(480,80);await page.locator('#modal').waitFor({state:'visible'});assert.equal(await page.locator('[id^="region-"]').count(),6);
  assert.deepEqual(errors,[]);fs.writeFileSync('review/large-world-preview.json',JSON.stringify({timings,images}));
  console.log('PASS: 978 population, actual walking, three skill renders, no browser exceptions; desktop headless render timing',timings);
 }finally{if(browser)await browser.close();server.kill();}
