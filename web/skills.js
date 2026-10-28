@@ -14,11 +14,11 @@ export const SCHOOL=[
 {id:'d4',sect:'demon',name:'คลื่นพิษกลืนปราณ',level:60,form:'wave',element:'poison',mods:['wide']},
 {id:'d5',sect:'demon',name:'ค่ายกลบัวโลหิต',level:120,form:'field',element:'fire',mods:['drain']}
 ];
-export function compileSkill(r){if(!r||!FORMS[r.form]||!ELEMENTS[r.element])return null;const mods=[...new Set(r.mods||[])].filter(m=>m!=='none'&&MODS[m]);const f=FORMS[r.form];return {...r,mods,range:f.range*(mods.includes('wide')?1.25:1),radius:f.radius*(mods.includes('wide')?1.25:1),power:f.power*(mods.includes('force')?1.25:1)*(mods.includes('quick')?.85:1)*(mods.includes('pierce')&&r.form!=='bolt'?1.15:1),mp:f.mp+mods.length*8,cd:f.cd*(mods.includes('quick')?.8:1),color:ELEMENTS[r.element].color};}
+export function compileSkill(r){if(!r||!FORMS[r.form]||!ELEMENTS[r.element])return null;const mods=[...new Set(r.mods||[])].filter(m=>m!=='none'&&MODS[m]);const f={...FORMS[r.form],...(r.combat||{})};return {...r,mods,range:f.range*(mods.includes('wide')?1.25:1),radius:f.radius*(mods.includes('wide')?1.25:1),power:f.power*(mods.includes('force')?1.25:1)*(mods.includes('quick')?.85:1)*(mods.includes('pierce')&&r.form!=='bolt'?1.15:1),mp:f.mp+mods.length*8,cd:f.cd*(mods.includes('quick')?.8:1),color:ELEMENTS[r.element].color};}
 export const COCKRO_SKILLS=[
-{id:'s1',name:'คลื่นดาบพลังงาน',level:1,form:'wave',element:'wind',mods:['wide']},
-{id:'s2',name:'พายุหมุนดาบ',level:5,form:'circle',element:'fire',mods:['wide']},
-{id:'s3',name:'สนามดาบสายฟ้า',level:12,form:'field',element:'lightning',mods:['wide']},
+{id:'s1',name:'คลื่นดาบพลังงาน',level:1,form:'wave',element:'wind',mods:['wide'],combat:{range:440,radius:90,mp:10,cd:3.2,power:1.9}},
+{id:'s2',name:'พายุหมุนดาบ',level:5,form:'circle',element:'fire',mods:['wide'],combat:{range:185,radius:185,mp:14,cd:5,power:1.8}},
+{id:'s3',name:'สนามดาบสายฟ้า',level:12,form:'field',element:'lightning',mods:['wide'],combat:{range:420,radius:180,mp:22,cd:9,power:.7}},
 {id:'s4',name:'ดาบพุ่งทะลวง',level:25,form:'dash',element:'wind',mods:['wide']},
 {id:'s5',name:'ฝนดาบพิทักษ์ดาว',level:40,form:'field',element:'lightning',mods:['wide','force']},
 {id:'s6',name:'วงดาบสะเทือนฟ้า',level:55,form:'circle',element:'lightning',mods:['wide','force']}
@@ -41,4 +41,5 @@ SCHOOL.push(
 {id:'d9',sect:'demon',name:'คราสโลหิตเก้าผนึก',level:160,form:'circle',element:'fire',mods:['wide','drain']},
 {id:'d10',sect:'demon',name:'พายุเก้าบัวอเวจี',level:180,form:'field',element:'poison',mods:['wide','force']}
 );
+
 
