@@ -10,7 +10,7 @@ try{
  const page=await browser.newPage({viewport:{width:960,height:540},deviceScaleFactor:1});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  // Test-only introspection is appended by interception, never shipped in the app.
- await page.route('**/game.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`\nwindow.reviewGame={travel,skill,update,draw,place(uv){Object.assign(p,toWorld(uv,scene));p.hp=100000;p.inv=1000;},setup(){s.level=60;s.equipped=['s1','s2','s3'];p.mp=1000;},state(){return {count:enemies.length,width:scene.width,height:scene.height,player:{x:p.x,y:p.y},alive:enemies.filter(e=>e.hp>0).length}},freeze(){paused=true;}};`});});
+ await page.route('**/game.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`\nwindow.reviewGame={travel,skill,update,draw,place(uv){Object.assign(p,toWorld(uv,scene));p.hp=100000;p.inv=1000;},setup(){s.level=60;s.equipped=['s1','s2','s3'];p.mp=1000;},state(){return {count:enemies.length,width:scene.width,height:scene.height,player:{x:p.x,y:p.y},alive:enemies.filter(e=>e.hp>0).length}},freeze(){paused=true;},resume(){paused=false;}};`});});
  await page.goto('http://127.0.0.1:8991');await page.locator('#choose').click();await page.locator('#pick-sword-cockro').click();await page.locator('#modal').waitFor({state:'hidden'});
  await page.evaluate(async()=>{await reviewGame.travel(0,false);reviewGame.setup();});
  assert.equal((await page.evaluate(()=>reviewGame.state())).count,978);
@@ -23,7 +23,9 @@ try{
   await page.waitForTimeout(500);await page.evaluate(()=>reviewGame.freeze());
   const image=await page.screenshot({type:'jpeg',quality:72});images.push({name,base64:image.toString('base64')});
  }
- const timings=await page.evaluate(()=>{const values=[];for(let i=0;i<120;i++){const start=performance.now();reviewGame.draw();values.push(performance.now()-start);}values.sort((a,b)=>a-b);return {median:values[60],p95:values[114]};});
+ await page.evaluate(()=>reviewGame.resume());
+ const timings=await page.evaluate(()=>{const values=[];for(let i=0;i<120;i++){const start=performance.now();reviewGame.update(1/60);reviewGame.draw();values.push(performance.now()-start);}values.sort((a,b)=>a-b);return {median:values[60],p95:values[114]};});
+ await page.mouse.click(480,50);await page.locator('#modal').waitFor({state:'visible'});assert.equal(await page.locator('[id^="region-"]').count(),6);
  assert.deepEqual(errors,[]);fs.writeFileSync('review/large-world-preview.json',JSON.stringify({timings,images}));
  console.log('PASS: 978 population, actual walking, three skill renders, no browser exceptions; desktop headless render timing',timings);
 }finally{if(browser)await browser.close();server.kill();}
