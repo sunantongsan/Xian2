@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {heroFrame,drawHero,HERO_IDS,WALK_DISTANCE} from '../web/hero-animation.js';
+import {heroFrame,drawHero,cockroFrame,HERO_IDS,WALK_DISTANCE} from '../web/hero-animation.js';
 test('walk sequence visits every frame in both views and wraps correctly',()=>{
  for(const back of [false,true]){
  const frames=Array.from({length:8},(_,i)=>heroFrame({anim:'walk',walkDistance:(i+.01)*WALK_DISTANCE/8,back}).frame);
@@ -19,3 +19,6 @@ test('full-body renderer never rotates, stretches or separates body parts',()=>{
  assert.equal(calls.length,before+1);const a=calls.at(-1);assert(a.slice(1).every(Number.isFinite));assert.equal(a[3],a[4]);assert.equal(a[7],a[8]);assert(a[1]>=0&&a[2]>=0&&a[1]+a[3]<=1024&&a[2]+a[4]<=1024);
  }
 });
+
+
+test('Cockro anticipation, strike and recovery match the combat impact time',()=>{assert.equal(cockroFrame({anim:'attack',animTime:0,animDuration:.58}),8);assert.equal(cockroFrame({anim:'attack',animTime:.145,animDuration:.58}),9);assert.equal(cockroFrame({anim:'attack',animTime:.29,animDuration:.58}),10);assert.equal(cockroFrame({anim:'attack',animTime:.5,animDuration:.58}),11);assert.equal(cockroFrame({anim:'hurt'}),14);assert.equal(cockroFrame({dead:true}),15);});
