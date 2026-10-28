@@ -22,3 +22,15 @@ dialog{background:linear-gradient(#fffdf6,#edf1f3);color:var(--ink);border:2px s
 
 #autoBtn{position:absolute;bottom:4px;left:154px;min-width:98px;min-height:44px;pointer-events:auto}#autoBtn[aria-pressed="true"]{background:linear-gradient(#d5ffd6,#58b37d);color:#173d2b;box-shadow:0 0 10px #8be8b2}.quick-menu{flex-wrap:wrap}
 @media(max-height:450px){#autoBtn{bottom:4px;min-height:36px}}
+
+/* Hero HQ: one compressed atlas, no animated menu textures on low-end phones. */
+:root{--ink:#e8f3ff;--edge:#385674;--paper:#0b1728;--blue:#68d6ee}
+dialog{color:#e8f3ff;background:linear-gradient(145deg,#152941,#080f1d);border:1px solid #54738c;box-shadow:inset 0 0 0 3px #172d45,0 20px 80px #000b;border-radius:16px}
+dialog h2{color:#f9dea3;background:linear-gradient(100deg,#213d58,#12243a);text-shadow:none;border-color:#57718b;box-shadow:none}
+dialog h1{color:#ffdc8b;font-size:36px;letter-spacing:5px}dialog h3,.card b{color:#f4dfb7}dialog .sub,dialog small{color:#aabed4}.eyebrow{font-size:11px;letter-spacing:2px;color:#73dcf4}
+dialog button{background:linear-gradient(#294863,#172b40);color:#eaf7ff;border-color:#567796;box-shadow:inset 0 1px #7c9cba44,0 3px 8px #0004;min-height:44px}dialog button:hover:not(:disabled){border-color:#f0cb7c;background:linear-gradient(#375b78,#20394f)}dialog button:disabled{opacity:.5}dialog button:focus-visible{outline:3px solid #71e1ff;outline-offset:3px}
+dialog .card{background:linear-gradient(145deg,#1b324a,#0c192a);border:1px solid #3e5a76;box-shadow:inset 0 1px #a1d8ff18;border-radius:12px}dialog .bar{background:#13263c;border-color:#3e5a76}dialog select,dialog input{color:#eef6ff;background:#142a40;border-color:#567796}
+.ui-art{display:block;width:88px;aspect-ratio:1;background-image:url('ui/hero-menu-atlas.webp');background-size:400% 400%;background-repeat:no-repeat;border-radius:12px;margin:0 auto 8px;box-shadow:0 4px 14px #0004;flex-shrink:0}.title-emblem{width:150px;border:1px solid #b8894c;border-radius:24px}.hero-art{width:100%;max-width:190px;border-radius:8px}.weapon-art{width:160px}.hq-menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}.menu-tile{padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:3px}.menu-tile span:last-child{font-size:13px}.hero-card{border-top:3px solid var(--hero-accent)!important;display:flex;flex-direction:column;gap:6px}.hero-card button{margin-top:auto}.hero-card b{font-size:15px}.hero-card .sub{font-size:12px}.shop-grid{margin:18px 0}.shop-grid .ui-art{width:126px}.shop-grid h3{margin:8px 0}.shop-grid p{font-size:13px}
+.panel:not(.right){background:linear-gradient(135deg,#162f46ed,#0b192ce8);color:#edf7ff;border-color:#64849d;box-shadow:inset 0 1px #9bdef522,0 4px 16px #0004}.panel small{color:#b3cadc}
+@media(max-width:600px){.hq-menu{gap:8px}.menu-tile{padding:10px 4px}.menu-tile .ui-art{width:65px}.menu-tile span:last-child{font-size:11px}.hero-art{max-width:150px}.hero-grid{gap:8px}.hero-card{padding:9px!important}.shop-grid .ui-art{width:95px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}

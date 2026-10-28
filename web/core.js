@@ -25,5 +25,5 @@ export function normalizeProgress(s,v=s){
 export function allocateStat(s,key){if(!Object.hasOwn(s.attributes,key)||s.statPoints<1)return false;s.attributes[key]++;s.statPoints--;return true;}
 export function trainSkill(s,id){if(!knownSkills(s).some(r=>r.id===id&&r.level<=s.level)||s.skillPoints<1||(s.skillRanks[id]||0)>=19)return false;s.skillRanks[id]=(s.skillRanks[id]||0)+1;s.skillPoints--;return true;}
 export function combatStats(s){const a=s.attributes||{};return {mp:80+s.level*3+(a.int||0)*8,defense:s.level*.25+(a.vit||0)*.6,crit:Math.min(.4,.05+(a.agi||0)*.001),speed:Math.min(45,(a.agi||0)*.15),haste:Math.min(.35,(a.agi||0)*.001),spell:1+(a.int||0)*.008};}
-export function reputationTitle(s){return s.reputation>=10000?'ตำนานยุทธภพ':s.reputation>=2500?'จอมยุทธ์เลื่องชื่อ':s.reputation>=500?'ผู้มีชื่อเสียง':s.reputation>=100?'ดาวรุ่งสำนัก':'ผู้ฝึกตนหน้าใหม่';}
+export function reputationTitle(s){return s.reputation>=10000?'ตำนานฮีโร่':s.reputation>=2500?'ฮีโร่เลื่องชื่อ':s.reputation>=500?'ผู้มีชื่อเสียง':s.reputation>=100?'ฮีโร่ดาวรุ่ง':'ฮีโร่หน้าใหม่';}
 
