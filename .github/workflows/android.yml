@@ -1,7 +1,7 @@
-name: COCKRO 2.5D Android 87
+name: COCKRO 2.5D Android 88
 on:
   push:
-    branches: [cockro/2d-app-86]
+    branches: [cockro/living-combat]
   workflow_dispatch:
 permissions:
   contents: write
@@ -48,15 +48,16 @@ jobs:
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Cockro-87-preview.apk
-          cp app/build/outputs/bundle/release/app-release.aab Cockro-87-unsigned.aab
-          sha256sum Cockro-87-preview.apk Cockro-87-unsigned.aab > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-87-preview.apk | head -1 | tee package.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Cockro-88-preview.apk
+          cp app/build/outputs/bundle/release/app-release.aab Cockro-88-unsigned.aab
+          python3 tools/package_patch.py
+          sha256sum Cockro-88-preview.apk Cockro-88-unsigned.aab Cockro-patch-88.zip > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-88-preview.apk | head -1 | tee package.txt
           grep "com.sunantongsan.networkcokcro.preview" package.txt
-          grep "versionCode='87'" package.txt
+          grep "versionCode='88'" package.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "cockro-87-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 87 — 2.5D วิถีเชียน' --notes 'Replaces the 3D client with the Xian2 isometric game. Preview APK installs separately using .preview. Release AAB uses original COCKRO package com.sunantongsan.networkcokcro, version 87; unsigned, requires existing upload key before Play upload. Offline local saves only in this build; Network account integration and multiplayer are pending. No production ads SDK. 3D source retained on its existing branch.' Cockro-87-preview.apk Cockro-87-unsigned.aab SHA256SUMS.txt
+          gh release create "cockro-88-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 88 — Hero HQ + patch import' --notes 'Internal preview: illustrated hero menus and native ZIP patch import. Only Cockro Man playable; offline saves. Install APK once, then use the native Patch button to select Cockro-patch-88.zip. Reset restores bundled game without clearing saves. ZIP hashes detect corruption, not publisher identity: use official bundles only. Automatic server updates are not connected. Release AAB unsigned.' Cockro-88-preview.apk Cockro-88-unsigned.aab Cockro-patch-88.zip SHA256SUMS.txt
 
