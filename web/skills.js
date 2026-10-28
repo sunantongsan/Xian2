@@ -16,7 +16,7 @@ export const SCHOOL=[
 ];
 export function compileSkill(r){if(!r||!FORMS[r.form]||!ELEMENTS[r.element])return null;const mods=[...new Set(r.mods||[])].filter(m=>m!=='none'&&MODS[m]);const f={...FORMS[r.form],...(r.combat||{})};return {...r,mods,range:f.range*(mods.includes('wide')?1.25:1),radius:f.radius*(mods.includes('wide')?1.25:1),power:f.power*(mods.includes('force')?1.25:1)*(mods.includes('quick')?.85:1)*(mods.includes('pierce')&&r.form!=='bolt'?1.15:1),mp:f.mp+mods.length*8,cd:f.cd*(mods.includes('quick')?.8:1),color:ELEMENTS[r.element].color};}
 export const COCKRO_SKILLS=[
-{id:'s1',name:'คลื่นดาบพลังงาน',level:1,form:'wave',element:'wind',mods:['wide'],combat:{range:440,radius:90,mp:10,cd:3.2,power:1.9}},
+{id:'s1',name:'คลื่นดาบพลังงาน',level:1,form:'wave',element:'wind',mods:['wide'],combat:{range:480,radius:150,mp:10,cd:3.2,power:1.9}},
 {id:'s2',name:'พายุหมุนดาบ',level:5,form:'circle',element:'fire',mods:['wide'],combat:{range:185,radius:185,mp:14,cd:5,power:1.8}},
 {id:'s3',name:'สนามดาบสายฟ้า',level:12,form:'field',element:'lightning',mods:['wide'],combat:{range:420,radius:180,mp:22,cd:9,power:.7}},
 {id:'s4',name:'ดาบพุ่งทะลวง',level:25,form:'dash',element:'wind',mods:['wide']},
