@@ -1,7 +1,7 @@
 name: COCKRO 2.5D Android 88
 on:
   push:
-    branches: [cockro/living-combat]
+    branches: [cockro/2d-app-86]
   workflow_dispatch:
 permissions:
   contents: write
