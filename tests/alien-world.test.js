@@ -29,7 +29,7 @@ test('hunting camps span nine distinct clearings in every level band',()=>{
 test('opening wave hits an entire pack across its width, but not outside its footprint',async()=>{
  const {knownSkills,compileSkill,skillTargets}=await import('../web/skills.js');
  const skill=compileSkill(knownSkills(fresh('sword-cockro'))[0]);
- const pack=Array.from({length:6},(_,i)=>({x:240+Math.cos(i*Math.PI/3)*75,y:Math.sin(i*Math.PI/3)*75,hp:100}));
+ const pack=Array.from({length:6},(_,i)=>({x:240+Math.cos(i*Math.PI/3)*165,y:Math.sin(i*Math.PI/3)*165,hp:100}));
  assert.equal(skillTargets(skill,{x:0,y:0},{x:240,y:0},pack).length,6);
  assert.equal(skillTargets(skill,{x:0,y:0},{x:240,y:0},[{x:240,y:skill.radius+1,hp:100}]).length,0);
 });
