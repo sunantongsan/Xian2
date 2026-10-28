@@ -5,12 +5,13 @@ export const toWorld=([u,v],scene)=>{const {width,height}=mapSize(scene),a=(u-.5
 export const toUV=({x,y},scene)=>{const {width,height}=mapSize(scene);return[.5+.8*(x-y)/width,.6+.4*(x+y)/height]};
 const rect=(l,t,r,b)=>[[l,t],[r,t],[r,b],[l,b]];
 // Each 1600x1600 world tile uses its own detailed texture instead of enlarging one small overview.
-const localPoly=(col,row,poly)=>poly.map(([u,v])=>[(col+u)/3,(row+v)/2]);
+export const FOREST_COLS=9,FOREST_ROWS=6;
+const localPoly=(col,row,poly)=>poly.map(([u,v])=>[(col+u)/FOREST_COLS,(row+v)/FOREST_ROWS]);
 const forestWalk=[];
-for(let row=0;row<2;row++)for(let col=0;col<3;col++){
+for(let row=0;row<FOREST_ROWS;row++)for(let col=0;col<FOREST_COLS;col++){
  forestWalk.push(localPoly(col,row,[[.22,.4],[.34,.27],[.64,.27],[.77,.40],[.78,.58],[.65,.73],[.35,.73],[.22,.59]]));
- forestWalk.push(localPoly(col,row,rect(.40,row===0?.045:0,.58,row===1?.96:1)));
- forestWalk.push(localPoly(col,row,rect(col===0?.045:0,.42,col===2?.955:1,.54)));
+ forestWalk.push(localPoly(col,row,rect(.40,row===0?.045:0,.58,row===FOREST_ROWS-1?.96:1)));
+ forestWalk.push(localPoly(col,row,rect(col===0?.045:0,.42,col===FOREST_COLS-1?.955:1,.54)));
 }
 export const REGIONS=[
  {id:0,name:'ชายป่าแสงแรก',min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
@@ -22,7 +23,7 @@ export const REGIONS=[
 ];
 export const MAPS={
  town:{id:'town',name:'หมู่บ้านฮีโร่ • สถานีออโรรา',image:'maps/aurora-outpost.webp',width:2000,height:1333,spawn:[.50,.59],walk:[rect(.31,.43,.69,.75),rect(.24,.48,.76,.59),rect(.45,.33,.55,.83)],pois:[{uv:[.27,.54],name:'คลังเสบียง',action:'shop'},{uv:[.73,.54],name:'โรงอัปเกรด',action:'forge'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.79],name:'ประตูป่าชีวะแสง • Lv.1–60',action:'forest'}]},
- forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,width:4800,height:3200,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.935],name:'กลับสถานีออโรรา',action:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
+ forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.935],name:'กลับสถานีออโรรา',action:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
 
 };
 export function regionAt(point){const [u,v]=toUV(point,MAPS.forest);return REGIONS.reduce((best,r)=>Math.hypot(u-r.center[0],v-r.center[1])<Math.hypot(u-best.center[0],v-best.center[1])?r:best,REGIONS[0]);}
@@ -36,5 +37,6 @@ function nearest(scene,p){const [u,v]=toUV(p,scene),g=grid(scene);let best=-1,di
 export function routeTo(scene,from,to){if(!scene)return[to];const direct=traceStep(scene,from,to);if(walkable(scene,to)&&Math.hypot(direct.x-to.x,direct.y-to.y)<.5)return[to];const g=grid(scene),start=nearest(scene,from),goal=nearest(scene,to);if(start<0||goal<0)return[];const open=[start],cost=new Map([[start,0]]),parent=new Map(),closed=new Set();const heuristic=id=>Math.hypot(id%COLS-goal%COLS,Math.floor(id/COLS)-Math.floor(goal/COLS));while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(cost.get(open[i])+heuristic(open[i])<cost.get(open[bi])+heuristic(open[bi]))bi=i;const cur=open.splice(bi,1)[0];if(cur===goal){const ids=[goal];while(ids[0]!==start)ids.unshift(parent.get(ids[0]));const route=ids.map(id=>cellWorld(id,scene));if(walkable(scene,to)&&Math.hypot(traceStep(scene,route.at(-1),to).x-to.x,traceStep(scene,route.at(-1),to).y-to.y)<1)route.push(to);return route;}
  closed.add(cur);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const x=cur%COLS+dx,y=Math.floor(cur/COLS)+dy,n=y*COLS+x;if(x<0||x>=COLS||y<0||y>=ROWS||!g[n]||closed.has(n))continue;if(dx&&dy&&(!g[cur+dx]||!g[cur+dy*COLS]))continue;const next=cellWorld(n,scene),end=traceStep(scene,cellWorld(cur,scene),next);if(Math.hypot(end.x-next.x,end.y-next.y)>.5)continue;const c=cost.get(cur)+Math.hypot(dx,dy);if(c<(cost.get(n)??Infinity)){cost.set(n,c);parent.set(n,cur);if(!open.includes(n))open.push(n);}}
  }return[];}
+
 
 
