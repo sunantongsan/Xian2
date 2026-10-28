@@ -1,7 +1,7 @@
-name: Android test APK
+name: COCKRO 2.5D Android 86
 on:
   push:
-    branches: [main]
+    branches: [cockro/2d-app-86]
   workflow_dispatch:
 permissions:
   contents: write
@@ -33,9 +33,9 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: xian2-test-signing-v1
+          key: cockro-2d-preview-signing-v1
       - run: |
-          gradle --no-daemon :app:assembleDebug :app:lintDebug || { cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; exit 1; }
+          gradle --no-daemon :app:assembleDebug :app:bundleRelease :app:lintDebug || { cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; exit 1; }
       - name: Verify packaged assets and APK signature
         run: |
           python3 - <<'PY'
@@ -48,11 +48,15 @@ jobs:
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.7-test.apk
-          sha256sum Road-to-Immortality-0.1.7-test.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Cockro-86-preview.apk
+          cp app/build/outputs/bundle/release/app-release.aab Cockro-86-unsigned.aab
+          sha256sum Cockro-86-preview.apk Cockro-86-unsigned.aab > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-86-preview.apk | head -1 | tee package.txt
+          grep "com.sunantongsan.networkcokcro.preview" package.txt
+          grep "versionCode='86'" package.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. Renamed to วิถีเชียน. Four completely new full-body painted characters replace all old hero art and cutout rigs. Front/back walk cycles and new idle, sword attacks, casting, hurt and defeated poses. No separated or stretched body parts. Includes stats, reputation and auto-attack. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.7-test.apk SHA256SUMS.txt docs/new-character-walk.mp4
+          gh release create "cockro-86-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 86 — 2.5D วิถีเชียน' --notes 'Replaces the 3D client with the Xian2 isometric game. Preview APK installs separately using .preview. Release AAB uses original COCKRO package com.sunantongsan.networkcokcro, version 86; unsigned, requires existing upload key before Play upload. Offline local saves only in this build; Network account integration and multiplayer are pending. No production ads SDK. 3D source retained on its existing branch.' Cockro-86-preview.apk Cockro-86-unsigned.aab SHA256SUMS.txt
 

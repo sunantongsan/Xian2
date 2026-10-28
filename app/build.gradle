@@ -3,11 +3,11 @@ android {
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
     defaultConfig {
-        applicationId 'com.sunantongsan.xian2'
+        applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 8
-        versionName '0.1.7'
+        versionCode 86
+        versionName '4.3.0'
     }
     signingConfigs {
         release {
@@ -19,9 +19,13 @@ android {
             }
         }
     }
-    buildTypes { release { signingConfig signingConfigs.release } }
+    buildTypes {
+        debug { applicationIdSuffix '.preview'; versionNameSuffix '-preview' }
+        release { signingConfig signingConfigs.release }
+    }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }
 }
 dependencies { implementation 'androidx.activity:activity:1.10.1'
  implementation 'androidx.webkit:webkit:1.14.0' }
+
 
