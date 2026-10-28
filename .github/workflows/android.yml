@@ -1,4 +1,4 @@
-name: COCKRO 2.5D Android 86
+name: COCKRO 2.5D Android 87
 on:
   push:
     branches: [cockro/2d-app-86]
@@ -42,21 +42,21 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/town.webp','maps/bamboo.webp']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+              for p in ['heroes/cockro.webp','index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/town.webp','maps/bamboo.webp']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
                   assert 'assets/'+p in names,p
               assert not any(n.startswith(('assets/puppets/','assets/rig/')) for n in names)
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Cockro-86-preview.apk
-          cp app/build/outputs/bundle/release/app-release.aab Cockro-86-unsigned.aab
-          sha256sum Cockro-86-preview.apk Cockro-86-unsigned.aab > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-86-preview.apk | head -1 | tee package.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Cockro-87-preview.apk
+          cp app/build/outputs/bundle/release/app-release.aab Cockro-87-unsigned.aab
+          sha256sum Cockro-87-preview.apk Cockro-87-unsigned.aab > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-87-preview.apk | head -1 | tee package.txt
           grep "com.sunantongsan.networkcokcro.preview" package.txt
-          grep "versionCode='86'" package.txt
+          grep "versionCode='87'" package.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "cockro-86-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 86 — 2.5D วิถีเชียน' --notes 'Replaces the 3D client with the Xian2 isometric game. Preview APK installs separately using .preview. Release AAB uses original COCKRO package com.sunantongsan.networkcokcro, version 86; unsigned, requires existing upload key before Play upload. Offline local saves only in this build; Network account integration and multiplayer are pending. No production ads SDK. 3D source retained on its existing branch.' Cockro-86-preview.apk Cockro-86-unsigned.aab SHA256SUMS.txt
+          gh release create "cockro-87-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 87 — 2.5D วิถีเชียน' --notes 'Replaces the 3D client with the Xian2 isometric game. Preview APK installs separately using .preview. Release AAB uses original COCKRO package com.sunantongsan.networkcokcro, version 87; unsigned, requires existing upload key before Play upload. Offline local saves only in this build; Network account integration and multiplayer are pending. No production ads SDK. 3D source retained on its existing branch.' Cockro-87-preview.apk Cockro-87-unsigned.aab SHA256SUMS.txt
 

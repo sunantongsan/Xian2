@@ -6,8 +6,8 @@ android {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 86
-        versionName '4.3.0'
+        versionCode 87
+        versionName '4.3.1'
     }
     signingConfigs {
         release {

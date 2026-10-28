@@ -17,6 +17,13 @@ export function heroFrame(actor={}){
  return {sheet:'actions',frame:back?1:0,flip};
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
+ if(hero==='sword-cockro'){
+  const im=images.get('heroes/cockro.webp');if(!im||!Number.isFinite(size)||size<=0)return;
+  // Original mascot is a clearly labelled prototype, not a fabricated walk cycle.
+  ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
+  if(actor.dead)ctx.globalAlpha*=.45;
+  ctx.drawImage(im,-size*.5,-size,size,size);ctx.restore();return;
+ }
  if(!HERO_IDS.includes(hero)||!Number.isFinite(size)||size<=0)return;
  const f=heroFrame(actor),im=images.get(`heroes/${hero}-${f.sheet}.webp`);
  if(!im)return;
@@ -26,3 +33,4 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
  ctx.drawImage(im,(f.frame%4)*sourceCell,Math.floor(f.frame/4)*sourceCell,sourceCell,sourceCell,-drawSize*.5,-drawSize*.91,drawSize,drawSize);
  ctx.restore();return f;
 }
+

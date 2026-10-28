@@ -8,3 +8,6 @@ test('progression preserves overflow XP and caps level',()=>{const s=fresh('swor
 test('shops cannot spend missing gold and +20 is final',()=>{const s=fresh('demon-female');s.gold=49;assert.equal(buyPotion(s),false);assert.equal(s.gold,49);s.gold=100;assert(upgrade(s));assert.equal(s.upgrade,1);assert.equal(s.gold,0);s.upgrade=20;s.gold=1e8;assert.equal(upgrade(s),false);});
 test('regions require both level and prior boss',()=>{const s=fresh('sword-female');assert(unlocked(s,0));assert(!unlocked(s,1));s.level=21;assert(!unlocked(s,1));s.bosses.push(9);assert(unlocked(s,1));});
 test('enemy cone respects distance, angle wrap and rear dodge',()=>{assert(inCone(-50,0,0,0,Math.PI,100,1));assert(inCone(-50,-1,0,0,Math.PI,100,1));assert(!inCone(50,0,0,0,Math.PI,100,1));assert(!inCone(-150,0,0,0,Math.PI,100,1));});
+
+
+test('Cockro prototype character survives local save round trip',()=>{const s=fresh('sword-cockro');const restored=validSave(JSON.parse(JSON.stringify(s)));assert.equal(restored.hero,'sword-cockro');});
