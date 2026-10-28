@@ -35,7 +35,7 @@ jobs:
           path: ~/.android/debug.keystore
           key: cockro-2d-preview-signing-v1
       - run: |
-          gradle --no-daemon :app:assembleDebug :app:bundleRelease :app:lintDebug || { cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; exit 1; }
+          gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug || { cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; exit 1; }
       - name: Verify packaged assets and APK signature
         run: |
           python3 - <<'PY'

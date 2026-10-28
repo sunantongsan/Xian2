@@ -2,6 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
+    testOptions { unitTests.includeAndroidResources = true }
     defaultConfig {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
@@ -25,7 +26,9 @@ android {
     }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }
 }
-dependencies { implementation 'androidx.activity:activity:1.10.1'
+dependencies { testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.14.1'
+ implementation 'androidx.activity:activity:1.10.1'
  implementation 'androidx.webkit:webkit:1.14.0' }
 
 
