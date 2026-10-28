@@ -21,7 +21,7 @@ android {
     }
     buildTypes {
         debug { applicationIdSuffix '.preview'; versionNameSuffix '-preview' }
-        release { signingConfig signingConfigs.release }
+        release { if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
     }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }
 }
