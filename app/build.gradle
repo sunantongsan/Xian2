@@ -2,12 +2,13 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
+    testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { exceptionFormat = "full"; events "passed", "failed" } } }
     defaultConfig {
-        applicationId 'com.sunantongsan.xian2'
+        applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 8
-        versionName '0.1.7'
+        versionCode 90
+        versionName '4.5.0'
     }
     signingConfigs {
         release {
@@ -19,9 +20,17 @@ android {
             }
         }
     }
-    buildTypes { release { signingConfig signingConfigs.release } }
+    buildTypes {
+        debug { applicationIdSuffix '.preview'; versionNameSuffix '-preview' }
+        release { if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
+    }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }
 }
-dependencies { implementation 'androidx.activity:activity:1.10.1'
+dependencies { testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.json:json:20240303'
+ implementation 'androidx.activity:activity:1.10.1'
  implementation 'androidx.webkit:webkit:1.14.0' }
+
+
+
 
