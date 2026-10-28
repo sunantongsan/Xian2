@@ -1,4 +1,4 @@
-name: COCKRO 2.5D Android 88
+name: COCKRO 2.5D Android 89
 on:
   push:
     branches: [cockro/2d-app-86]
@@ -18,6 +18,18 @@ jobs:
         with:
           node-version: '22'
       - run: npm test && npm run check && python3 tools/validate_assets.py
+      - name: Browser smoke test at mobile viewport
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tools/browser-smoke.mjs
+      - name: Attach UI test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aurora-browser-review
+          path: review/browser
+          if-no-files-found: ignore
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -42,26 +54,26 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['heroes/cockro.webp','index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/town.webp','maps/bamboo.webp']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+              for p in ['heroes/cockro.webp','index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-forest.webp','alien-population.js']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]:
                   assert 'assets/'+p in names,p
               assert not any(n.startswith(('assets/puppets/','assets/rig/')) for n in names)
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Cockro-88-preview.apk
-          cp app/build/outputs/bundle/release/app-release.aab Cockro-88-unsigned.aab
+          cp app/build/outputs/apk/debug/app-debug.apk Cockro-89-preview.apk
+          cp app/build/outputs/bundle/release/app-release.aab Cockro-89-unsigned.aab
           python3 tools/package_patch.py
-          sha256sum Cockro-88-preview.apk Cockro-88-unsigned.aab Cockro-patch-88.zip > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-88-preview.apk | head -1 | tee package.txt
+          sha256sum Cockro-89-preview.apk Cockro-89-unsigned.aab Cockro-patch-4.4.1.zip > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging Cockro-89-preview.apk | head -1 | tee package.txt
           grep "com.sunantongsan.networkcokcro.preview" package.txt
-          grep "versionCode='88'" package.txt
+          grep "versionCode='89'" package.txt
       - name: Attach downloadable APK and patch
         uses: actions/upload-artifact@v4
         with:
-          name: Cockro-88-APK-and-patch
+          name: Cockro-89-APK-and-patch
           path: |
-            Cockro-88-preview.apk
-            Cockro-patch-88.zip
+            Cockro-89-preview.apk
+            Cockro-patch-4.4.1.zip
             SHA256SUMS.txt
           retention-days: 30
       - name: Publish downloadable test build
@@ -69,5 +81,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "cockro-88-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 88 — Hero HQ + patch import' --notes 'Internal preview: illustrated hero menus and native ZIP patch import. Only Cockro Man playable; offline saves. Install APK once, then use the native Patch button to select Cockro-patch-88.zip. Reset restores bundled game without clearing saves. ZIP hashes detect corruption, not publisher identity: use official bundles only. Automatic server updates are not connected. Release AAB unsigned.' Cockro-88-preview.apk Cockro-88-unsigned.aab Cockro-patch-88.zip SHA256SUMS.txt
+          gh release create "cockro-89-${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'COCKRO 89 — Aurora alien world, levels 1–60' --notes 'New Aurora hero outpost and expanded alien forest for levels 1–60. Six connected regions, 108 regular monsters plus six bosses, warm-colored aliens and respawn. Old maps removed. Compatible ZIP patch for APK engine 88; local saves retained. Offline preview, automatic patch download and online play are not included. Character animation is still experimental. Unsigned AAB is not ready for Play upload.' Cockro-89-preview.apk Cockro-89-unsigned.aab Cockro-patch-4.4.1.zip SHA256SUMS.txt
+
 
