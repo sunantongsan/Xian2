@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.zip.*;
 import static org.junit.Assert.*;
-@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28, manifest=Config.NONE, application=android.app.Application.class)
 public class PatchRecoveryTest {
  Context context;
  @Before public void setup(){context=RuntimeEnvironment.getApplication();context.getSharedPreferences("patch",0).edit().clear().commit();}
