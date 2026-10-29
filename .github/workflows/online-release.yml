@@ -1,0 +1,50 @@
+name: COCKRO Online Release
+run-name: Online ${{ inputs.operation }} by @${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        description: Reviewed online release operation
+        default: stage
+        required: true
+        options: [stage, deploy, test]
+permissions:
+  contents: read
+concurrency:
+  group: cockro-online-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main' && github.actor == 'sunantongsan'
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feab8e792dc1f4bdf7ada40746aa24dd1241b968
+          persist-credentials: false
+      - name: Stage reviewed release
+        run: |
+          set -euo pipefail
+          mkdir -p /srv/cockro-deploy/online-stage
+          cp server/online-server.cjs server/bootstrap.py /srv/cockro-deploy/online-stage/
+          sha256sum /srv/cockro-deploy/online-stage/online-server.cjs /srv/cockro-deploy/online-stage/bootstrap.py
+          for candidate in /opt/cockro-runner/externals/node24/bin/node /opt/cockro-runner/externals/node20/bin/node; do
+            if [ -x "$candidate" ]; then
+              echo "ONLINE_NODE=$candidate" >> "$GITHUB_ENV"
+              break
+            fi
+          done
+      - name: Deploy fixed online service
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)"
+          sudo -n /usr/local/sbin/cockro-deploy-online "$digest"
+      - name: Test live world using two players
+        if: inputs.operation != 'stage'
+        run: |
+          set -euo pipefail
+          curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
+          "$ONLINE_NODE" server/smoke.cjs
