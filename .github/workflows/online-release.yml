@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 34f10cb029a71c639432a9e95e0bc42c9bc22afb
+          ref: de1794606cff932824b7db6aa068739b023c36e3
           persist-credentials: false
       - name: Stage reviewed release
         run: |
@@ -42,6 +42,8 @@ jobs:
       - name: Verify advanced world data and combat
         run: |
           "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js tests/checkin.test.js
+      - name: Validate server bundle syntax
+        run: '"$ONLINE_NODE" --check server/online-server.cjs'
       - name: Deploy fixed online service
         if: github.event_name == 'push' || inputs.operation == 'deploy'
         run: |
@@ -54,3 +56,9 @@ jobs:
           set -euo pipefail
           curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
           "$ONLINE_NODE" server/smoke.cjs
+      - name: Verify SSV route rejects unsigned callbacks
+        if: github.event_name == 'push' || inputs.operation != 'stage'
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' 'https://game.guardscan.xyz/online/ads/ssv?invalid=1')"
+          test "$code" = 400
