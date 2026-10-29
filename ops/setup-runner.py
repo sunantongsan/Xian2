@@ -71,6 +71,7 @@ def main():
         raise SystemExit('Runner checksum mismatch')
     with tarfile.open(archive) as bundle:
         bundle.extractall(ROOT, filter='data')
+    shutil.copy2(ROOT/'bin/runsvc.sh', ROOT/'runsvc.sh')
     shutil.chown(ROOT, user=USER, group=USER)
     for folder, dirs, files in os.walk(ROOT):
         for name in dirs + files:
