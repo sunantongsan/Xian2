@@ -2,7 +2,7 @@
 from pathlib import Path
 import struct
 web=Path(__file__).resolve().parents[1]/'web'
-for name in ['maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-forest.webp','heroes/cockro-combat-v2.webp','ui/hero-menu-atlas.webp']:
+for name in ['maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-forest.webp','heroes/cockro-combat-v2.webp','ui/hero-menu-atlas.webp','heroes/demon-scorpion.webp']:
  data=(web/name).read_bytes()
  assert data[:4]==b'RIFF' and data[8:12]==b'WEBP',name
  assert struct.unpack('<I',data[4:8])[0]+8==len(data),name

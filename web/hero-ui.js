@@ -1,7 +1,7 @@
 // Gameplay IDs remain stable so existing local saves retain their progression.
 export const HERO_CLASSES=Object.freeze([
  {id:'sword-cockro',name:'แมงสาบแมน',icon:12,color:'#ee654f',playable:true,description:'ฮีโร่ดาบพลังงาน • แนวหน้าปกป้องเมือง'},
- {id:'scorpion',name:'แมงป่องแมน',icon:13,color:'#b78aff',playable:false,description:'พลังแมงป่อง • แนวคิดอาชีพใหม่'},
+ {id:'demon-scorpion',name:'แมงป่องแมน',icon:13,color:'#b78aff',playable:true,description:'นักฆ่าพิษ • มีดคู่และหางแมงป่อง สกิลพิษวงกว้าง'},
  {id:'dragonfly',name:'แมลงปอเกิล',icon:14,color:'#5eddeb',playable:false,description:'พลังแมลงปอ • แนวคิดอาชีพใหม่'},
  {id:'cricket',name:'จิ้งหรีดแมน',icon:15,color:'#a2df68',playable:false,description:'พลังจิ้งหรีด • แนวคิดอาชีพใหม่'}
 ]);

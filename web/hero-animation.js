@@ -2,6 +2,8 @@
 export const HERO_IDS=['sword-male','sword-female','demon-male','demon-female'];
 export const WALK_DISTANCE=112;
 export const CELL=256;
+// New hero classes packed by tools/pack-class-sheet.py (same frame order as the Cockro combat sheet).
+export const CLASS_SHEETS=['demon-scorpion'];
 export function heroFrame(actor={}){
  const back=!!actor.back,flip=(actor.face||1)<0;
  const t=Math.max(0,Number.isFinite(actor.animTime)?actor.animTime:0);
@@ -25,6 +27,14 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
   ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
   ctx.drawImage(im,r[0],r[1],r[2],r[3],-r[4]*unit,-r[5]*unit,r[2]*unit,r[3]*unit);
   ctx.restore();return {sheet:'cockro-combat-v2',frame};
+ }
+ if(CLASS_SHEETS.includes(hero)){
+  // Normalised 4x4 class sheets: every frame is foot-anchored at (192,352) inside a 384px cell.
+  const im=images.get(`heroes/${hero}.webp`);if(!im||!Number.isFinite(size)||size<=0)return;
+  const frame=cockroFrame(actor),c=im.width/4,k=c/384,unit=size/314;
+  ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
+  ctx.drawImage(im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-192*unit,-352*unit,384*unit,384*unit);
+  ctx.restore();return {sheet:hero,frame};
  }
  if(!HERO_IDS.includes(hero)||!Number.isFinite(size)||size<=0)return;
  const f=heroFrame(actor),im=images.get(`heroes/${hero}-${f.sheet}.webp`);

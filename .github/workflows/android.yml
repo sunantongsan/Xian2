@@ -65,7 +65,7 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['heroes/cockro.webp','index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-forest.webp','alien-population.js','combat-vfx.js','maps/hero-star.json','tilemap.js','star-render.js','star-data.js']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]:
+              for p in ['heroes/cockro.webp','index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-forest.webp','alien-population.js','combat-vfx.js','maps/hero-star.json','heroes/demon-scorpion.webp','tilemap.js','star-render.js','star-data.js']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]:
                   assert 'assets/'+p in names,p
               assert not any(n.startswith(('assets/puppets/','assets/rig/')) for n in names)
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)

@@ -23,7 +23,16 @@ export const COCKRO_SKILLS=[
 {id:'s5',name:'ฝนดาบพิทักษ์ดาว',level:40,form:'field',element:'lightning',mods:['wide','force']},
 {id:'s6',name:'วงดาบสะเทือนฟ้า',level:55,form:'circle',element:'lightning',mods:['wide','force']}
 ];
-function classSkills(s){return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
+// Scorpion Man: poison assassin. Uses demon-sheet ids so painted VFX and save slots stay compatible.
+export const SCORPION_SKILLS=[
+{id:'d1',name:'มีดพิษพุ่งทะยาน',level:1,form:'wave',element:'poison',mods:['wide'],combat:{range:460,radius:140,mp:10,cd:3.2,power:1.8}},
+{id:'d2',name:'หางแมงป่องกวาดวง',level:5,form:'circle',element:'poison',mods:['wide'],combat:{range:185,radius:185,mp:14,cd:5,power:1.75}},
+{id:'d3',name:'หมอกพิษมรณะ',level:12,form:'field',element:'poison',mods:['wide'],combat:{range:420,radius:180,mp:22,cd:9,power:.7}},
+{id:'d4',name:'เงาแมงป่องพุ่งแทง',level:25,form:'dash',element:'poison',mods:['wide']},
+{id:'d5',name:'ลูกพิษระเบิดสายฟ้า',level:40,form:'bolt',element:'lightning',mods:['force','pierce']},
+{id:'d6',name:'หางยักษ์ฟาดพสุธา',level:55,form:'field',element:'poison',mods:['wide','force']}
+];
+function classSkills(s){if(s.hero==='demon-scorpion')return [...SCORPION_SKILLS,...SCHOOL.filter(r=>r.sect==='demon'&&Number(r.id.slice(1))>=7)];return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
 export function normalizeSkills(s,v={}){const sect=s.hero.startsWith('sword')?'sword':'demon';s.recipes=Array.isArray(v.recipes)?v.recipes.slice(0,10).filter(r=>r&&FORMS[r.form]&&ELEMENTS[r.element]&&Array.isArray(r.mods)&&r.mods.length<=2&&r.mods.every(m=>MODS[m]&&m!=='none')).map((r,i)=>({...r,id:'custom'+i,name:String(r.name||'วิชาไร้นาม').slice(0,32),level:r.mods.length>1?120:60})):[];const available=[...classSkills(s),...s.recipes].filter(r=>r.level<=s.level);const used=new Set();s.equipped=Array.isArray(v.equipped)?v.equipped.slice(0,3).map(id=>{if(used.has(id)||!available.some(r=>r.id===id))return null;used.add(id);return id;}):[];if(!s.equipped.some(Boolean))s.equipped=[available[0].id];s.materials={};for(const k of ['ink','core',...Object.keys(ELEMENTS)])s.materials[k]=Math.min(99999,Math.max(0,Math.floor(Number(v.materials?.[k])||0)));}
 export function knownSkills(s){return [...classSkills(s),...s.recipes];}
 export function craft(s,r){if(s.level<60)return 'ต้องถึงเลเวล 60';if(s.recipes.length>=10)return 'บันทึกได้สูงสุด 10 วิชา';if(!r||!FORMS[r.form]||!ELEMENTS[r.element]||!Array.isArray(r.mods)||new Set(r.mods).size!==r.mods.length||r.mods.some(m=>!MODS[m]||m==='none'))return 'สูตรไม่ถูกต้อง';if(r.mods.length>(s.level>=120?2:1))return 'สองคุณสมบัติต้องเลเวล 120';const advanced=r.mods.length===2,cost=advanced?12000:3000;if(s.gold<cost||s.materials.ink<1||s.materials[r.element]<3||(advanced&&s.materials.core<2))return 'เงินหรือวัตถุดิบไม่พอ';s.gold-=cost;s.materials.ink--;s.materials[r.element]-=3;if(advanced)s.materials.core-=2;s.recipes.push({id:'custom'+s.recipes.length,name:String(r.name||'วิชาไร้นาม').trim().slice(0,32)||'วิชาไร้นาม',form:r.form,element:r.element,mods:r.mods,level:advanced?120:60});return null;}
