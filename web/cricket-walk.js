@@ -1,6 +1,6 @@
 // The owner's supplied poses, kept verbatim. Prepare transparent runtime frames once,
 // rather than asking an image model to redraw the anatomy.
-export const CRICKET_WALK='heroes/cricket-walk-source.jpg';
+export const CRICKET_WALK='heroes/cricket-walk-source.webp';
 const columns=[[0,314],[313,273],[550,255],[770,257],[1016,255],[1250,286]];
 export function prepareCricketWalk(source){
  const atlas=document.createElement('canvas');atlas.width=6*384;atlas.height=2*384;const out=atlas.getContext('2d');
