@@ -18,15 +18,12 @@ public class MainActivity extends ComponentActivity {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private final AutoUpdater updater=new AutoUpdater();
- private WebView web;private FrameLayout root;private LinearLayout loading;private TextView status;private ProgressBar progress;private boolean destroyed,gameLoaded,startedCheck,foreground;
+ private WebView web;private FrameLayout root;private StartupScreen loading;private TextView status;private ProgressBar progress;private boolean destroyed,gameLoaded,startedCheck,foreground;
  @Override public void onCreate(Bundle state){
   super.onCreate(state);root=new FrameLayout(this);setContentView(root);
   getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-  loading=new LinearLayout(this);loading.setOrientation(LinearLayout.VERTICAL);loading.setGravity(Gravity.CENTER);loading.setPadding(40,24,40,24);loading.setBackgroundColor(0xff091b2b);
-  TextView title=new TextView(this);title.setText("COCKRO");title.setTextColor(0xffffd58a);title.setTextSize(32);loading.addView(title);
-  status=new TextView(this);status.setTextColor(0xffe2edf5);status.setTextSize(16);status.setPadding(0,16,0,16);status.setText("กำลังตรวจสอบแพตช์…");loading.addView(status);
-  progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);loading.addView(progress,new LinearLayout.LayoutParams(400,24));
-  Button skip=new Button(this);skip.setText("เล่นรุ่นเดิม");skip.setOnClickListener(v->{skip.setEnabled(false);status.setText("กำลังเปิดรุ่นเดิม…");updater.cancel();});loading.addView(skip);root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
+  loading=new StartupScreen(this);status=loading.status;progress=loading.progress;
+  loading.skip.setOnClickListener(v->{loading.skip.setEnabled(false);status.setText("กำลังเปิดรุ่นที่ติดตั้งอยู่…");updater.cancel();});root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){updater.cancel();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
  }
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();web.resumeTimers();}if(!startedCheck){startedCheck=true;checkUpdate();}}
@@ -55,7 +52,7 @@ public class MainActivity extends ComponentActivity {
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())failedBoot();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText("เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}return true;}
   });
-  Button patch=new Button(this);patch.setText("แพตช์");FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL);root.addView(patch,lp);patch.setOnClickListener(v->new android.app.AlertDialog.Builder(this).setTitle("แพตช์เกม • "+GamePatch.version(this)).setMessage("เกมตรวจแพตช์ให้อัตโนมัติทุกครั้งที่เปิด\nสามารถนำเข้า ZIP หรือกลับรุ่นในแอปได้").setPositiveButton("เลือกไฟล์",(d,w)->{android.content.Intent intent=new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);intent.setType("application/zip");intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);startActivityForResult(intent,PICK_PATCH);}).setNeutralButton("กลับรุ่นใน APK",(d,w)->{GamePatch.reset(this);recreate();}).setNegativeButton("ปิด",null).show());
+  Button patch=new Button(this);patch.setText("แพตช์");FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL);root.addView(patch,lp);patch.setOnClickListener(v->new android.app.AlertDialog.Builder(this).setTitle("แพตช์เกม • "+GamePatch.version(this)).setMessage("เกมตรวจแพตช์ให้อัตโนมัติทุกครั้งที่เปิด\nสามารถนำเข้า ZIP หรือกลับรุ่นในแอปได้").setPositiveButton("เลือกไฟล์",(d,w)->{android.content.Intent intent=new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);intent.setType("application/zip");intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);startActivityForResult(intent,PICK_PATCH);}).setNeutralButton("กลับรุ่นใน APK",(d,w)->{GamePatch.reset(this);recreate();}).setNegativeButton("ตรวจอัปเดตใหม่",(d,w)->recreate()).show());
   web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();web.pauseTimers();}
  }
  private void checkBoot(int attempt){if(destroyed||web==null)return;if(!foreground){handler.postDelayed(()->checkBoot(attempt),500);return;}web.evaluateJavascript("Boolean(document.getElementById('loading')?.hidden && document.getElementById('choose'))",value->{if(destroyed)return;if("true".equals(value)){worker.execute(()->GamePatch.healthy(this));}else if(attempt<40){handler.postDelayed(()->checkBoot(attempt+1),500);}else failedBoot();});}
@@ -66,3 +63,4 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();web.pauseTimers();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+

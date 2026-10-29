@@ -160,3 +160,22 @@ dialog:has(.hero-sheet){max-width:980px;width:96%}
 
 /* Compact auto toggle */
 #controls #autoBtn{width:auto!important;min-width:0!important;height:auto!important;min-height:30px!important;padding:4px 12px!important;font-size:12px!important;line-height:1.2;white-space:nowrap;writing-mode:horizontal-tb}
+
+
+/* Shared welcome artwork, with real controls and progress above it. */
+body.welcome-screen{background:#08263e url('ui/welcome.webp') center/cover no-repeat}
+body.welcome-screen #game{visibility:hidden}
+body.welcome-screen #modal{position:fixed;inset:0 3% 0 auto;margin:auto;width:37%;max-height:92vh;background:linear-gradient(135deg,#06233ee6,#07304bd9);border:1px solid #9eddfb66;border-radius:24px;padding:24px;color:#ecfaff;box-shadow:0 16px 60px #0008}
+body.welcome-screen #modal::backdrop{background:linear-gradient(90deg,transparent 38%,#04162744)}
+body.welcome-screen #modal h1{font-size:clamp(30px,5vw,66px);color:#ffe7a0;letter-spacing:.08em;margin:12px 0 0}
+body.welcome-screen #modal h2{font-size:clamp(15px,2vw,24px);margin:4px 0 12px}
+body.welcome-screen #modal p{font-size:12px;line-height:1.6}
+body.welcome-screen #modal button{display:block;width:100%;margin:8px 0;border-radius:12px;min-height:42px}
+body.welcome-screen #choose,body.welcome-screen #continue{background:linear-gradient(#ffdf88,#eaaa3f);color:#18283b;font-weight:bold;border-color:#fff0aa}
+body.welcome-screen #modal:has(.hero-grid){width:90%;inset:0;margin:auto}
+.welcome-eyebrow{font-size:10px;letter-spacing:.16em;color:#92e8ff}
+#loading{background:linear-gradient(0deg,#031322ef,transparent 48%),url('ui/welcome.webp') center/cover no-repeat!important;justify-content:flex-end!important;padding:0 8% 4vh!important;box-sizing:border-box;color:white}
+#loading h1{color:#ffe7a0;font-size:clamp(32px,5vw,64px);letter-spacing:.12em;margin:0;text-shadow:0 3px 10px #001}
+#loading p{margin:6px 0;text-shadow:0 2px 5px #001}
+#loading progress{width:min(680px,80vw);height:12px;accent-color:#53e7ff}
+@media(max-height:450px){body.welcome-screen #modal{padding:12px 20px;border-radius:18px}body.welcome-screen #modal p{margin:6px 0;font-size:10px}body.welcome-screen #modal h1{margin:0}body.welcome-screen #modal button{min-height:34px;margin:5px 0;padding:6px}body.welcome-screen #modal h2{margin:2px 0 6px}}
