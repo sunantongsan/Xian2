@@ -221,3 +221,5 @@ dialog:not(:has(#choose)) button{font-size:12px;min-height:36px;padding:6px 10px
 dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
 @media(max-height:450px){body.welcome-screen #modal{padding:12px;max-height:90vh}#hud .player-panel{width:166px;min-width:166px;max-width:166px;padding-top:5px;padding-bottom:5px}#hud #heroName{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#quickMenuTray{transition:none}}
+
+#onlineStatus{position:fixed;z-index:15;top:max(5px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:4px 10px;font:11px GameThai,sans-serif;color:#a4ffdb;background:#0c293de8;border:1px solid #4b9d90;border-radius:12px;max-width:38vw;pointer-events:auto;}
