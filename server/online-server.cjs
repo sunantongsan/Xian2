@@ -3808,7 +3808,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     const key = cache.get(keyId);
     if (!key || !(0, import_node_crypto.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
-    if (p.ad_unit !== unit || p.reward_amount !== "1" || p.reward_item !== "item" || !/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward");
+    if (p.ad_unit !== unit.split("/").at(-1) || p.reward_amount !== "1" || p.reward_item !== "item" || !/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward");
     return p;
   };
 }

@@ -12,7 +12,7 @@ const unit='ca-app-pub-1234567890123456/1234567890', user='a'.repeat(64);
 const pair=generateKeyPairSync('ec',{namedCurve:'prime256v1'}),pem=pair.publicKey.export({type:'spki',format:'pem'});
 const verifier=()=>createSSVVerifier({unit,fetchKeys:async()=>({ok:true,json:async()=>({keys:[{keyId:42,pem}]})})});
 function signed(p){const content=new URLSearchParams(p).toString();return content+'&signature='+sign('sha256',Buffer.from(content),pair.privateKey).toString('base64url')+'&key_id=42';}
-function callback(t,extra={}){return {ad_unit:unit,user_id:user,custom_data:t.nonce,reward_amount:'1',reward_item:'item',timestamp:String(Date.now()),transaction_id:'tx1',...extra};}
+function callback(t,extra={}){return {ad_unit:unit.split('/').at(-1),user_id:user,custom_data:t.nonce,reward_amount:'1',reward_item:'item',timestamp:String(Date.now()),transaction_id:'tx1',...extra};}
 test('signed callback grants requested item once and survives save/restart',async()=>{
  let s=fresh('sword-cockro');const t=issueRewardTicket(s,'ruby'),p=await verifier()(signed(callback(t)));
  assert.equal(applyVerifiedReward(s,p),true);assert.equal(s.upgradeItems.ruby,1);
@@ -22,7 +22,7 @@ test('signed callback grants requested item once and survives save/restart',asyn
 test('tampering, wrong unit/reward, missing signature, duplicate parameter rejected',async()=>{
  const s=fresh('sword-cockro'),t=issueRewardTicket(s,'crystal'),v=verifier(),raw=signed(callback(t));
  await assert.rejects(v(raw.replace('reward_amount=1','reward_amount=100')));
- for(const changes of [{ad_unit:'other'},{reward_amount:'2'},{reward_item:'gold'},{user_id:'../file'},{custom_data:'bad'}])await assert.rejects(v(signed(callback(t,changes))));
+ for(const changes of [{ad_unit:'other'},{ad_unit:unit},{ad_unit:'9999999999'},{reward_amount:'2'},{reward_item:'gold'},{user_id:'../file'},{custom_data:'bad'}])await assert.rejects(v(signed(callback(t,changes))));
  await assert.rejects(v('custom_data='+t.nonce));
  const c=new URLSearchParams(callback(t)).toString()+'&reward_amount=1';
  await assert.rejects(v(c+'&signature='+sign('sha256',Buffer.from(c),pair.privateKey).toString('base64url')+'&key_id=42'));
