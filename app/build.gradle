@@ -1,5 +1,8 @@
 plugins { id 'com.android.application' }
+def adsApp = providers.environmentVariable('ADMOB_APP_ID').orElse('').get()
+def adsUnit = providers.environmentVariable('ADMOB_REWARDED_UNIT_ID').orElse('').get()
 android {
+    buildFeatures { buildConfig true }
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
     testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { exceptionFormat = "full"; events "passed", "failed"; showStandardStreams = true } } }
@@ -7,8 +10,8 @@ android {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 93
-        versionName '4.6.4'
+        versionCode 94
+        versionName '4.12.0'
     }
     signingConfigs {
         release {
@@ -21,17 +24,32 @@ android {
         }
     }
     buildTypes {
-        debug { applicationIdSuffix '.preview'; versionNameSuffix '-preview' }
-        release { if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
+        debug {
+            applicationIdSuffix '.preview'; versionNameSuffix '-preview'
+            manifestPlaceholders = [admobAppId: 'ca-app-pub-3940256099942544~3347511713']
+            buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"ca-app-pub-3940256099942544/5224354917"'
+        }
+        release {
+            manifestPlaceholders = [admobAppId: adsApp]
+            buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"' + adsUnit + '"'
+            if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
     }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }
 }
-dependencies { testImplementation 'junit:junit:4.13.2'
+dependencies {
+ implementation 'com.google.android.gms:play-services-ads:25.5.0'
+ implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+ testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
  implementation 'androidx.activity:activity:1.10.1'
  implementation 'androidx.webkit:webkit:1.14.0' }
 
-
-
-
-
+// Fail closed: a Store build must never ship sample IDs or missing account configuration.
+tasks.register('validateProductionAds') {
+ doLast {
+  if (!(adsApp ==~ /ca-app-pub-\d{16}~\d{10}/) || !(adsUnit ==~ /ca-app-pub-\d{16}\/\d{10}/) || adsApp.contains('3940256099942544') || adsUnit.contains('3940256099942544')) {
+   throw new GradleException('Set real ADMOB_APP_ID and ADMOB_REWARDED_UNIT_ID before building release.')
+  }
+ }
+}
+tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'validateProductionAds' }

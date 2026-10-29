@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes2, createHash: createHash2 } = require("crypto");
+    var { randomBytes: randomBytes3, createHash: createHash2 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2814,7 +2814,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes2(16).toString("base64");
+      const key = randomBytes3(16).toString("base64");
       const request = isSecure ? https.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -3710,45 +3710,8 @@ var require_websocket_server = __commonJS({
 // server/server.js
 var import_node_http = __toESM(require("node:http"), 1);
 
-// node_modules/ws/wrapper.mjs
-var import_stream = __toESM(require_stream(), 1);
-var import_extension = __toESM(require_extension(), 1);
-var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
-var import_receiver = __toESM(require_receiver(), 1);
-var import_sender = __toESM(require_sender(), 1);
-var import_subprotocol = __toESM(require_subprotocol(), 1);
-var import_websocket = __toESM(require_websocket(), 1);
-var import_websocket_server = __toESM(require_websocket_server(), 1);
-
-// server/server.js
+// server/rewarded-ads.js
 var import_node_crypto = require("node:crypto");
-var import_node_fs = require("node:fs");
-var import_node_path = require("node:path");
-
-// web/checkin.js
-var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
-var DAY = 864e5;
-var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
-function normalizeCheckin(s, v = s) {
-  const c = v.checkin || {};
-  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
-  return s;
-}
-function checkinStatus(s, now = Date.now()) {
-  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
-  const claimed = Number.isInteger(last) && last >= today;
-  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
-  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
-}
-function claimCheckin(s, now = Date.now()) {
-  if (!Number.isFinite(now)) return 0;
-  normalizeCheckin(s);
-  const status = checkinStatus(s, now);
-  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
-  s.stones += status.reward;
-  s.checkin = { lastDay: status.today, streak: status.day };
-  return status.reward;
-}
 
 // web/upgrade-items.js
 var UPGRADE_ITEMS = {
@@ -3788,6 +3751,106 @@ function socketGem(s, slot, id) {
   gems[id]++;
   it.gems = gems;
   return true;
+}
+
+// server/rewarded-ads.js
+var TTL = 36e5;
+var RETENTION = 864e5;
+function issueRewardTicket(s, item, now = Date.now()) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
+  const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
+  if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
+  if (tickets.length >= 100) throw Error("ad_limit");
+  const ticket = { nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, created: now };
+  s.adTickets = [...tickets, ticket];
+  return ticket;
+}
+function applyVerifiedReward(s, params, now = Date.now()) {
+  const ticket = s.adTickets?.find((t) => t.nonce === params.custom_data);
+  if (!ticket) throw Error("unknown_ticket");
+  if (ticket.transaction) {
+    if (ticket.transaction === params.transaction_id) return false;
+    throw Error("used_ticket");
+  }
+  const stamp = Number(params.timestamp);
+  if (!Number.isFinite(stamp) || stamp < ticket.created - 6e4 || stamp > ticket.created + TTL || stamp > now + 6e4 || now - stamp > RETENTION) throw Error("expired_reward");
+  if (!/^[\w.-]{1,200}$/.test(params.transaction_id || "") || s.adTickets.some((t) => t.transaction === params.transaction_id)) throw Error("duplicate_transaction");
+  if (!Object.hasOwn(UPGRADE_ITEMS, ticket.item) || (s.upgradeItems[ticket.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[ticket.item] = (s.upgradeItems[ticket.item] || 0) + 1;
+  ticket.transaction = params.transaction_id;
+  return true;
+}
+function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/admob/reward/verifier-keys.json", { signal: AbortSignal.timeout(5e3) }), unit } = {}) {
+  let cache = /* @__PURE__ */ new Map(), fetched = 0, inflight;
+  async function refresh() {
+    if (!inflight) inflight = (async () => {
+      const r = await fetchKeys();
+      if (!r.ok) throw Error("keys_unavailable");
+      const json = await r.json();
+      const next = new Map(json.keys.map((k) => [String(k.keyId), k.pem]));
+      if (!next.size) throw Error("keys_unavailable");
+      cache = next;
+      fetched = Date.now();
+    })().finally(() => inflight = null);
+    return inflight;
+  }
+  return async (raw) => {
+    if (!unit || unit.includes("3940256099942544")) throw Error("ads_disabled");
+    if (raw.length > 4096) throw Error("invalid_callback");
+    const match = /^(.+)&signature=([A-Za-z0-9_%=-]+)&key_id=(\d+)$/.exec(raw);
+    if (!match) throw Error("invalid_signature");
+    const [, content, signature, keyId] = match, params = new URLSearchParams(content), seen = /* @__PURE__ */ new Set();
+    for (const [key2] of params) {
+      if (seen.has(key2) || ["signature", "key_id"].includes(key2)) throw Error("duplicate_parameter");
+      seen.add(key2);
+    }
+    if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
+    const key = cache.get(keyId);
+    if (!key || !(0, import_node_crypto.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    const p = Object.fromEntries(params);
+    if (p.ad_unit !== unit || p.reward_amount !== "1" || p.reward_item !== "item" || !/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward");
+    return p;
+  };
+}
+
+// node_modules/ws/wrapper.mjs
+var import_stream = __toESM(require_stream(), 1);
+var import_extension = __toESM(require_extension(), 1);
+var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
+var import_receiver = __toESM(require_receiver(), 1);
+var import_sender = __toESM(require_sender(), 1);
+var import_subprotocol = __toESM(require_subprotocol(), 1);
+var import_websocket = __toESM(require_websocket(), 1);
+var import_websocket_server = __toESM(require_websocket_server(), 1);
+
+// server/server.js
+var import_node_crypto2 = require("node:crypto");
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+
+// web/checkin.js
+var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
+var DAY = 864e5;
+var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
+function normalizeCheckin(s, v = s) {
+  const c = v.checkin || {};
+  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
+  return s;
+}
+function checkinStatus(s, now = Date.now()) {
+  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
+  const claimed = Number.isInteger(last) && last >= today;
+  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
+  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
+}
+function claimCheckin(s, now = Date.now()) {
+  if (!Number.isFinite(now)) return 0;
+  normalizeCheckin(s);
+  const status = checkinStatus(s, now);
+  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
+  s.stones += status.reward;
+  s.checkin = { lastDay: status.today, streak: status.day };
+  return status.reward;
 }
 
 // web/balance.js
@@ -4128,7 +4191,7 @@ function upgradeGear(s, slot) {
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4206,6 +4269,7 @@ function validSave(v) {
   normalizeFashion(s, v);
   normalizeUpgradeItems(s, v);
   normalizeCheckin(s, v);
+  s.adTickets = Array.isArray(v.adTickets) ? v.adTickets.filter((t) => t && /^[a-f0-9]{48}$/.test(t.nonce) && Number.isFinite(t.created)).slice(-100) : [];
   s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
   if (v.balanceVersion !== BALANCE_VERSION) {
     s.xp = Math.floor(Math.min(1, s.xp / (45 + s.level * s.level * 4)) * xpNeed(s.level));
@@ -4759,7 +4823,7 @@ var World = class {
 };
 
 // server/server.js
-function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false } = {}) {
+function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
   (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
   const world = new World(), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
   let diskFailure = false;
@@ -4782,7 +4846,45 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       throw Error("save_unavailable");
     }
   };
-  const server = import_node_http.default.createServer((req, res) => {
+  const adsEnabled = /^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit) && !adUnit.includes("3940256099942544");
+  const verifySSV = ssvVerifier || createSSVVerifier({ unit: adUnit });
+  let verifying = 0;
+  const server = import_node_http.default.createServer(async (req, res) => {
+    if (req.url?.startsWith("/online/ads/ssv?")) {
+      res.setHeader("Cache-Control", "no-store");
+      if (!adsEnabled || req.method !== "GET") {
+        res.writeHead(404);
+        return res.end();
+      }
+      if (verifying >= 8) {
+        res.writeHead(503);
+        return res.end();
+      }
+      verifying++;
+      try {
+        const data = await verifySSV(req.url.split("?")[1]);
+        const live = world.players.get(data.user_id), path = (0, import_node_path.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+        const changed = applyVerifiedReward(state, data);
+        if (changed) {
+          const holder = { id: data.user_id, s: state };
+          persist(holder);
+          if (live) {
+            live.s = state;
+            live.dirty = false;
+          }
+        }
+        res.writeHead(200);
+        res.end("OK");
+      } catch (error) {
+        res.writeHead(error.message === "save_unavailable" || error.message === "keys_unavailable" ? 503 : 400);
+        res.end("Unverified reward");
+      } finally {
+        verifying--;
+      }
+      return;
+    }
     if (req.url === "/online/health") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
@@ -4833,11 +4935,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto.randomBytes)(32).toString("hex");
+            token = (0, import_node_crypto2.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const id = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex");
+          const id = (0, import_node_crypto2.createHash)("sha256").update(token).digest("hex");
           const path = (0, import_node_path.join)(directory, id + ".json");
           if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
           const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
@@ -4845,8 +4947,24 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           p = world.join(id, state);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state });
+          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state, adsEnabled });
           send(ws, world.snapshot(p));
+          return;
+        }
+        if (d.type === "adTicket") {
+          if (!adsEnabled) {
+            send(ws, { type: "adError", message: "ads_disabled" });
+            return;
+          }
+          try {
+            const copy = structuredClone(p.s), ticket = issueRewardTicket(copy, d.item);
+            persist({ id: p.id, s: copy });
+            p.s = copy;
+            p.dirty = false;
+            send(ws, { type: "adTicket", user: p.id, nonce: ticket.nonce, item: ticket.item });
+          } catch (error) {
+            send(ws, { type: "adError", message: error.message === "save_unavailable" ? "save_unavailable" : "ad_pending" });
+          }
           return;
         }
         world.command(p, d);
