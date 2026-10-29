@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 5c8765470121be683d6dc82af5a095940469279e
+          ref: 9b2d335731ec2e22ed63b3a2bceeec24c5740598
           persist-credentials: false
       - name: Stage reviewed release
         run: |
@@ -41,7 +41,7 @@ jobs:
           done
       - name: Verify advanced world data and combat
         run: |
-          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js
+          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js
       - name: Deploy fixed online service
         if: github.event_name == 'push' || inputs.operation == 'deploy'
         run: |
