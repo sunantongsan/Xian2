@@ -3765,6 +3765,14 @@ async function main() {
     import_strict.default.equal(a.state.self.save.equipped.length, 5);
     for (const id of ["meteor", "crystal", "glowstone", "diamond", "ruby"]) import_strict.default.equal(a.state.self.save.upgradeItems[id], 0);
     console.log("PASS five skill slots and upgrade inventory synchronized");
+    const initialGold = a.state.self.save.stones;
+    a.send({ type: "op", op: "dailyCheckin" });
+    await wait(() => a.state.self.save.stones === initialGold + 3);
+    await pause(150);
+    a.send({ type: "op", op: "dailyCheckin" });
+    await pause(200);
+    import_strict.default.equal(a.state.self.save.stones, initialGold + 3);
+    console.log("PASS daily check-in grants rare gold once");
     await wait(() => a.state.players.some((p) => p.id === b.id) && b.state.players.some((p) => p.id === a.id));
     console.log("PASS two players join the same village");
     const start = a.state.self.x;

@@ -3725,6 +3725,31 @@ var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/checkin.js
+var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
+var DAY = 864e5;
+var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
+function normalizeCheckin(s, v = s) {
+  const c = v.checkin || {};
+  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
+  return s;
+}
+function checkinStatus(s, now = Date.now()) {
+  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
+  const claimed = Number.isInteger(last) && last >= today;
+  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
+  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
+}
+function claimCheckin(s, now = Date.now()) {
+  if (!Number.isFinite(now)) return 0;
+  normalizeCheckin(s);
+  const status = checkinStatus(s, now);
+  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
+  s.stones += status.reward;
+  s.checkin = { lastDay: status.today, streak: status.day };
+  return status.reward;
+}
+
 // web/upgrade-items.js
 var UPGRADE_ITEMS = {
   meteor: { name: "\u0E2B\u0E34\u0E19\u0E2D\u0E38\u0E01\u0E32\u0E1A\u0E32\u0E28", price: 20, description: "\u0E43\u0E0A\u0E49\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2D\u0E32\u0E27\u0E38\u0E18 \u0E0A\u0E38\u0E14 \u0E41\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E14\u0E31\u0E1A", icon: "items/meteor.webp" },
@@ -4106,6 +4131,7 @@ function fresh(hero) {
   const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
+  normalizeCheckin(s);
   freshGear(s);
   normalizeFashion(s);
   return s;
@@ -4179,6 +4205,7 @@ function validSave(v) {
   normalizeGear(s, v);
   normalizeFashion(s, v);
   normalizeUpgradeItems(s, v);
+  normalizeCheckin(s, v);
   s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
   if (v.balanceVersion !== BALANCE_VERSION) {
     s.xp = Math.floor(Math.min(1, s.xp / (45 + s.level * s.level * 4)) * xpNeed(s.level));
@@ -4534,17 +4561,20 @@ var World = class {
         case "fashionRemove":
           removeFashion(s, d.slot);
           break;
+        case "dailyCheckin":
+          claimCheckin(s, now * 1e3);
+          break;
         case "buy":
-          if (atHome) buyPotion(s);
+          buyPotion(s);
           break;
         case "buyMP":
-          if (atHome) buyMPPotion(s);
+          buyMPPotion(s);
           break;
         case "upgrade":
           if (atHome) upgrade(s);
           break;
         case "buyUpgradeItem":
-          if (atHome && typeof d.id === "string") buyUpgradeItem(s, d.id);
+          if (typeof d.id === "string") buyUpgradeItem(s, d.id);
           break;
         case "socketGem":
           if (atHome && typeof d.id === "string" && typeof d.slot === "string") socketGem(s, d.slot, d.id);
@@ -4724,7 +4754,7 @@ var World = class {
     const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
-    return { type: "state", self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
+    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
   }
 };
 
