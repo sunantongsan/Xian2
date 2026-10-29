@@ -157,3 +157,6 @@ dialog:has(.hero-sheet){max-width:980px;width:96%}
 .item-head b{display:block;color:var(--rc);font-size:15px}.item-card p{margin:6px 0;font-size:13px}.cmp.up{color:#6dff9a}.cmp.down{color:#ff8a7a}
 .item-actions{display:flex;gap:6px}.item-actions button{flex:1;min-height:40px}
 @media(max-width:700px),(max-height:450px){.hero-sheet{grid-template-columns:1fr 1fr;gap:8px}.doll-body{grid-template-columns:52px 1fr 52px}.gear-slot{width:52px;height:52px}.gear-slot i{display:none}.gear-slot .slot-svg{width:28px;height:28px}.stage{min-height:200px}.derived{grid-template-columns:repeat(2,1fr)}.bag-grid{grid-template-columns:repeat(6,1fr)}.attr{padding:4px 6px}.attr b{font-size:12px}.attr small{font-size:9px}.attr em{font-size:16px}}
+
+/* Compact auto toggle */
+#controls #autoBtn{width:auto!important;min-width:0!important;height:auto!important;min-height:30px!important;padding:4px 12px!important;font-size:12px!important;line-height:1.2;white-space:nowrap;writing-mode:horizontal-tb}
