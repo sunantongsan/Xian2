@@ -61,15 +61,21 @@ function astar([sc,sr],[gc,gr],allowed){const start=idx(sc,sr),goal=idx(gc,gr),g
  const path=[];for(let k=goal;k>=0;k=par[k]){path.push(k);if(k===start)break;}return path.reverse();}
 const zoneOfChasm=i=>{const c=i%N,r=Math.floor(i/N),set=new Set();for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const x=c+dx,y=r+dy;if(inMap(x,y)&&zoneOf[idx(x,y)]>=0)set.add(zoneOf[idx(x,y)]);}return set;};
 const roads=new Uint8Array(N*N);
-for(let z=0;z<11;z++){const a=z,b=z+1;
+// Every pair of neighbouring zones gets a road and bridge, so the whole planet is one connected world
+// (consecutive zones first, then the remaining neighbours such as 8-1 and the inner ring to the core).
+const touching=new Map();
+for(let i=0;i<N*N;i++){if(terrain[i]!==T.CHASM||depth[i]!==0)continue;const s=[...zoneOfChasm(i)];if(s.length!==2)continue;const key=Math.min(...s)+'-'+Math.max(...s);touching.set(key,(touching.get(key)||0)+1);}
+const pairs=[...Array(11)].map((_,z)=>[z,z+1]);
+for(const [key,n] of touching){const [a,b]=key.split('-').map(Number);if(n>=25&&b-a!==1)pairs.push([a,b]);}
+for(const [a,b] of pairs){
  const path=astar(hubs[a],hubs[b],j=>{if(zoneOf[j]<0)return false;if(terrain[j]!==T.CHASM)return zoneOf[j]===a||zoneOf[j]===b;if(depth[j]===0){const s=zoneOfChasm(j);return s.has(a)&&s.has(b)&&![...s].some(v=>v!==a&&v!==b);}return false;});
  if(path.at(-1)!==idx(...hubs[b]))throw new Error('no road '+a+'->'+b);
  for(const i of path){const c=i%N,r=Math.floor(i/N);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=c+dx,y=r+dy;if(!inMap(x,y))continue;const j=idx(x,y);if(zoneOf[j]<0)continue;if(terrain[j]===T.CHASM){if(depth[j]===0)terrain[j]=T.BRIDGE;}else terrain[j]=T.ROAD;roads[j]=1;keep[j]=1;}}}
 // Bridges must not leak into a third zone: chasm tiles touching the void stay chasm (planet rim).
 for(let i=0;i<N*N;i++)if(terrain[i]===T.BRIDGE){const c=i%N,r=Math.floor(i/N);for(const [dx,dy]of N8){const x=c+dx,y=r+dy;if(inMap(x,y)&&zoneOf[idx(x,y)]<0){terrain[i]=T.CHASM;break;}}}
 
-// 7. Plazas around warp gates (radius 4) — always clear.
-for(const [hc,hr]of hubs)for(let dy=-6;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>5.4)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}
+// 7. Plazas around warp gates — always clear. Gate 1 is the heroes' home base (spawn, shops, portals), so it is larger.
+for(const [z,[hc,hr]]of hubs.entries()){const R=z===0?9.4:5.4;for(let dy=-10;dy<=10;dy++)for(let dx=-10;dx<=10;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>R)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}}
 {const core=keep.slice();for(let i=0;i<N*N;i++)if(core[i]){const c=i%N,r=Math.floor(i/N);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=c+dx,y=r+dy;if(inMap(x,y))keep[idx(x,y)]||=2;}}}
 
 // 8. Lakes (water/lava/acid/mist/inner chasms) and props.
@@ -94,7 +100,7 @@ const zoneStats=[];
 for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
  const cand=[];for(let i=0;i<N*N;i++)if(zoneOf[i]===z&&reach[i]&&terrain[i]!==T.PLAZA&&!roads[i])cand.push(i);
  const [hc,hr]=hubs[z];const camps=[];
- for(let tries=0;tries<4000&&camps.length<26;tries++){const i=cand[Math.floor(rnd()*cand.length)],c=i%N,r=Math.floor(i/N);if(Math.hypot(c-hc,r-hr)<9)continue;if(camps.some(([x,y])=>Math.hypot(x-c,y-r)<6.5))continue;
+ for(let tries=0;tries<4000&&camps.length<26;tries++){const i=cand[Math.floor(rnd()*cand.length)],c=i%N,r=Math.floor(i/N);if(Math.hypot(c-hc,r-hr)<(z===0?16:9))continue;if(camps.some(([x,y])=>Math.hypot(x-c,y-r)<6.5))continue;
   let open=0;for(const [dx,dy]of N8)if(walk(idx(c+dx,r+dy))&&reach[idx(c+dx,r+dy)])open++;if(open<7)continue;camps.push([c,r]);}
  camps.sort((a,b)=>Math.hypot(b[0]-hc,b[1]-hr)-Math.hypot(a[0]-hc,a[1]-hr));
  const regular=camps.length-1;
@@ -105,7 +111,10 @@ for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
 
 // 11. Points of interest: warp gate per zone (gate 0 is the arrival point) and the portal back to town beside it.
 const pois=hubs.map(([c,r],z)=>({name:'ประตูวาร์ป • '+STAR_ZONES[z].name,type:'warp',c,r,zone:z}));
-pois.push({name:'กลับสถานีออโรรา',type:'town',c:hubs[0][0]+4,r:hubs[0][1]-3,zone:0});
+// Home base services around gate 1 (offsets inside the radius-9 plaza; nudged onto plaza tiles if needed).
+{const [hc,hr]=hubs[0];
+ const svc=[['คลังเสบียง','shop',-6,1],['โรงอัปเกรด','forge',1,-6],['ศูนย์ฝึกฮีโร่','skills',-4,-5],['สถานีออโรรา','town',6,-1],['ประตูป่าชีวะแสง','forest',4,5]];
+ for(const [name,type,dx,dy] of svc){let c=hc+dx,r=hr+dy;for(let k=0;k<8&&terrain[idx(c,r)]!==T.PLAZA;k++){c-=Math.sign(dx);r-=Math.sign(dy);}pois.push({name,type,c,r,zone:0});}}
 
 // 12. Write Tiled JSON.
 const prop1=(name,type,value)=>({name,type,value});

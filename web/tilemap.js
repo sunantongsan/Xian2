@@ -22,7 +22,7 @@ export function parseTiled(json){
  const zones=(zoneSet?.tiles||[]).sort((a,b)=>a.id-b.id).map(t=>{const p=props(t);return {...STAR_ZONES[t.id],name:p.name,en:p.en,min:p.minLevel,max:p.maxLevel};});
  const toW=o=>({x:o.x/json.tileheight*T,y:o.y/json.tileheight*T});
  const spawns=(layer('spawns')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,name:o.name,...toW(o),zone:p.zone,level:p.level,species:p.species,count:p.count||1,elite:o.type==='elite'||o.type==='boss',boss:o.type==='boss'};});
- const pois=(layer('pois')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,name:o.name,action:o.type==='town'?'town':'warp',zone:p.zone,world:toW(o)};});
+ const pois=(layer('pois')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,name:o.name,action:o.type,zone:p.zone,world:toW(o)};});
  const gate=pois.find(p=>p.action==='warp'&&p.zone===0)||pois[0];
  return {type:'tiles',name:mp.title||'แผนที่',N,rows,T,kind,color,walk,prop,zone,variant,zones,spawns,pois,spawn:gate.world};
 }

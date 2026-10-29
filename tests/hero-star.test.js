@@ -43,16 +43,20 @@ test('warp gates and the town portal are reachable; walking from gate 1 to the c
  assert(Math.hypot(last.x-core.x,last.y-core.y)<1);
 });
 
-test('zones are separated by chasms and only consecutive zones connect',()=>{
- const N=star.N;
- for(let i=0;i<star.walk.length;i++){if(!star.walk[i])continue;const c=i%N,r=Math.floor(i/N);
-  for(const [dx,dy]of [[1,0],[0,1]]){const j=(r+dy)*N+c+dx;if(c+dx>=N||r+dy>=star.rows||!star.walk[j])continue;const a=star.zone[i],b=star.zone[j];
-   if(a!==b)assert(Math.abs(a-b)===1,`zones ${a} and ${b} touch at ${c},${r}`);}}
- // Outside the planet nothing is walkable, and chasms block movement.
+test('the whole planet is one connected world: every zone gate reachable on foot from the home base',()=>{
+ const N=star.N,home=star.spawn;
+ for(const g of star.pois.filter(p=>p.action==='warp'))assert(reach[tileIndex(star,g.world.x,g.world.y)],'gate '+g.zone);
+ // Neighbouring zones are linked directly (not only consecutive ones), and nothing outside the planet is walkable.
+ const links=new Set();
+ for(let i=0;i<star.walk.length;i++){if(!star.walk[i])continue;const c=i%N,r=Math.floor(i/N);for(const [dx,dy]of [[1,0],[0,1]]){const j=(r+dy)*N+c+dx;if(c+dx>=N||r+dy>=star.rows||!star.walk[j])continue;const a=star.zone[i],b=star.zone[j];if(a!==b)links.add(Math.min(a,b)+'-'+Math.max(a,b));}}
+ for(let z=0;z<11;z++)assert(links.has(z+'-'+(z+1)),'link '+z);
+ assert(links.size>11,'extra links between neighbouring zones');
  assert(!walkable(star,{x:-100,y:-100}));
- const chasm=star.kind.findIndex(k=>k==='chasm');assert(chasm>=0);assert(!walkable(star,{x:(chasm%N+.5)*star.T,y:(Math.floor(chasm/N)+.5)*star.T}));
+ const chasm=star.kind.findIndex(k=>k==='chasm');assert(!walkable(star,{x:(chasm%N+.5)*star.T,y:(Math.floor(chasm/N)+.5)*star.T}));
+ // Home base services exist and sit on the base plaza.
+ for(const a of ['shop','forge','skills','town','forest']){const p=star.pois.find(q=>q.action===a);assert(p,a);assert(walkable(star,p.world),a);assert(Math.hypot(p.world.x-home.x,p.world.y-home.y)<430,a);}
+ assert(!star.spawns.some(c=>Math.hypot(c.x-home.x,c.y-home.y)<700),'no camps inside the base');
 });
-
 test('local chase routing is bounded and still makes progress',()=>{
  const from=star.spawns[5],to=star.spawns.filter(c=>c.zone===from.zone).sort((a,b)=>Math.hypot(b.x-from.x,b.y-from.y)-Math.hypot(a.x-from.x,a.y-from.y))[0];const route=routeTo(star,from,to,300);
  assert(route.length>0);let last=from;for(const p of route){const end=traceStep(star,last,p);assert(Math.hypot(end.x-p.x,end.y-p.y)<1);last=p;}
