@@ -1,0 +1,44 @@
+name: Verify COCKRO VPS connection
+on:
+  workflow_dispatch:
+  push:
+    branches: [cockro/vps-direct-connection]
+    paths:
+      - '.github/workflows/vps-connection.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cockro-vps-connectivity
+  cancel-in-progress: false
+jobs:
+  https:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify VPS HTTPS endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --proto '=https' --tlsv1.2 --fail --silent --show-error --max-time 15 https://game.guardscan.xyz/health)"
+          test "$response" = "Cockro internal test server"
+          printf 'GitHub runner -> COCKRO VPS HTTPS: OK\n'
+  ssh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: vars.COCKRO_VPS_SSH_ENABLED == 'true'
+    steps:
+      - name: Verify restricted VPS account
+        shell: bash
+        env:
+          VPS_PRIVATE_KEY: ${{ secrets.COCKRO_VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.COCKRO_VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_PRIVATE_KEY"
+          test -n "$VPS_KNOWN_HOSTS"
+          connection_dir="$(mktemp -d)"
+          trap 'rm -rf "$connection_dir"' EXIT
+          umask 077
+          printf '%s\n' "$VPS_PRIVATE_KEY" > "$connection_dir/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$connection_dir/known_hosts"
+          ssh -i "$connection_dir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$connection_dir/known_hosts" -o ConnectTimeout=15 cockro-deploy@143.14.4.241 status
