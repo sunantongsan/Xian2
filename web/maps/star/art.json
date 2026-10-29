@@ -33,6 +33,18 @@
    ]
   }
  },
+ "10": {
+  "ground": {
+   "avg": "#312444",
+   "file": "maps/star/ground-10.webp"
+  }
+ },
+ "11": {
+  "ground": {
+   "avg": "#2d1f1a",
+   "file": "maps/star/ground-11.webp"
+  }
+ },
  "2": {
   "ground": {
    "avg": "#b57621",
@@ -43,6 +55,42 @@
   "ground": {
    "avg": "#ac4f24",
    "file": "maps/star/ground-3.webp"
+  }
+ },
+ "4": {
+  "ground": {
+   "avg": "#34361a",
+   "file": "maps/star/ground-4.webp"
+  }
+ },
+ "5": {
+  "ground": {
+   "avg": "#2e4d79",
+   "file": "maps/star/ground-5.webp"
+  }
+ },
+ "6": {
+  "ground": {
+   "avg": "#504e4d",
+   "file": "maps/star/ground-6.webp"
+  }
+ },
+ "7": {
+  "ground": {
+   "avg": "#a55737",
+   "file": "maps/star/ground-7.webp"
+  }
+ },
+ "8": {
+  "ground": {
+   "avg": "#3b304b",
+   "file": "maps/star/ground-8.webp"
+  }
+ },
+ "9": {
+  "ground": {
+   "avg": "#825d27",
+   "file": "maps/star/ground-9.webp"
   }
  }
 }
