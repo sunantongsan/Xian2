@@ -179,3 +179,7 @@ body.welcome-screen #modal:has(.hero-grid){width:90%;inset:0;margin:auto}
 #loading p{margin:6px 0;text-shadow:0 2px 5px #001}
 #loading progress{width:min(680px,80vw);height:12px;accent-color:#53e7ff}
 @media(max-height:450px){body.welcome-screen #modal{padding:12px 20px;border-radius:18px}body.welcome-screen #modal p{margin:6px 0;font-size:10px}body.welcome-screen #modal h1{margin:0}body.welcome-screen #modal button{min-height:34px;margin:5px 0;padding:6px}body.welcome-screen #modal h2{margin:2px 0 6px}}
+/* The welcome screen is the root menu, so it has no dismiss control. */
+body.welcome-screen #modal:has(#choose) #windowClose{display:none}
+body.welcome-screen #modal h2{padding:6px 0;background:none;border:0;box-shadow:none}
+body.welcome-screen #modal #windowClose{width:36px;min-height:36px;margin:0}
