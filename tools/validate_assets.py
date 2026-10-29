@@ -11,3 +11,9 @@ for name in ['maps/aurora-outpost.webp','maps/biolume-tile.webp','sprites/alien-
  print(name,len(data))
 for name in ['maps/town.webp','maps/bamboo.webp']+[f'sprites/monsters-{i}.webp' for i in range(10)]:assert not (web/name).exists(),name
 assert (web/'assets/NotoSansThai.ttf').is_file()
+import json
+star=json.loads((web/'maps/hero-star.json').read_text(encoding='utf-8'))
+assert star['orientation']=='isometric' and star['width']>=160 and star['height']>=160
+assert {'ground','props','zones','spawns','pois'}<={l['name'] for l in star['layers']}
+assert len(next(t for t in star['tilesets'] if t['name']=='hero-star-zones')['tiles'])==12
+print('Hero Star Tiled map',star['width'],'x',star['height'])
