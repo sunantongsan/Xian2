@@ -1,0 +1,38 @@
+name: COCKRO VPS Remote Control
+run-name: VPS ${{ inputs.operation }} by @${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Server operation
+        required: true
+        default: status
+        type: choice
+        options:
+          - status
+          - logs-cockro
+          - logs-cockro3d
+          - restart-cockro
+          - restart-cockro3d
+          - check-https
+permissions: {}
+concurrency:
+  group: cockro-vps-control
+  cancel-in-progress: false
+jobs:
+  control:
+    if: github.ref == 'refs/heads/main' && github.actor == 'sunantongsan'
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 3
+    steps:
+      - name: Run approved server operation
+        env:
+          OPERATION: ${{ inputs.operation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in
+            status|logs-cockro|logs-cockro3d|restart-cockro|restart-cockro3d|check-https) ;;
+            *) echo "Unsupported operation"; exit 2 ;;
+          esac
+          sudo -n /usr/local/sbin/cockro-control "$OPERATION"
