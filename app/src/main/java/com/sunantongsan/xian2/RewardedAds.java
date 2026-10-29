@@ -38,7 +38,7 @@ final class RewardedAds {
  }
  private void emit(String status){
   if(dead||web==null)return;
-  try{JSONObject out=new JSONObject();out.put("status",status);out.put("ready",initialized&&consent.canRequestAds()&&!busy);out.put("test",BuildConfig.DEBUG);out.put("privacy",consent.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED);
+  try{JSONObject out=new JSONObject();out.put("status",status);out.put("nativeVersion",BuildConfig.VERSION_NAME);out.put("nativeCode",BuildConfig.VERSION_CODE);out.put("ready",initialized&&consent.canRequestAds()&&!busy);out.put("test",BuildConfig.DEBUG);out.put("privacy",consent.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED);
    String script="window.dispatchEvent(new CustomEvent('cockro-ad',{detail:"+out.toString()+"}));";
    web.evaluateJavascript(script,null);
   }catch(Exception ignored){}
@@ -62,3 +62,4 @@ final class RewardedAds {
  }
  void destroy(){dead=true;web=null;}
 }
+

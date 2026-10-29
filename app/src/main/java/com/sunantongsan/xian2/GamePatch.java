@@ -31,7 +31,7 @@ final class GamePatch {
  static synchronized File active(Store s){
   File f=folder(s,s.get("active"));if(f==null||!f.isDirectory())return null;
   // A native upgrade carries newer game assets. Keep save data and use that bundle.
-  try(InputStream in=new FileInputStream(new File(f,"patch.json"))){if(UpdateManifest.compare(s.bundledVersion(),readVersion(in))>0)return null;}catch(Exception ignored){}
+  try(InputStream in=new FileInputStream(new File(f,"patch.json"))){if(UpdateManifest.compare(s.bundledVersion(),readVersion(in))>=0)return null;}catch(Exception ignored){return null;}
   return f;
  }
  static synchronized boolean pending(Store s){return "true".equals(s.get("pending"));}
@@ -56,3 +56,4 @@ final class GamePatch {
   }catch(Exception e){remove(dir);throw e;}
  }
 }
+
