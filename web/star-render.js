@@ -16,14 +16,20 @@ const LIQUID=new Set(['water','lava','acid','mist']);
 const ROADLIKE=new Set(['road','bridge','plaza']);
 function canvas(w,h){const c=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(Math.max(1,Math.ceil(w)),Math.max(1,Math.ceil(h))):Object.assign(document.createElement('canvas'),{width:Math.max(1,Math.ceil(w)),height:Math.max(1,Math.ceil(h))});return c;}
 
-export function createStarRenderer(scene,{quality='auto'}={}){
+export function createStarRenderer(scene,{quality='auto',art={},images=new Map()}={}){
  const {N,rows,T}=scene,res=quality==='low'?.6:1;
+ // Painted art (tools/pack-star-art.py): seamless ground textures mapped through the isometric projection,
+ // and per-zone prop atlases. Zones without art keep the procedural look.
+ const TEX_WORLD=520;
+ const texOf=(z,key)=>{const f=art[z]?.[key]?.file;return f?images.get(f):null;};
+ const patternMatrix=typeof DOMMatrix!=='undefined'?new DOMMatrix([.8*TEX_WORLD/1024,.4*TEX_WORLD/1024,-.8*TEX_WORLD/1024,.4*TEX_WORLD/1024,0,0]):null;
+ function patternFor(g,cache,z,key){const id=z+key;if(cache.has(id))return cache.get(id);const im=texOf(z,key);let pt=null;if(im&&patternMatrix){pt=g.createPattern(im,'repeat');pt.setTransform(patternMatrix);}cache.set(id,pt);return pt;}
  const at=(c,r)=>c<0||r<0||c>=N||r>=rows?-1:r*N+c;
  const kindAt=(c,r)=>{const i=at(c,r);return i<0?'void':scene.kind[i];};
  const hole=(c,r)=>HOLE.has(kindAt(c,r));
  const zc=i=>STAR_ZONES[Math.max(0,scene.zone[i])];
  const groundRgb=(i,c,r)=>{const Z=zc(i),a=hexRgb(Z.ground[0]),b=hexRgb(Z.ground[1]);const n=vnoise(c/6,r/6,3)*.75+vnoise(c/2.5,r/2.5,8)*.25,v=scene.variant[i]?.25:0;return shade(mix(a,b,Math.min(1,n*.75+v)),.985+hash(c,r,9)*.03);};
- const colorOf=(i,c,r)=>{const k=scene.kind[i],Z=zc(i);if(k==='ground')return groundRgb(i,c,r);if(k==='road')return shade(mix(hexRgb('#cdb98d'),hexRgb(Z.ground[0]),.22),.95+hash(c,r,4)*.1);if(k==='plaza')return shade(hexRgb('#d8d6cc'),.93+hash(c,r,5)*.08);if(k==='bridge')return hexRgb('#8a6a4a');if(LIQUID.has(k))return hexRgb(scene.color[i]||Z.liquid.color);return [0,0,0];};
+ const colorOf=(i,c,r)=>{const k=scene.kind[i],Z=zc(i);if(k==='ground')return groundRgb(i,c,r);if(k==='road')return shade(mix(hexRgb('#cdb98d'),hexRgb(Z.ground[0]),.22),.95+hash(c,r,4)*.1);if(k==='plaza')return shade(hexRgb('#9aa4b0'),.93+hash(c,r,5)*.08);if(k==='bridge')return hexRgb('#8a6a4a');if(LIQUID.has(k))return hexRgb(scene.color[i]||Z.liquid.color);return [0,0,0];};
 
  // ---------- ground chunks ----------
  const chunks=new Map(),order=[];const CW=CH*T;
@@ -37,10 +43,15 @@ export function createStarRenderer(scene,{quality='auto'}={}){
   const corners=(c,r,grow=.7)=>{const x=c*T,y=r*T;const p=[iso(x,y),iso(x+T,y),iso(x+T,y+T),iso(x,y+T)];return [[p[0][0],p[0][1]-grow],[p[1][0]+grow,p[1][1]],[p[2][0],p[2][1]+grow],[p[3][0]-grow,p[3][1]]];};
   const tiles=[];for(let s=(cx+cy)*CH;s<=(cx+cy)*CH+2*CH-2;s++)for(let c=cx*CH;c<cx*CH+CH;c++){const r=s-c;if(r<cy*CH||r>=cy*CH+CH)continue;tiles.push([c,r]);}
   // Pass 1: land tops, decals and cliff faces, back to front.
+  const pats=new Map();
   for(const [c,r]of tiles){const i=at(c,r),k=scene.kind[i];if(HOLE.has(k))continue;
    const wet=LIQUID.has(k)&&k!=='mist',col=wet?shade(groundRgb(i,c,r),.8):colorOf(i,c,r),P=corners(c,r),[X,Y]=iso((c+.5)*T,(r+.5)*T),h=hash(c,r,1),z=scene.zone[i];
-   if(k==='mist'){g.fillStyle=rgb(groundRgb(i,c,r));diamond(g,P);g.fill();}else{g.fillStyle=rgb(col);diamond(g,P);g.fill();}
-   if(wet){/* shoreline drawn in pass 2 */}
+   const tex=k!=='plaza'&&k!=='bridge'&&(texOf(z,'ground2')&&vnoise(c/7,r/7,5)>.56?patternFor(g,pats,z,'ground2'):patternFor(g,pats,z,'ground'));
+   if(tex){g.fillStyle=tex;diamond(g,P);g.fill();g.fillStyle=`rgba(0,0,0,${(.16*vnoise(c/9,r/9,6)).toFixed(3)})`;g.fill();
+    if(k==='road'){g.fillStyle=rgb(col,.62);g.fill();edgeLines(g,c,r,P,col,k);}
+    else if(k==='mist'){g.fillStyle='rgba(225,220,255,.18)';g.beginPath();g.ellipse(X,Y,30,13,0,0,7);g.fill();}}
+   else if(k==='mist'){g.fillStyle=rgb(groundRgb(i,c,r));diamond(g,P);g.fill();}else{g.fillStyle=rgb(col);diamond(g,P);g.fill();}
+   if(tex||wet){/* textured ground carries its own detail; shoreline drawn in pass 2 */}
    else if(k==='road'||k==='plaza'||k==='bridge')edgeLines(g,c,r,P,col,k);
    else if(k==='mist'){g.fillStyle='rgba(225,220,255,.18)';g.beginPath();g.ellipse(X,Y,30,13,0,0,7);g.fill();}
    else decals(g,c,r,X,Y,z,col,h);
@@ -61,7 +72,7 @@ export function createStarRenderer(scene,{quality='auto'}={}){
    else if(kd==='acid'){g.fillStyle='rgba(220,255,170,.55)';for(let n=0;n<2;n++){g.beginPath();g.arc(X-12+hash(c,r,n+20)*24,Y-5+hash(c,r,n+30)*10,1.5+hash(c,r,n)*2,0,7);g.fill();}}}
   return cv;
  }
- const faceRgb=i=>{const Z=zc(i);return mix(hexRgb(Z.ground[0]),[96,78,70],.55);};
+ const faceRgb=i=>{const Z=zc(i),avg=art[scene.zone[i]]?.ground?.avg;return mix(hexRgb(avg||Z.ground[0]),[96,78,70],.5);};
  function face(g,a,b,D,col,c,r){
   const grd=g.createLinearGradient(0,Math.min(a[1],b[1]),0,Math.max(a[1],b[1])+D);grd.addColorStop(0,rgb(col));grd.addColorStop(.35,rgb(shade(col,.72)));grd.addColorStop(1,rgb(shade(col,.35),0));
   g.fillStyle=grd;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(b[0],b[1]+D);g.lineTo(a[0],a[1]+D);g.closePath();g.fill();
@@ -125,10 +136,21 @@ export function createStarRenderer(scene,{quality='auto'}={}){
  // ---------- props ----------
  const sprites=new Map();
  function sprite(kind,zone,variant){const key=kind+zone+'.'+variant;if(sprites.has(key))return sprites.get(key);const S=1.3,W=130,H=190,cv=canvas(W*S,H*S),g=cv.getContext('2d');g.scale(S,S);g.translate(W/2,H-14);drawProp(g,kind,STAR_ZONES[zone]||STAR_ZONES[0],variant);const sp={cv,W,H,ax:W/2,ay:H-14};sprites.set(key,sp);return sp;}
+ // Atlas order from the prompt: 0-2 trees/plants, 3-4 rocks, 5-6 small structures, 7 glowing landmark.
+ // Structures and landmarks only stand inside dense prop clusters so they never overhang paths.
+ const ROCKY=new Set(['rock','meteor','wreck']);
+ function paintedProp(k,c,r,h){
+  let dense=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const j=at(c+dc,r+dr);if(j>=0&&(scene.prop[j]||!scene.walk[j]))dense++;}
+  if(dense===9&&hash(c,r,131)<.22)return 5+Math.floor(hash(c,r,132)*3);
+  return ROCKY.has(k)?3+Math.floor(h*2):Math.floor(h*3);
+ }
  function props(view,out,g){
   const v=visibleTiles(view,1);
   for(let r=v.r0;r<=v.r1;r++)for(let c=v.c0;c<=v.c1;c++){const i=r*N+c,k=scene.prop[i];if(!k)continue;const x=(c+.5)*T,y=(r+.5)*T,[X,Y]=iso(x,y),sx=view.ox+X*view.scale,sy=view.oy+Y*view.scale;if(sx<-90*view.scale||sx>view.w+90*view.scale||sy<-20||sy>view.h+200*view.scale)continue;
-   const h=hash(c,r,123),sp=sprite(k,scene.zone[i],Math.floor(h*3)),sc=(.82+hash(c,r,124)*.32)*view.scale,flip=hash(c,r,125)>.5;
+   const h=hash(c,r,123),flip=hash(c,r,125)>.5,z=scene.zone[i],atlas=art[z]?.props,aim=atlas&&images.get(atlas.file);
+   if(aim){const [cw,ch]=atlas.cell,base=atlas.base,n=paintedProp(k,c,r,h),target=n<3?205:n<5?120:n<7?230:190,sc=target/atlas.heights[n]*(.85+hash(c,r,124)*.3)*view.scale,sx0=n%4*cw,sy0=Math.floor(n/4)*ch;
+    out.push({sort:x+y,fn:flip&&n<5?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(aim,sx0,sy0,cw,ch,-cw/2*sc,-base*sc,cw*sc,ch*sc);g.restore();}:()=>g.drawImage(aim,sx0,sy0,cw,ch,sx-cw/2*sc,sy-base*sc,cw*sc,ch*sc)});continue;}
+   const sp=sprite(k,scene.zone[i],Math.floor(h*3)),sc=(.82+hash(c,r,124)*.32)*view.scale;
    out.push({sort:x+y,fn:flip?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(sp.cv,-sp.ax*sc,-sp.ay*sc,sp.W*sc,sp.H*sc);g.restore();}:()=>g.drawImage(sp.cv,sx-sp.ax*sc,sy-sp.ay*sc,sp.W*sc,sp.H*sc)});}
  }
  return {drawGround,warm,props,visibleTiles,chunkCount:()=>chunks.size};
@@ -191,10 +213,10 @@ export function drawGate(g,sx,sy,scale,time,{town=false,locked=false}={}){
 }
 
 // ---------- minimap ----------
-export function buildMinimap(scene){
+export function buildMinimap(scene,art={}){
  const {N,rows}=scene,cv=canvas(N+rows,(N+rows)/2),g=cv.getContext('2d');
  for(let r=0;r<rows;r++)for(let c=0;c<N;c++){const i=r*N+c,k=scene.kind[i];if(HOLE.has(k))continue;const Z=STAR_ZONES[Math.max(0,scene.zone[i])];
-  let col=k==='ground'?hexRgb(Z.ground[scene.variant[i]]):k==='road'||k==='bridge'?[226,206,150]:k==='plaza'?[245,245,240]:hexRgb(scene.color[i]||Z.liquid.color);if(scene.prop[i])col=shade(col,.72);
+  const avg=art[scene.zone[i]]?.ground?.avg;let col=k==='ground'?hexRgb(avg&&!scene.variant[i]?avg:avg?shade(hexRgb(avg),.9).map(Math.round).reduce((s,v)=>s+v.toString(16).padStart(2,'0'),'#'):Z.ground[scene.variant[i]]):k==='road'||k==='bridge'?[226,206,150]:k==='plaza'?[245,245,240]:hexRgb(scene.color[i]||Z.liquid.color);if(scene.prop[i])col=shade(col,.72);
   g.fillStyle=rgb(col);g.fillRect(c-r+rows-1,(c+r)/2,2,1.2);}
  return cv;
 }

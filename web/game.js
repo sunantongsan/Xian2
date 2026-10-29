@@ -185,7 +185,12 @@ function draw(){drawWorld();const box=miniMapBounds();if(!box)return;if(isStar()
 
 // ---------- ดาวฮีโร่ ----------
 function view(){const c=camera();return {scale,ox:screenW/2-c.x*scale,oy:screenH*.55-c.y*scale,w:screenW,h:screenH,camX:c.x,camY:c.y};}
-async function loadStar(){if(star)return star;const r=await fetch('maps/hero-star.json');if(!r.ok)throw new Error('map');star=parseTiled(await r.json());starMini=buildMinimap(star);return star;}
+let starArt={};
+async function loadStar(){if(star)return star;const r=await fetch('maps/hero-star.json');if(!r.ok)throw new Error('map');const parsed=parseTiled(await r.json());
+ // Painted textures/props are optional: a missing manifest or image falls back to procedural art.
+ try{const a=await fetch('maps/star/art.json');if(a.ok)starArt=await a.json();}catch{starArt={};}
+ star=parsed;starMini=buildMinimap(star,starArt);return star;}
+async function loadStarArt(){const files=Object.values(starArt).flatMap(z=>Object.values(z).map(v=>v.file));await Promise.all(files.map(f=>loadImage(f).catch(()=>null)));}
 function starLabel(){const Z=STAR_ZONES[zoneAt(scene,p)];return Z?`ดาวฮีโร่ • ${Z.name} • Lv.${Z.min}–${Z.max}`:'ดาวฮีโร่';}
 async function travelStar(gate=0){
  if(travelBusy||!s||!p)return false;
@@ -194,12 +199,12 @@ async function travelStar(gate=0){
  travelBusy=true;paused=true;bookRequest++;keys.clear();attackHeld=false;
  show(`<h2>กำลังเดินทาง…</h2><p>มุ่งสู่ดาวฮีโร่ • ${Z.name}</p>`);
  try{
-  await loadStar();await loadZone();
-  scene=star;starRender=createStarRenderer(star,{quality:s.quality});resize();$('zoomControls').hidden=false;route=[];pendingPoi=null;fields=[];town=false;
+  await loadStar();await Promise.all([loadZone(),loadStarArt()]);
+  scene=star;starRender=createStarRenderer(star,{quality:s.quality,art:starArt,images});resize();$('zoomControls').hidden=false;route=[];pendingPoi=null;fields=[];town=false;
   p.mp=maxMP();p.hp=maxHP(s);p.dead=false;p.anim='idle';p.animTime=0;p.action=null;const g=star.pois.find(q=>q.action==='warp'&&q.zone===gate);Object.assign(p,{x:g.world.x+40,y:g.world.y+70});
   enemies=[];effects=[];projectiles=[];drops=[];target=null;move=null;spawnClock=0;starZone=zoneAt(star,p);
   starCamps=star.spawns.map(c=>({...c,members:[],respawn:0}));starClock=0;populateStar();starRender.warm(view());
-  for(const key of [...images.keys()])if(key.startsWith('maps/'))images.delete(key);
+  for(const key of [...images.keys()])if(key.startsWith('maps/')&&!key.startsWith('maps/star/'))images.delete(key);
   travelBusy=false;close();save();toast(`ดาวฮีโร่ • เขต ${gate+1} ${Z.name} Lv.${Z.min}–${Z.max}`);return true;
  }catch(e){
   travelBusy=false;show(`<h2>เดินทางไม่สำเร็จ</h2><p>โหลดแผนที่ดาวฮีโร่ไม่ได้</p>${button('tryTravel','ลองอีกครั้ง')}${button('backTravel','กลับ')}`);

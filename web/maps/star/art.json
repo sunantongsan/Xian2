@@ -1,0 +1,48 @@
+{
+ "0": {
+  "ground": {
+   "avg": "#536334",
+   "file": "maps/star/ground-0.webp"
+  }
+ },
+ "1": {
+  "ground": {
+   "avg": "#0e3b3d",
+   "file": "maps/star/ground-1.webp"
+  },
+  "ground2": {
+   "avg": "#2d3c41",
+   "file": "maps/star/ground2-1.webp"
+  },
+  "props": {
+   "base": 388,
+   "cell": [
+    320,
+    400
+   ],
+   "file": "maps/star/props-1.webp",
+   "heights": [
+    384,
+    384,
+    384,
+    303,
+    384,
+    384,
+    384,
+    384
+   ]
+  }
+ },
+ "2": {
+  "ground": {
+   "avg": "#b57621",
+   "file": "maps/star/ground-2.webp"
+  }
+ },
+ "3": {
+  "ground": {
+   "avg": "#ac4f24",
+   "file": "maps/star/ground-3.webp"
+  }
+ }
+}

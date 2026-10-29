@@ -17,3 +17,8 @@ assert star['orientation']=='isometric' and star['width']>=160 and star['height'
 assert {'ground','props','zones','spawns','pois'}<={l['name'] for l in star['layers']}
 assert len(next(t for t in star['tilesets'] if t['name']=='hero-star-zones')['tiles'])==12
 print('Hero Star Tiled map',star['width'],'x',star['height'])
+art=json.loads((web/'maps/star/art.json').read_text(encoding='utf-8'))
+for zone,parts in art.items():
+ for kind,meta in parts.items():
+  data=(web/meta['file']).read_bytes();assert data[:4]==b'RIFF' and data[8:12]==b'WEBP',meta['file']
+print('Hero Star painted art:',{z:sorted(p) for z,p in art.items()})
