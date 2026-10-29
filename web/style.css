@@ -183,3 +183,41 @@ body.welcome-screen #modal:has(.hero-grid){width:90%;inset:0;margin:auto}
 body.welcome-screen #modal:has(#choose) #windowClose{display:none}
 body.welcome-screen #modal h2{padding:6px 0;background:none;border:0;box-shadow:none}
 body.welcome-screen #modal #windowClose{width:36px;min-height:36px;margin:0}
+
+/* 4.6.4: clear artwork and compact, collapsible in-game chrome. */
+body.welcome-screen #modal::backdrop{backdrop-filter:none!important;background:linear-gradient(90deg,transparent 55%,#03142320)}
+body.welcome-screen #modal{width:26vw;min-width:205px;max-width:310px;max-height:84vh;padding:16px;border-radius:16px;overflow:auto}
+body.welcome-screen #modal::before,body.welcome-screen #modal::after{display:none}
+body.welcome-screen #modal h1{font-size:clamp(28px,4vw,46px);margin:0;letter-spacing:.06em}
+body.welcome-screen #modal h2{font-size:14px;margin:0 0 10px;padding:0;position:static}
+body.welcome-screen #modal h2::before,body.welcome-screen #modal h2::after{display:none}
+body.welcome-screen #modal button{min-height:36px;padding:7px 10px;font-size:12px;margin:6px 0}
+body.welcome-screen #modal .sub{font-size:9px;margin:6px 0 0;text-align:center}
+body.welcome-screen #modal:has(.hero-grid){max-width:900px;width:86vw}
+#hud{top:max(7px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));align-items:flex-start}
+#hud .player-panel{width:180px;min-width:180px;max-width:180px;padding:7px 8px 6px 46px;border:1px solid #b6965266;border-radius:10px;background:linear-gradient(125deg,#0b1c2ded,#07121bdb);box-shadow:0 3px 12px #0005;line-height:1.2}
+#hud .player-panel::after{display:none}
+#hud #portrait{width:32px;height:40px;top:9px;left:7px;border-width:1px!important;box-shadow:none!important}
+#hud #heroName{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hud #level{font-size:9px;margin:2px 0 4px;color:#bbc9d6}
+#hud .player-panel small{font-size:8px;text-align:right;line-height:1.1}
+#hud .meter{height:4px;margin:2px 0;border:0;border-radius:2px}
+#hud .meter.xp{height:2px;margin-top:4px}
+#hud .right{min-width:0;padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:flex-start;gap:8px;position:relative}
+#zoneName{display:none!important}
+#hud #money{font-size:10px;padding:5px 8px;border-radius:8px;background:#081725c9;white-space:nowrap;line-height:22px}
+#hud #quickMenuToggle{width:38px;height:36px;min-height:36px;min-width:38px;margin:0;padding:0;border:1px solid #b6965288;border-radius:10px;background:linear-gradient(#213e51,#0b1c2d);font-size:23px;color:#ffe4a0;pointer-events:auto}
+#quickMenuTray{position:absolute;right:0;top:44px;padding:8px;border:1px solid #9abac333;background:#071827eb;border-radius:12px;opacity:0;visibility:hidden;transform:translateX(18px);transition:transform .18s ease,opacity .18s ease,visibility .18s;pointer-events:none}
+#quickMenuTray.open{opacity:1;visibility:visible;transform:translateX(0);pointer-events:auto}
+#hud .quick-menu{display:grid;grid-template-columns:repeat(3,42px);gap:6px}
+#hud .quick-menu button{width:42px;height:42px;min-height:42px;margin:0;padding:3px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;border-radius:8px;background:linear-gradient(#243e50,#102535)!important;box-shadow:none;color:#f3db9b;border:1px solid #617f8c66;font-size:20px}
+#hud .quick-menu small{font-size:8px;line-height:1;color:#d0dce5}
+#hud #zoomControls{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}
+#hud #zoomControls[hidden]{display:none}
+#hud #zoomControls button{width:38px;height:32px;min-height:32px;margin:0;padding:0;font-size:20px}
+dialog:not(:has(#choose)):not(:has(.hero-grid)):not(:has(.hero-sheet)){width:min(520px,65vw);max-height:82vh;padding:0 14px 14px;font-size:12px;border-radius:12px;box-shadow:0 8px 30px #0008;border:1px solid #8b7855;background:linear-gradient(#162b3c,#081521)}
+dialog:not(:has(#choose)) h2{font-size:15px;padding:10px 38px;margin:0 -14px 10px;letter-spacing:0;background:linear-gradient(#263c4b,#142735)}
+dialog:not(:has(#choose)) button{font-size:12px;min-height:36px;padding:6px 10px}
+dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
+@media(max-height:450px){body.welcome-screen #modal{padding:12px;max-height:90vh}#hud .player-panel{width:166px;min-width:166px;max-width:166px;padding-top:5px;padding-bottom:5px}#hud #heroName{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#quickMenuTray{transition:none}}

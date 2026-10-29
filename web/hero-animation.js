@@ -31,6 +31,12 @@ export function heroFrame(actor={}){
  return {sheet:'actions',frame:back?1:0,flip};
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
+ if(hero==='sword-cricket'&&actor.anim==='walk'&&images.has('cricket-walk-prepared')){
+  const im=images.get('cricket-walk-prepared'),frame=Math.floor((((actor.walkDistance||0)%150)+150)%150/150*6),unit=size/314;
+  ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
+  ctx.drawImage(im,frame*384,actor.back?384:0,384,384,-192*unit,-352*unit,384*unit,384*unit);ctx.restore();return {sheet:'cricket-owner-walk',frame};
+ }
+
  if(hero==='sword-cockro'){
   const im=images.get('heroes/cockro-combat-v2.webp');if(!im||!Number.isFinite(size)||size<=0)return;
   const frame=cockroFrame(actor),cw=im.width/4,ch=im.height/4;
@@ -48,7 +54,7 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
   if((actor.dead||actor.anim==='dead')&&CLASS_FRAMES[hero]?.deadTilt){ctx.translate(0,-18*unit);ctx.rotate(-1.25);ctx.globalAlpha*=.92;}
   const m=walkMotion(actor,unit);
   drawFrame(ctx,im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit,m);
-  if(m&&m.mix>.55){const nf=(frame-frame%4)+m.next;ctx.globalAlpha*=(m.mix-.55)*1.1;drawFrame(ctx,im,(nf%4)*c,Math.floor(nf/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit,m);}
+
   ctx.restore();return {sheet:hero,frame};
  }
  if(!HERO_IDS.includes(hero)||!Number.isFinite(size)||size<=0)return;
@@ -66,17 +72,11 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
 export const STRIDE=150;
 const walkPhase=actor=>(((actor.walkDistance||0)%STRIDE)+STRIDE)%STRIDE/STRIDE;
 function walkFrame(actor){return Math.floor(walkPhase(actor)*4)%4;}
-// Body motion layered on the painted frames: a dip at each foot contact, a lift on the passing pose,
-// a slight forward lean and a soft cross-fade into the next frame so four drawings read as continuous motion.
-function walkMotion(actor,unit){
- if(actor.anim!=='walk'||actor.dead)return null;
- const ph=walkPhase(actor),step=Math.sin(ph*Math.PI*4);
- return {bob:-Math.abs(Math.sin(ph*Math.PI*2))*7*unit,lean:.045,squash:1-.025*Math.max(0,-step),stretch:1+.012*Math.max(0,step),next:(Math.floor(ph*4)+1)%4,mix:(ph*4)%1};
-}
-function drawFrame(ctx,im,sx,sy,sw,sh,dx,dy,dw,dh,m){
- if(!m){ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);return;}
- ctx.save();ctx.translate(0,m.bob);ctx.rotate(m.lean);ctx.scale(1/m.squash*.5+.5,m.squash*m.stretch);
- ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);ctx.restore();
+// Preserve the painted anatomy and planted feet. Never overlay two poses or
+// rotate/stretch the sprite to simulate walking: this creates ghost limbs and sliding.
+function walkMotion(){return null;}
+function drawFrame(ctx,im,sx,sy,sw,sh,dx,dy,dw,dh){
+ ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
 }
 // Combat sheet is experimental until a genuine alternating walk cycle passes visual review.
 export function cockroFrame(actor={}){
