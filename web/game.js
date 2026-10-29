@@ -26,6 +26,7 @@ let onlineMode=false,onlineEvent=0,onlineView=null,onlinePaint=0;
 const onlineBadge=document.createElement('button');onlineBadge.id='onlineStatus';onlineBadge.hidden=true;onlineBadge.setAttribute('aria-live','polite');document.body.appendChild(onlineBadge);
 onlineBadge.onclick=()=>toast('บัญชีออนไลน์ทดสอบผูกกับเครื่องนี้ • เซฟออฟไลน์แยกกัน');
 const net=new OnlineClient(applyOnlineState,text=>{onlineBadge.textContent=text;onlineBadge.hidden=!onlineMode;});
+net.onReconnect=()=>{onlineEvent=0;if(onlineMode&&p)goHome();};
 function applyOnlineState(d){
  if(!onlineMode||!p||!s||travelBusy)return;
  const current=isStar()?'star':town?'town':'forest';if(d.self.map!==current)return;
