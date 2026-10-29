@@ -25,6 +25,14 @@ for name in ['town','bamboo']:
     print('Painted map',name,len(data))
 
 
+import json
+star=json.loads((assets.parent/'maps'/'hero-star.json').read_text(encoding='utf-8'))
+assert star['orientation']=='isometric' and star['width']>=160 and star['height']>=160
+names={l['name'] for l in star['layers']}
+assert {'ground','props','zones','spawns','pois'}<=names, names
+assert len([t for t in star['tilesets'] if t['name']=='hero-star-zones'][0]['tiles'])==12
+print('Tiled map hero-star.json',star['width'],'x',star['height'],len(next(l for l in star['layers'] if l['name']=='spawns')['objects']),'camps')
+
 for hero in ['sword-male','sword-female','demon-male','demon-female']:
     for state,expected_h in [('walk',1024),('actions',512)]:
         path=assets.parent/'heroes'/f'{hero}-{state}.webp'

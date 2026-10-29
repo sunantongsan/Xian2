@@ -1,6 +1,6 @@
 # วิถีเชียน
 
-Current test version: **0.1.7**. All four heroes are completely redrawn as full-body sprites, with front/back walking and new idle/combat/defeated poses. The old cutout characters and rigging code are removed. See [rebuild notes](docs/hero-rebuild.md) and [animation preview](docs/new-character-walk.mp4). Previous animation approaches are superseded.
+Current test version: **0.1.8**. New: **ดาวฮีโร่ (Hero Star)** — a large 2.5D open-world map for levels 1–60 (section at the end of this file). Version 0.1.7: all four heroes are completely redrawn as full-body sprites, with front/back walking and new idle/combat/defeated poses. The old cutout characters and rigging code are removed. See [rebuild notes](docs/hero-rebuild.md) and [animation preview](docs/new-character-walk.mp4). Previous animation approaches are superseded.
 
 Offline isometric cultivation action RPG prototype. Not yet a production-ready or Play Store approved release.
 
@@ -80,3 +80,25 @@ Walking uses a longer distance-driven stride, hip weight shift, upper-body count
 
 Validation: 22 Node tests including legacy save migration, spending, rank limits, stat combat effects, actual runtime auto on/off and monster roaming; JavaScript syntax check. Browser visual verification was unavailable in this environment (Chromium download failed). Physical Android assessment of the revised gait and UI remains required.
 
+
+## ดาวฮีโร่ — Hero Star (0.1.8)
+
+A large 2.5D open world: a fractured planet floating in space, 192×192 isometric tiles (about 9,200 world units across, roughly a minute and a half to walk edge to edge). Enter through **ประตูดาวฮีโร่** in Qingyun town, from **แผนที่ → ดาวฮีโร่**, or by tapping the minimap.
+
+| เขต | ชื่อ | Lv. | | เขต | ชื่อ | Lv. |
+|---|---|---|---|---|---|---|
+| 1 | ทุ่งดาวตก | 1–5 | | 7 | ยอดผาลอยฟ้า | 31–35 |
+| 2 | ป่าเห็ดเรืองแสง | 6–10 | | 8 | หุบอสรพิษ (boss ราชาอสรพิษ) | 36–40 |
+| 3 | ป่าคริสตัลหยก | 11–15 | | 9 | ทุ่งสุสานดวงดาว | 41–45 |
+| 4 | ที่ราบพยัคฆ์หยก (boss ราชาพยัคฆ์หยก) | 16–20 | | 10 | ซากนครดาวโบราณ | 46–50 |
+| 5 | หุบหมอกเนบิวลา | 21–25 | | 11 | หุบเหวเงาวิญญาณ | 51–55 |
+| 6 | บึงแสงจันทร์ | 26–30 | | 12 | แกนดาวเพลิง (boss แม่ทัพเจียงซือ) | 56–60 |
+
+- Outer ring → inner ring → core. Zones are separated by chasms open to space; only consecutive zones are linked by roads and bridges, so the route follows the level curve.
+- ~270 monster camps (~540 monsters, 1–3 per camp). Levels rise with distance from each zone's warp gate; every level 1–60 has camps. One elite (หัวหน้า…) per zone, three real bosses. Camps respawn 9–15 s after being cleared (elites 45 s). Only camps near the hero are simulated; monsters leash back home beyond ~650 units.
+- Monster art reuses `monsters-0..2.webp` (catalog levels 1–59); stats follow the catalog formula at the camp's level (hp 34+10L, xp 10+5L, gold 5+3L). Killing the real bosses also counts toward unlocking the classic regions.
+- Warp gate in every zone, usable once the hero reaches the zone's minimum level. Minimap at top centre; the warp window shows the whole planet.
+
+Files: `web/maps/hero-star.json` (Tiled 1.10 isometric map: layers `ground`, `props`, `zones`, objects `spawns`, `pois`), `web/tilemap.js` (parser, tile collision, heap A* with string-pulling), `web/star-render.js` (procedural cached ground chunks, cliff faces, props, gates, starfield, minimap — no new image assets), `web/star-data.js` (zones, biomes, monster scaling). Regenerate with `node tools/gen-hero-star.mjs [seed]`, or open the JSON in Tiled and edit it: the game reads layer and tileset names and tile properties, not fixed gids. Tests: `tests/hero-star.test.js` (reachability, level coverage, zone gating, routing, stat scaling).
+
+Limitations: the ground and props are procedural vector art rather than painted scenery; tall props can hide the hero briefly; no saved position inside the star map (Continue starts in town). Real-device frame rate still needs checking — use Settings → ภาพ: ประหยัด on slow phones.

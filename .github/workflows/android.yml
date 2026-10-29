@@ -42,17 +42,17 @@ jobs:
           import zipfile
           with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
               names=set(z.namelist())
-              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/town.webp','maps/bamboo.webp']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
+              for p in ['index.html','game.js','skills.js','vfx/sword.webp','vfx/demon.webp','hero-animation.js','assets/MOTION-LICENSE.txt','maps.js','maps/town.webp','maps/bamboo.webp','maps/hero-star.json','tilemap.js','star-render.js','star-data.js']+[f'heroes/{h}-{state}.webp' for h in ['sword-male','sword-female','demon-male','demon-female'] for state in ['walk','actions']]+[f'sprites/monsters-{i}.webp' for i in range(10)]:
                   assert 'assets/'+p in names,p
               assert not any(n.startswith(('assets/puppets/','assets/rig/')) for n in names)
               assert not any(n.endswith('.png') and n.startswith('assets/') for n in names)
           PY
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.7-test.apk
-          sha256sum Road-to-Immortality-0.1.7-test.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk Road-to-Immortality-0.1.8-test.apk
+          sha256sum Road-to-Immortality-0.1.8-test.apk > SHA256SUMS.txt
       - name: Publish downloadable test build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. Renamed to วิถีเชียน. Four completely new full-body painted characters replace all old hero art and cutout rigs. Front/back walk cycles and new idle, sword attacks, casting, hurt and defeated poses. No separated or stretched body parts. Includes stats, reputation and auto-attack. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.7-test.apk SHA256SUMS.txt docs/new-character-walk.mp4
+          gh release create "test-${GITHUB_RUN_NUMBER}" --prerelease --title 'วิถีเชียน — Android test' --notes 'Offline test APK. Android 8 or newer. New in 0.1.8: ดาวฮีโร่ (Hero Star), a large 2.5D open-world map with 12 zones for levels 1–60, warp gates, respawning monster camps, elites and minimap; enter from the portal in Qingyun town or the travel menu. Renamed to วิถีเชียน. Four completely new full-body painted characters replace all old hero art and cutout rigs. Front/back walk cycles and new idle, sword attacks, casting, hurt and defeated poses. No separated or stretched body parts. Includes stats, reputation and auto-attack. Includes the two painted playable maps. Four heroes, 100 monsters, 20 sect skills. Development build, not a Play Store release.' Road-to-Immortality-0.1.8-test.apk SHA256SUMS.txt docs/new-character-walk.mp4
 
