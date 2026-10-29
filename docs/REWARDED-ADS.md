@@ -51,3 +51,12 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Package, version name and real AdMob app/unit IDs verified inside the bundle.
 - Artifact: `COCKRO-94-AdMob-signed.aab`, SHA256 `ce195a32ea22a91ed4eb21a807829bb2e073ddcf365bbee88d907c7023300b6d`. This is a Play upload bundle, not a directly installable APK.
 - No physical-device ad completion, Play upload or full ad-serving approval is claimed.
+
+## Internal game release 95 (2026-10-30)
+- Source commit 64d912fd66319bd5cd02798cba0a1264f7ddc859, versionCode 95 / 4.12.1, unchanged production package and original upload signing certificate.
+- In-game privacy page links to the published Thai/English policy. Android opens only that exact policy URL externally after a main-frame user gesture; other external WebView navigation remains blocked.
+- Node: 99 passed. Android build/test/lint succeeded; 20 native tests passed and 1 optional live-feed test skipped. Signed AAB signature and packaged release/policy/AdMob ID verified.
+- Uploaded and published to existing Google Play INTERNAL testing track 4701506968907566093, release 9. Console explicitly reports ready for internal testers, 30 Oct 2026 06:21 (Asia/Bangkok). Existing closed testing unchanged. Package/signing/version accepted by Play.
+- Tester link: https://play.google.com/apps/internaltest/4701506968907566093 — owner account verified enrolled.
+- Backend health remained healthy on server release 4.12.0; this client-only update did not redeploy backend.
+- Physical-device ad load/consent/reward completion is still unverified. AdMob store link/app approval and public store metadata remain outstanding. Do not claim production monetization is fully approved.
