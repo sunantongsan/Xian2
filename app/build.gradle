@@ -1,6 +1,7 @@
 plugins { id 'com.android.application' }
-def adsApp = providers.environmentVariable('ADMOB_APP_ID').orElse('').get()
-def adsUnit = providers.environmentVariable('ADMOB_REWARDED_UNIT_ID').orElse('').get()
+def adsConfig = new groovy.json.JsonSlurper().parse(rootProject.file('admob-config.json'))
+def adsApp = providers.environmentVariable('ADMOB_APP_ID').orElse(adsConfig.appId).get()
+def adsUnit = providers.environmentVariable('ADMOB_REWARDED_UNIT_ID').orElse(adsConfig.rewardedUnitId).get()
 android {
     buildFeatures { buildConfig true }
     namespace 'com.sunantongsan.xian2'
@@ -54,3 +55,4 @@ tasks.register('validateProductionAds') {
  }
 }
 tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'validateProductionAds' }
+

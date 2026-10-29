@@ -19,6 +19,12 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   if(verifying>=8){res.writeHead(503);return res.end();}verifying++;
   try{
    const data=await verifySSV(req.url.split('?')[1]);
+   // Reserved console validation values: verify Google's signature, never grant inventory.
+   if(data.user_id==='0'.repeat(64)&&data.custom_data==='0'.repeat(48)){
+    const stamp=Number(data.timestamp);
+    if(!Number.isFinite(stamp)||Math.abs(Date.now()-stamp)>300000)throw Error('expired_probe');
+    res.writeHead(200);return res.end('Verified configuration; no reward granted');
+   }
    const live=world.players.get(data.user_id),path=join(directory,data.user_id+'.json');
    if(!live&&!existsSync(path))throw Error('unknown_account');
    const state=structuredClone(live?live.s:JSON.parse(readFileSync(path,'utf8')));
@@ -48,4 +54,5 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
  server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
+
 

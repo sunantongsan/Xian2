@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
-import {mkdtempSync,rmSync} from 'node:fs';
+import {mkdtempSync,rmSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {WebSocket} from 'ws';
@@ -44,6 +44,23 @@ test('key failure and disabled production fail closed',async()=>{
  await assert.rejects(createSSVVerifier({unit:''})(signed(callback(t))));
 });
 function next(ws,predicate){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.off('message',receive);reject(Error('timeout'));},5000);function receive(raw){const d=JSON.parse(raw);if(predicate(d)){clearTimeout(timer);ws.off('message',receive);resolve(d);}}ws.on('message',receive);});}
+test('console verification requires signed fresh probe and never writes accounts or rewards',async()=>{
+ const directory=mkdtempSync(join(tmpdir(),'cockro-ads-probe-'));
+ const app=startServer({directory,port:0,test:true,adUnit:unit,ssvVerifier:verifier()});
+ try{
+  await new Promise(ok=>app.server.once('listening',ok));
+  const base='http://127.0.0.1:'+app.server.address().port+'/online/ads/ssv?';
+  const p=callback({nonce:'0'.repeat(48)},{user_id:'0'.repeat(64)}),raw=signed(p);
+  assert.equal((await fetch(base+raw)).status,200);
+  assert.equal((await fetch(base+raw)).status,200);
+  assert.equal((await fetch(base+raw.replace('reward_amount=1','reward_amount=2'))).status,400);
+  assert.equal((await fetch(base+signed({...p,timestamp:String(Date.now()-360000)}))).status,400);
+  assert.equal((await fetch(base+signed({...p,user_id:user}))).status,400);
+  assert.equal((await fetch(base+new URLSearchParams(p))).status,400);
+  assert.deepEqual(readdirSync(directory),[]);
+  assert.equal(app.world.players.size,0);
+ }finally{await app.close();rmSync(directory,{recursive:true,force:true});}
+});
 async function connect(port,token){const ws=new WebSocket('ws://127.0.0.1:'+port+'/online/world',{origin:'http://localhost'});await new Promise(ok=>ws.once('open',ok));const ready=next(ws,d=>d.type==='welcome');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:!token,hero:'sword-cockro',token}));return {ws,welcome:await ready};}
 test('HTTP SSV verifies, persists offline, and replay cannot double-grant after restart',async()=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-ads-'));let app;
@@ -61,3 +78,4 @@ test('HTTP SSV verifies, persists offline, and replay cannot double-grant after 
  reconnect.ws.close();
  }finally{if(app)await app.close();rmSync(directory,{recursive:true,force:true});}
 });
+

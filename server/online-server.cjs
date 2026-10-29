@@ -4863,6 +4863,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       verifying++;
       try {
         const data = await verifySSV(req.url.split("?")[1]);
+        if (data.user_id === "0".repeat(64) && data.custom_data === "0".repeat(48)) {
+          const stamp = Number(data.timestamp);
+          if (!Number.isFinite(stamp) || Math.abs(Date.now() - stamp) > 3e5) throw Error("expired_probe");
+          res.writeHead(200);
+          return res.end("Verified configuration; no reward granted");
+        }
         const live = world.players.get(data.user_id), path = (0, import_node_path.join)(directory, data.user_id + ".json");
         if (!live && !(0, import_node_fs.existsSync)(path)) throw Error("unknown_account");
         const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
@@ -5025,8 +5031,14 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   return { server, world, close };
 }
 
+// admob-config.json
+var admob_config_default = {
+  appId: "ca-app-pub-4585492700643566~3340769116",
+  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388"
+};
+
 // server/main.js
-var app = startServer({ directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091) });
+var app = startServer({ directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
   await app.close();
