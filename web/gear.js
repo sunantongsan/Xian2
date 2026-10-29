@@ -52,3 +52,13 @@ export function normalizeGear(s,v={}){
  return s;
 }
 export function heroPower(s,base){return Math.round(base+Object.values(s.equip||{}).reduce((a,it)=>a+(it?itemPower(it):0),0));}
+
+
+// Save keys remain compatible: gold = spending money G, stones = rare upgrade gold.
+export const gearUpgradeCost=it=>2*((it.plus||0)+1)+it.tier;
+export function upgradeGear(s,slot){
+ if(!Object.hasOwn(SLOTS,slot))return false;
+ const it=s.equip?.[slot];if(!it||(it.plus||0)>=15)return false;
+ const cost=gearUpgradeCost(it);if(!Number.isFinite(s.stones)||s.stones<cost)return false;
+ s.stones-=cost;it.plus=(it.plus||0)+1;return true;
+}

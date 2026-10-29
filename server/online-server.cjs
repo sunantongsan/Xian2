@@ -4027,6 +4027,17 @@ function freshGear(s) {
   s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
   return s;
 }
+var gearUpgradeCost = (it) => 2 * ((it.plus || 0) + 1) + it.tier;
+function upgradeGear(s, slot) {
+  if (!Object.hasOwn(SLOTS, slot)) return false;
+  const it = s.equip?.[slot];
+  if (!it || (it.plus || 0) >= 15) return false;
+  const cost = gearUpgradeCost(it);
+  if (!Number.isFinite(s.stones) || s.stones < cost) return false;
+  s.stones -= cost;
+  it.plus = (it.plus || 0) + 1;
+  return true;
+}
 
 // web/core.js
 var VERSION = 1;
@@ -4053,7 +4064,8 @@ function reward(s, m, rng = Math.random) {
   s.reputation = (s.reputation || 0) + (m.boss ? 25 : 1);
   if (!s.seen.includes(m.id)) s.seen.push(m.id);
   if (m.boss && !s.bosses.includes(m.id)) s.bosses.push(m.id);
-  const stone = false;
+  const stone = rng() < (m.boss ? 1 : m.elite ? 0.25 : 0.1);
+  if (stone) s.stones = Math.min(1e7, s.stones + (m.boss ? 3 : 1));
   while (s.level < 210 && s.xp >= xpNeed(s.level)) {
     s.xp -= xpNeed(s.level);
     s.level++;
@@ -4076,12 +4088,12 @@ function buyMPPotion(s) {
   return true;
 }
 function upgradeCost(s) {
-  return 100 * (s.upgrade + 1) ** 2;
+  return 3 + s.upgrade * 2;
 }
 function upgrade(s) {
   const cost = upgradeCost(s);
-  if (s.upgrade >= 20 || s.gold < cost) return false;
-  s.gold -= cost;
+  if (s.upgrade >= 20 || s.stones < cost) return false;
+  s.stones -= cost;
   s.upgrade++;
   return true;
 }
@@ -4417,6 +4429,9 @@ var World = class {
           break;
         case "upgrade":
           if (atHome) upgrade(s);
+          break;
+        case "upgradeGear":
+          if (atHome && typeof d.slot === "string") upgradeGear(s, d.slot);
           break;
         case "stat":
           if (typeof d.key === "string") allocateStat(s, d.key);

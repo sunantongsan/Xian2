@@ -2,7 +2,7 @@ import {manaRegen} from '../web/balance.js';
 import {normalizeFashion,wearFashion,removeFashion,appearance} from '../web/fashion.js';
 import {fresh,inCone,maxHP,damage,reward,combatStats,buyPotion,buyMPPotion,upgrade,allocateStat,trainSkill} from '../web/core.js';
 import {knownSkills,compileSkill,skillTargets} from '../web/skills.js';
-import {rollDrop,addToBag,equip,unequip,sell} from '../web/gear.js';
+import {rollDrop,addToBag,equip,unequip,sell,upgradeGear} from '../web/gear.js';
 import {MAPS,REGIONS,toWorld,traceStep,walkable} from '../web/maps.js';
 import {makePopulation} from '../web/alien-population.js';
 import {parseTiled} from '../web/tilemap.js';
@@ -27,7 +27,7 @@ export class World {
   }
   if(d.type==='enter'){if(now<(p.cd.enter||0))return;p.cd.enter=now+1;if(this.enter(p,d.map,d.gate))p.entered=true;return;}
   if(d.type==='revive'){if(p.hp<=0){this.enter(p,'town');p.entered=true;}return;}
-  if(d.type==='op'){if(now<(p.cd.op||0))return;p.cd.op=now+.1;const atHome=this.home(p);switch(d.op){case 'fashionWear':wearFashion(s,d.id);break;case 'fashionRemove':removeFashion(s,d.slot);break;case 'buy':if(atHome)buyPotion(s);break;case 'buyMP':if(atHome)buyMPPotion(s);break;case 'upgrade':if(atHome)upgrade(s);break;case 'stat':if(typeof d.key==='string')allocateStat(s,d.key);break;case 'train':if(typeof d.id==='string')trainSkill(s,d.id);break;case 'equipSkill':{const r=knownSkills(s).find(r=>r.id===d.id&&r.level<=s.level);if(r&&Number.isInteger(d.slot)&&d.slot>=0&&d.slot<3){const old=s.equipped.indexOf(r.id);if(old>=0)s.equipped[old]=null;s.equipped[d.slot]=r.id;}break;}case 'equip':if(typeof d.id==='string')equip(s,d.id);break;case 'unequip':if(typeof d.slot==='string'&&Object.hasOwn(s.equip,d.slot))unequip(s,d.slot);break;case 'sell':if(atHome&&typeof d.id==='string')sell(s,d.id);break;default:return;}p.dirty=true;return;}
+  if(d.type==='op'){if(now<(p.cd.op||0))return;p.cd.op=now+.1;const atHome=this.home(p);switch(d.op){case 'fashionWear':wearFashion(s,d.id);break;case 'fashionRemove':removeFashion(s,d.slot);break;case 'buy':if(atHome)buyPotion(s);break;case 'buyMP':if(atHome)buyMPPotion(s);break;case 'upgrade':if(atHome)upgrade(s);break;case 'upgradeGear':if(atHome&&typeof d.slot==='string')upgradeGear(s,d.slot);break;case 'stat':if(typeof d.key==='string')allocateStat(s,d.key);break;case 'train':if(typeof d.id==='string')trainSkill(s,d.id);break;case 'equipSkill':{const r=knownSkills(s).find(r=>r.id===d.id&&r.level<=s.level);if(r&&Number.isInteger(d.slot)&&d.slot>=0&&d.slot<3){const old=s.equipped.indexOf(r.id);if(old>=0)s.equipped[old]=null;s.equipped[d.slot]=r.id;}break;}case 'equip':if(typeof d.id==='string')equip(s,d.id);break;case 'unequip':if(typeof d.slot==='string'&&Object.hasOwn(s.equip,d.slot))unequip(s,d.slot);break;case 'sell':if(atHome&&typeof d.id==='string')sell(s,d.id);break;default:return;}p.dirty=true;return;}
   if(p.hp<=0)return;
   if(d.type==='mpPotion'){if(now<(p.cd.mpPotion||0)||(s.mpPotions||0)<1||p.mp>=combatStats(s).mp)return;p.cd.mpPotion=now+6;s.mpPotions--;p.mp=Math.min(combatStats(s).mp,p.mp+combatStats(s).mp*.5);p.dirty=true;return;}
   if(d.type==='potion'){if(now<(p.cd.potion||0)||s.potions<1||p.hp>=maxHP(s))return;p.cd.potion=now+4;s.potions--;p.hp=Math.min(maxHP(s),p.hp+maxHP(s)*.5);p.dirty=true;return;}
