@@ -18,5 +18,6 @@ archive.rename(output/'patches'/f'{digest}.zip')
 feed={'game':'cockro','engine':88,'minAppVersionCode':91,'version':version,'size':size,'sha256':digest,'path':f'patches/{digest}.zip'}
 (output/'latest.json').write_text(json.dumps(feed,sort_keys=True))
 (output/'index.html').write_text('<!doctype html><meta charset="utf-8"><title>COCKRO Updates</title><h1>COCKRO</h1><p>Game update distribution.</p>')
+shutil.copytree(root/'web',output/'play')
 print(json.dumps(feed))
 
