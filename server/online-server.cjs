@@ -3725,11 +3725,22 @@ var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/balance.js
+var BALANCE_VERSION = 2;
+var normalXP = (level) => 20 + level * 8;
+var killsPerLevel = (level) => Math.round(8 + 1.2 * level + 6e-3 * level * level);
+var levelXP = (level) => normalXP(level) * killsPerLevel(level);
+var manaRegen = (s) => 6.5 + Math.min(6, (s.attributes?.int || 0) * 0.02);
+function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}) {
+  const hp = (110 + level * 65 + level * level * 1.4) * (1 + 3 * (1 - Math.exp(-(level - 1) / 10)));
+  return { hp: Math.round(hp * toughness * (boss ? 7 : elite ? 2.6 : 1)), damage: Math.round((12 + level * 5 + level * level * 0.09) * (boss ? 1.65 : elite ? 1.2 : 1)), xp: normalXP(level) * (boss ? 10 : elite ? 3 : 1), gold: Math.round((10 + level * 3) * (boss ? 8 : elite ? 3 : 1)) };
+}
+
 // web/fashion.js
 var FASHION_SETS = [
   { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.png" },
   { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.png" },
-  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight.png" }
+  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight-open.png" }
 ];
 var FASHION_ITEMS = FASHION_SETS.flatMap((set) => [
   { id: set.id + "-hat", set: set.id, slot: "hat", name: { cowboy: "\u0E2B\u0E21\u0E27\u0E01\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E40\u0E17\u0E2D\u0E23\u0E4C\u0E04\u0E27\u0E2D\u0E22\u0E0B\u0E4C", wuxia: "\u0E2B\u0E21\u0E27\u0E01\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E2B\u0E22\u0E01", knight: "\u0E2B\u0E21\u0E27\u0E01\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27" }[set.id], file: set.file, color: set.color },
@@ -3793,7 +3804,7 @@ var advancedSpeciesAt = (level) => Math.max(0, Math.min(19, Math.floor((level - 
 function advancedMonster(level, { elite = false, boss = false } = {}) {
   level = Math.max(61, Math.min(120, Math.round(level)));
   const sp = ADVANCED_SPECIES[advancedSpeciesAt(level)], region = 6 + Math.floor((level - 61) / 10);
-  return { id: boss ? 2060 + region - 6 : 2e3 + level - 61, name: (boss ? "\u0E08\u0E49\u0E32\u0E27" : elite ? "\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32" : "") + sp.name, zone: 1, region, slot: sp.species, species: sp.species, art: "advanced", level, boss, elite: elite || boss, hp: Math.round((160 + level * 10) * sp.toughness * (boss ? 8 : elite ? 3.5 : 1)), damage: Math.round((5 + level * 1.4) * (boss ? 1.65 : elite ? 1.25 : 1)), speed: Math.round(85 * sp.pace), attack: sp.attack, cooldown: 2.4 / sp.pace + (boss ? 0.5 : 0), xp: Math.round((40 + level * 16) * (boss ? 10 : elite ? 4 : 1)), gold: Math.round((20 + level * 5) * (boss ? 6 : elite ? 4 : 1)) };
+  return { id: boss ? 2060 + region - 6 : 2e3 + level - 61, name: (boss ? "\u0E08\u0E49\u0E32\u0E27" : elite ? "\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32" : "") + sp.name, zone: 1, region, slot: sp.species, species: sp.species, art: "advanced", level, boss, elite: elite || boss, hp: Math.round((160 + level * 10) * sp.toughness * (boss ? 8 : elite ? 3.5 : 1)), damage: Math.round((5 + level * 1.4) * (boss ? 1.65 : elite ? 1.25 : 1)), speed: Math.round(85 * sp.pace), attack: sp.attack, cooldown: 2.4 / sp.pace + (boss ? 0.5 : 0), xp: Math.round((40 + level * 16) * (boss ? 10 : elite ? 4 : 1)), gold: Math.round((20 + level * 5) * (boss ? 6 : elite ? 4 : 1)), ...monsterStats(level, { boss, elite, toughness: sp.toughness }) };
 }
 var ADVANCED_MONSTERS = [...Array.from({ length: 60 }, (_, i) => advancedMonster(61 + i)), ...Array.from({ length: 6 }, (_, i) => advancedMonster(70 + i * 10, { boss: true }))];
 
@@ -3811,6 +3822,7 @@ for (let region = 0; region < 6; region++) {
   const base = MONSTERS[region * 10 + 9];
   MONSTERS.push({ ...base, id: 1060 + region, name: ["\u0E23\u0E32\u0E0A\u0E32\u0E2B\u0E22\u0E14\u0E1E\u0E25\u0E31\u0E07", "\u0E08\u0E48\u0E32\u0E1D\u0E39\u0E07\u0E40\u0E01\u0E23\u0E32\u0E30\u0E1C\u0E25\u0E36\u0E01", "\u0E23\u0E32\u0E0A\u0E34\u0E19\u0E35\u0E1A\u0E38\u0E1B\u0E1C\u0E32"][region % 3], slot: region % 3, boss: true, hp: base.hp * 9, damage: base.damage * 1.8, attack: ["burst", "cone", "projectile"][region % 3], xp: base.xp * 8, gold: base.gold * 6 });
 }
+for (const m of MONSTERS) Object.assign(m, monsterStats(m.level, { boss: m.boss }));
 MONSTERS.push(...ADVANCED_MONSTERS);
 var HEROES = [{ "id": "sword-male", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E0A\u0E32\u0E22", "sect": "sword", "gender": "male", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "sword-female", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "sword", "gender": "female", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "demon-male", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E0A\u0E32\u0E22", "sect": "demon", "gender": "male", "skill": "\u0E01\u0E23\u0E07\u0E40\u0E25\u0E47\u0E1A\u0E42\u0E25\u0E2B\u0E34\u0E15" }, { "id": "demon-female", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "demon", "gender": "female", "skill": "\u0E1A\u0E31\u0E27\u0E42\u0E25\u0E2B\u0E34\u0E15" }];
 HEROES.push({ id: "sword-cockro", name: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E41\u0E21\u0E19 \u2022 \u0E17\u0E14\u0E25\u0E2D\u0E07", sect: "sword", gender: "mascot", skill: "\u0E43\u0E0A\u0E49\u0E2A\u0E01\u0E34\u0E25\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2022 \u0E20\u0E32\u0E1E\u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27" });
@@ -3835,7 +3847,7 @@ function compileSkill(r) {
   if (!r || !FORMS[r.form] || !ELEMENTS[r.element]) return null;
   const mods = [...new Set(r.mods || [])].filter((m) => m !== "none" && MODS[m]);
   const f = { ...FORMS[r.form], ...r.combat || {} };
-  return { ...r, mods, range: f.range * (mods.includes("wide") ? 1.25 : 1), radius: f.radius * (mods.includes("wide") ? 1.25 : 1), power: f.power * (mods.includes("force") ? 1.25 : 1) * (mods.includes("quick") ? 0.85 : 1) * (mods.includes("pierce") && r.form !== "bolt" ? 1.15 : 1), mp: f.mp + mods.length * 8, cd: f.cd * (mods.includes("quick") ? 0.8 : 1), color: ELEMENTS[r.element].color };
+  return { ...r, mods, range: f.range * (mods.includes("wide") ? 1.25 : 1), radius: f.radius * (mods.includes("wide") ? 1.25 : 1), power: f.power * (mods.includes("force") ? 1.25 : 1) * (mods.includes("quick") ? 0.85 : 1) * (mods.includes("pierce") && r.form !== "bolt" ? 1.15 : 1), mp: f.mp + mods.length * 4, cd: Math.max(1.5, f.cd * 0.8) * (mods.includes("quick") ? 0.8 : 1), color: ELEMENTS[r.element].color };
 }
 var COCKRO_SKILLS = [
   { id: "s1", name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E14\u0E32\u0E1A\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", level: 1, form: "wave", element: "wind", mods: ["wide"], combat: { range: 480, radius: 150, mp: 10, cd: 3.2, power: 1.9 } },
@@ -4019,14 +4031,14 @@ function freshGear(s) {
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   freshGear(s);
   normalizeFashion(s);
   return s;
 }
 function xpNeed(level) {
-  return Math.round(45 + level * level * 4);
+  return levelXP(level);
 }
 function maxHP(s) {
   return Math.round(120 + s.level * 20 + s.upgrade * 12 + (s.attributes?.vit || 0) * 12 + gearTotals(s).hp);
@@ -4041,8 +4053,7 @@ function reward(s, m, rng = Math.random) {
   s.reputation = (s.reputation || 0) + (m.boss ? 25 : 1);
   if (!s.seen.includes(m.id)) s.seen.push(m.id);
   if (m.boss && !s.bosses.includes(m.id)) s.bosses.push(m.id);
-  const stone = rng() < 0.1;
-  if (stone) s.stones++;
+  const stone = false;
   while (s.level < 210 && s.xp >= xpNeed(s.level)) {
     s.xp -= xpNeed(s.level);
     s.level++;
@@ -4053,9 +4064,15 @@ function reward(s, m, rng = Math.random) {
   return stone;
 }
 function buyPotion(s) {
-  if (s.gold < 50) return false;
+  if (s.gold < 50 || s.potions >= 99999) return false;
   s.gold -= 50;
   s.potions++;
+  return true;
+}
+function buyMPPotion(s) {
+  if (s.gold < 60 || (s.mpPotions || 0) >= 99999) return false;
+  s.gold -= 60;
+  s.mpPotions = (s.mpPotions || 0) + 1;
   return true;
 }
 function upgradeCost(s) {
@@ -4395,6 +4412,9 @@ var World = class {
         case "buy":
           if (atHome) buyPotion(s);
           break;
+        case "buyMP":
+          if (atHome) buyMPPotion(s);
+          break;
         case "upgrade":
           if (atHome) upgrade(s);
           break;
@@ -4429,6 +4449,14 @@ var World = class {
       return;
     }
     if (p.hp <= 0) return;
+    if (d.type === "mpPotion") {
+      if (now < (p.cd.mpPotion || 0) || (s.mpPotions || 0) < 1 || p.mp >= combatStats(s).mp) return;
+      p.cd.mpPotion = now + 6;
+      s.mpPotions--;
+      p.mp = Math.min(combatStats(s).mp, p.mp + combatStats(s).mp * 0.5);
+      p.dirty = true;
+      return;
+    }
     if (d.type === "potion") {
       if (now < (p.cd.potion || 0) || s.potions < 1 || p.hp >= maxHP(s)) return;
       p.cd.potion = now + 4;
@@ -4491,7 +4519,7 @@ var World = class {
   tick(dt, now = Date.now() / 1e3) {
     for (const p of this.players.values()) {
       p.animTime += dt;
-      p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * 5);
+      p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * manaRegen(p.s));
       if (this.home(p) && p.hp > 0) p.hp = Math.min(maxHP(p.s), p.hp + dt * maxHP(p.s) * 0.1);
       if (now - p.moveAt > 0.25 && now >= p.actionUntil) p.anim = "idle";
     }

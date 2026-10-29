@@ -64,6 +64,7 @@ test('local chase routing is bounded and still makes progress',()=>{
 
 test('star monsters have new persistent IDs, distinct art and six advanced bosses',()=>{
  for(const l of [61,70,90,120]){const m=starMonster(l);assert.equal(m.level,l);assert.equal(m.hp,MONSTERS.find(x=>x.level===l&&!x.boss).hp);assert.equal(m.art,'advanced');assert(isKnownMonster(m.id));}
- const n=starMonster(85),e=starMonster(85,{elite:true});assert(e.hp>n.hp*3&&e.xp>n.xp*3&&e.elite&&!e.boss);
+ const n=starMonster(85),e=starMonster(85,{elite:true});assert(e.hp>=n.hp*2.59&&e.hp<=n.hp*2.61&&e.xp===n.xp*3&&e.elite&&!e.boss);
  for(let r=0;r<6;r++){const b=starMonster(r*10+70,{boss:true});assert(b.boss&&isKnownMonster(b.id)&&b.id===2060+r);}
 });
+
