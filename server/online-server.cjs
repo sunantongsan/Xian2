@@ -4889,7 +4889,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.11.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.12.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
     } else {
       res.writeHead(404);
       res.end();

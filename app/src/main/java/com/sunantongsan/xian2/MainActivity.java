@@ -28,7 +28,7 @@ public class MainActivity extends ComponentActivity {
   loading.skip.setOnClickListener(v->{loading.skip.setEnabled(false);status.setText("กำลังเปิดรุ่นที่ติดตั้งอยู่…");updater.cancel();});root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){updater.cancel();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
  }
- @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();web.resumeTimers();}if(!startedCheck){startedCheck=true;checkUpdate();}}
+ @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();}if(!startedCheck){startedCheck=true;checkUpdate();}}
  private void checkUpdate(){worker.execute(()->{
   File archive=null;String message=null;File[] stale=getCacheDir().listFiles();if(stale!=null)for(File file:stale)if(file.getName().startsWith("cockro-update-")&&file.getName().endsWith(".zip"))file.delete();
   try{
@@ -55,13 +55,13 @@ public class MainActivity extends ComponentActivity {
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText("เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}return true;}
   });
   ads.attach(web);
-  web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();web.pauseTimers();}
+  web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();}
  }
  private void checkBoot(int attempt){if(destroyed||web==null)return;if(!foreground){handler.postDelayed(()->checkBoot(attempt),500);return;}web.evaluateJavascript("Boolean(document.getElementById('loading')?.hidden && document.getElementById('choose'))",value->{if(destroyed)return;if("true".equals(value)){worker.execute(()->GamePatch.healthy(this));}else if(attempt<40){handler.postDelayed(()->checkBoot(attempt+1),500);}else failedBoot();});}
  private void failedBoot(){if(destroyed)return;if(GamePatch.pending(this)&&GamePatch.rollback(this)){Toast.makeText(this,"แพตช์เปิดไม่สำเร็จ กลับไปใช้รุ่นเดิม",Toast.LENGTH_LONG).show();recreate();}else{loading.setVisibility(View.VISIBLE);status.setText("เปิดเกมไม่สำเร็จ กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}}
  @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request!=PICK_PATCH||result!=RESULT_OK||data==null||data.getData()==null)return;
   loading.setVisibility(View.VISIBLE);status.setText("กำลังตรวจสอบแพตช์…");android.net.Uri uri=data.getData();worker.execute(()->{try{GamePatch.install(this,uri);runOnUiThread(()->{if(!destroyed){gameLoaded=false;if(web!=null){root.removeView(web);web.destroy();web=null;}loadGame();}});}catch(Exception e){runOnUiThread(()->{if(!destroyed){loading.setVisibility(View.GONE);Toast.makeText(this,"ติดตั้งแพตช์ไม่ได้: "+e.getMessage(),Toast.LENGTH_LONG).show();}});}});
  }
- @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();web.pauseTimers();}super.onPause();}
+ @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }

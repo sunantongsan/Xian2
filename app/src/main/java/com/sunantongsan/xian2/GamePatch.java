@@ -28,7 +28,12 @@ final class GamePatch {
  static boolean rollback(Context c){return rollback(new AndroidStore(c));}
  static void healthy(Context c){healthy(new AndroidStore(c));}
  static void reset(Context c){reset(new AndroidStore(c));}
- static synchronized File active(Store s){File f=folder(s,s.get("active"));return f!=null&&f.isDirectory()?f:null;}
+ static synchronized File active(Store s){
+  File f=folder(s,s.get("active"));if(f==null||!f.isDirectory())return null;
+  // A native upgrade carries newer game assets. Keep save data and use that bundle.
+  try(InputStream in=new FileInputStream(new File(f,"patch.json"))){if(UpdateManifest.compare(s.bundledVersion(),readVersion(in))>0)return null;}catch(Exception ignored){}
+  return f;
+ }
  static synchronized boolean pending(Store s){return "true".equals(s.get("pending"));}
  private static String readVersion(InputStream in)throws Exception{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1024*1024)throw new IOException("Manifest too large");out.write(b,0,n);}String v=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8)).getString("version");UpdateManifest.versionParts(v);return v;}
  static synchronized String version(Store s){try{File f=active(s);if(f==null)return s.bundledVersion();try(InputStream in=new FileInputStream(new File(f,"patch.json"))){return readVersion(in);}}catch(Exception e){return "0.0.0";}}

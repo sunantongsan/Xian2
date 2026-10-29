@@ -9,7 +9,7 @@ Implementation uses Google Mobile Ads 25.5.0, UMP 4.0.0, AndroidX origin-scoped 
 - Native passes ticket and pseudonymous account ID through SSV options. Google signs the callback. Server checks raw-query ECDSA SHA256 DER signature, configured ad unit, reward amount 1 and type `item`, account, ticket, timestamp and transaction.
 - Ticket/reward transaction and inventory are saved atomically in one account file. Duplicate callback returns success without a second grant. Reward can arrive after the player disconnects or the server restarts.
 - Show/load failure and early dismissal never grant locally. SDK earned callback displays “waiting for verification”; inventory arrives in a server snapshot.
-- Debug APK always uses Google's sample ad IDs and cannot grant real rewards. Its signing key is CI-generated; it is not guaranteed to update an existing installed preview APK. Do not uninstall an existing game or clear its data to test this build.
+- Debug APK always uses Google's sample ad IDs and cannot grant real rewards. It installs separately as `com.sunantongsan.networkcokcro.adstest` / COCKRO Ads Test with its own save. The production application ID is unchanged.
 - UMP refreshes consent on launch; no ad request until canRequestAds. Required privacy-options entry is available in the in-game privacy page. Only one ad loads at a time.
 
 ## Remaining activation requirements (not completed)
@@ -22,7 +22,14 @@ Implementation uses Google Mobile Ads 25.5.0, UMP 4.0.0, AndroidX origin-scoped 
 7. Whole-character fashion sets and 7-day fashion rental are a separate unfinished feature; this release grants upgrade materials only.
 
 ## Validation
-`npm test`, `npm run check`, `npm run build:server`, `node tools/items-mobile-smoke.mjs`.
+`npm test`, `npm run check`, `npm run build:server`, `node tools/items-mobile-smoke.mjs`, `node tools/ads-browser-smoke.mjs`.
 GitHub workflow `.github/workflows/ads-validation.yml` compiles/debug-tests/lints Android and retains a test APK. It does not publish to Play, use the production key, or activate monetization.
 
 References: https://developers.google.com/admob/android/quick-start ; https://developers.google.com/admob/android/privacy ; https://developers.google.com/admob/android/rewarded ; https://developers.google.com/admob/android/ssv
+
+## Verified in workspace (2026-10-29)
+- Node suite: 98 passed, including cryptographic tampering rejection and HTTP callback offline/restart/replay tests using locally generated ECDSA test keys (not actual Google traffic).
+- Mobile browser regression and mocked native bridge tests passed. Mock completion does not change inventory.
+- Android debug Java compilation, unit tests and lint succeeded with Gradle 8.13 / JDK 17 / SDK 36; 20 native tests passed, 1 optional live-feed test skipped.
+- Hosted GitHub validation run 40907153785 stopped before any job steps; local build used instead. No reason is claimed without runner logs.
+- Production remains 4.11.0 until ad account configuration and on-device verification are complete. Source targets 4.12.0 / native 94. No Play upload or live monetization has occurred.

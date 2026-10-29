@@ -33,7 +33,7 @@ test('unknown/expired ticket, duplicate transaction, full inventory and spam rej
  assert.throws(()=>issueRewardTicket(s,'ruby',now));assert.throws(()=>issueRewardTicket(s,'__proto__',now));
  assert.throws(()=>applyVerifiedReward(s,callback(t,{custom_data:'f'.repeat(48)})));
  assert.throws(()=>applyVerifiedReward(s,callback(t,{timestamp:String(now+3600001)}),now+3600001));
- assert.throws(()=>applyVerifiedReward(s,callback(t),now+86400001));
+ assert.throws(()=>applyVerifiedReward(s,callback(t,{timestamp:String(now)}),now+86400001));
  s.upgradeItems.meteor=99999;assert.throws(()=>applyVerifiedReward(s,callback(t)));s.upgradeItems.meteor=0;
  applyVerifiedReward(s,callback(t));const second=issueRewardTicket(s,'ruby',now+100000);
  assert.throws(()=>applyVerifiedReward(s,callback(second,{timestamp:String(now+100000)}),now+100000));
