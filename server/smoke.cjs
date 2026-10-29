@@ -3771,6 +3771,10 @@ async function main() {
     }
     await wait(() => b.state.players.some((p) => p.id === a.id && p.x > start + 20));
     console.log("PASS remote player movement is synchronized");
+    a.send({ type: "op", op: "fashionWear", id: "cowboy-hat" });
+    await wait(() => a.state.self.save.fashion?.equipped.hat === "cowboy-hat" && b.state.players.some((p) => p.id === a.id && p.appearance?.hat === "cowboy-hat"));
+    console.log("PASS equipped fashion is visible to another player");
+    await pause(150);
     const before = a.state.self.save.potions;
     a.send({ type: "op", op: "buy" });
     await wait(() => a.state.self.save.potions === before + 1);
@@ -3783,6 +3787,7 @@ async function main() {
     await pause(700);
     again = await connect(token);
     import_strict.default.equal(again.state.self.save.potions, before + 1);
+    import_strict.default.equal(again.state.self.save.fashion.equipped.hat, "cowboy-hat");
     console.log("PASS character progress persists after reconnect");
     again.send({ type: "enter", map: "forest", gate: 0 });
     b.send({ type: "enter", map: "forest", gate: 0 });

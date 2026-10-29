@@ -1,3 +1,4 @@
+import {drawFashion} from './fashion-render.js';
 // Whole-body hand-painted animation. A frame is never cut into separate body parts.
 export const HERO_IDS=['sword-male','sword-female','demon-male','demon-female'];
 export const WALK_DISTANCE=112;
@@ -31,6 +32,9 @@ export function heroFrame(actor={}){
  return {sheet:'actions',frame:back?1:0,flip};
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
+ const result=drawBaseHero(ctx,images,hero,actor,x,y,size);if(result)drawFashion(ctx,images,hero,actor,x,y,size,result.frame);return result;
+}
+function drawBaseHero(ctx,images,hero,actor,x,y,size){
  if(hero==='sword-cricket'&&actor.anim==='walk'&&images.has('cricket-walk-prepared')){
   const im=images.get('cricket-walk-prepared'),frame=Math.floor((((actor.walkDistance||0)%150)+150)%150/150*6),unit=size/314;
   ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);

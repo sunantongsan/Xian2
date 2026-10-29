@@ -3725,6 +3725,47 @@ var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/fashion.js
+var FASHION_SETS = [
+  { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.png" },
+  { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.png" },
+  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight.png" }
+];
+var FASHION_ITEMS = FASHION_SETS.flatMap((set) => [
+  { id: set.id + "-hat", set: set.id, slot: "hat", name: { cowboy: "\u0E2B\u0E21\u0E27\u0E01\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E40\u0E17\u0E2D\u0E23\u0E4C\u0E04\u0E27\u0E2D\u0E22\u0E0B\u0E4C", wuxia: "\u0E2B\u0E21\u0E27\u0E01\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E2B\u0E22\u0E01", knight: "\u0E2B\u0E21\u0E27\u0E01\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27" }[set.id], file: set.file, color: set.color },
+  { id: set.id + "-outfit", set: set.id, slot: "outfit", name: "\u0E0A\u0E38\u0E14" + set.name, file: set.file, color: set.color }
+]);
+var byId = new Map(FASHION_ITEMS.map((it) => [it.id, it]));
+var fashionItem = (id) => byId.get(id) || null;
+function normalizeFashion(s, v = s) {
+  const raw = v.fashion;
+  const owned = Array.isArray(raw?.owned) ? [...new Set(raw.owned.filter((id) => byId.has(id)))] : FASHION_ITEMS.map((it) => it.id);
+  const equipped = { hat: null, outfit: null };
+  for (const slot of ["hat", "outfit"]) {
+    const id = raw?.equipped?.[slot];
+    if (owned.includes(id) && byId.get(id)?.slot === slot) equipped[slot] = id;
+  }
+  s.fashion = { owned, equipped };
+  return s.fashion;
+}
+function wearFashion(s, id) {
+  const it = fashionItem(id);
+  if (!it) return false;
+  const f = s.fashion || normalizeFashion(s);
+  if (!f.owned.includes(id)) return false;
+  f.equipped[it.slot] = id;
+  return true;
+}
+function removeFashion(s, slot) {
+  if (slot !== "hat" && slot !== "outfit") return false;
+  const f = s.fashion || normalizeFashion(s);
+  f.equipped[slot] = null;
+  return true;
+}
+function appearance(s) {
+  return { ...s.fashion?.equipped || { hat: null, outfit: null } };
+}
+
 // web/advanced-monsters.js
 var ADVANCED_SPECIES = [
   ["\u0E14\u0E49\u0E27\u0E07\u0E40\u0E01\u0E23\u0E32\u0E30\u0E2B\u0E22\u0E01", "beetle", "melee", "#29866f", "#b4fcb8", 1.25, 0.85],
@@ -3981,6 +4022,7 @@ function fresh(hero) {
   const s = { version: VERSION, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   freshGear(s);
+  normalizeFashion(s);
   return s;
 }
 function xpNeed(level) {
@@ -4248,6 +4290,7 @@ var World = class {
     }
   }
   join(id, s) {
+    normalizeFashion(s);
     if (this.players.has(id)) throw Error("already_online");
     if (this.players.size >= 12) throw Error("room_full");
     const p = { id, s, name: "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
@@ -4343,6 +4386,12 @@ var World = class {
       p.cd.op = now + 0.1;
       const atHome = this.home(p);
       switch (d.op) {
+        case "fashionWear":
+          wearFashion(s, d.id);
+          break;
+        case "fashionRemove":
+          removeFashion(s, d.slot);
+          break;
         case "buy":
           if (atHome) buyPotion(s);
           break;
@@ -4510,7 +4559,7 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
@@ -4546,7 +4595,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.8.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.9.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
     } else {
       res.writeHead(404);
       res.end();
