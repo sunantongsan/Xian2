@@ -3725,6 +3725,46 @@ var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/upgrade-items.js
+var UPGRADE_ITEMS = {
+  meteor: { name: "\u0E2B\u0E34\u0E19\u0E2D\u0E38\u0E01\u0E32\u0E1A\u0E32\u0E28", price: 20, description: "\u0E43\u0E0A\u0E49\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2D\u0E32\u0E27\u0E38\u0E18 \u0E0A\u0E38\u0E14 \u0E41\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E14\u0E31\u0E1A", icon: "items/meteor.webp" },
+  crystal: { name: "\u0E1C\u0E25\u0E36\u0E01", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E08\u0E21\u0E15\u0E35 +8 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "atk", amount: 8, icon: "items/crystal.webp" },
+  glowstone: { name: "\u0E2B\u0E34\u0E19\u0E40\u0E23\u0E37\u0E2D\u0E07\u0E41\u0E2A\u0E07", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1B\u0E49\u0E2D\u0E07\u0E01\u0E31\u0E19 +4 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "def", amount: 4, icon: "items/glowstone.webp" },
+  diamond: { name: "\u0E40\u0E1E\u0E0A\u0E23", price: 60, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E2D\u0E01\u0E32\u0E2A\u0E04\u0E23\u0E34\u0E15\u0E34\u0E04\u0E2D\u0E25 +0.5% \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "crit", amount: 5e-3, icon: "items/diamond.webp" },
+  ruby: { name: "\u0E17\u0E31\u0E1A\u0E17\u0E34\u0E21", price: 40, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21 HP +60 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "hp", amount: 60, icon: "items/ruby.webp" }
+};
+var GEM_IDS = ["crystal", "glowstone", "diamond", "ruby"];
+var GEM_CAP = 10;
+var bounded = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+function normalizeUpgradeItems(s, v = s) {
+  s.upgradeItems = Object.fromEntries(Object.keys(UPGRADE_ITEMS).map((id) => [id, bounded(v.upgradeItems?.[id], 99999)]));
+  return s;
+}
+function normalizeGems(gems) {
+  return Object.fromEntries(GEM_IDS.map((id) => [id, bounded(gems?.[id], GEM_CAP)]));
+}
+function buyUpgradeItem(s, id) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, id)) return false;
+  normalizeUpgradeItems(s);
+  const item = UPGRADE_ITEMS[id];
+  if (s.stones < item.price || s.upgradeItems[id] >= 99999) return false;
+  s.stones -= item.price;
+  s.upgradeItems[id]++;
+  return true;
+}
+function socketGem(s, slot, id) {
+  if (!GEM_IDS.includes(id) || !Object.hasOwn(s.equip || {}, slot)) return false;
+  const it = s.equip[slot];
+  if (!it) return false;
+  normalizeUpgradeItems(s);
+  const gems = normalizeGems(it.gems);
+  if (s.upgradeItems[id] < 1 || gems[id] >= GEM_CAP) return false;
+  s.upgradeItems[id]--;
+  gems[id]++;
+  it.gems = gems;
+  return true;
+}
+
 // web/balance.js
 var BALANCE_VERSION = 2;
 var normalXP = (level) => 20 + level * 8;
@@ -3894,12 +3934,15 @@ function normalizeSkills(s, v = {}) {
   s.recipes = Array.isArray(v.recipes) ? v.recipes.slice(0, 10).filter((r) => r && FORMS[r.form] && ELEMENTS[r.element] && Array.isArray(r.mods) && r.mods.length <= 2 && r.mods.every((m) => MODS[m] && m !== "none")).map((r, i) => ({ ...r, id: "custom" + i, name: String(r.name || "\u0E27\u0E34\u0E0A\u0E32\u0E44\u0E23\u0E49\u0E19\u0E32\u0E21").slice(0, 32), level: r.mods.length > 1 ? 120 : 60 })) : [];
   const available = [...classSkills(s), ...s.recipes].filter((r) => r.level <= s.level);
   const used = /* @__PURE__ */ new Set();
-  s.equipped = Array.isArray(v.equipped) ? v.equipped.slice(0, 3).map((id) => {
+  s.equipped = Array.isArray(v.equipped) ? v.equipped.slice(0, 5).map((id) => {
     if (used.has(id) || !available.some((r) => r.id === id)) return null;
     used.add(id);
     return id;
   }) : [];
   if (!s.equipped.some(Boolean)) s.equipped = [available[0].id];
+  for (let i = 0; i < 5; i++) {
+    if (s.equipped[i] === void 0) s.equipped[i] = i < 3 ? null : available.find((r) => !s.equipped.includes(r.id))?.id || null;
+  }
   s.materials = {};
   for (const k of ["ink", "core", ...Object.keys(ELEMENTS)]) s.materials[k] = Math.min(99999, Math.max(0, Math.floor(Number(v.materials?.[k]) || 0)));
 }
@@ -3961,6 +4004,10 @@ var tierForLevel = (level) => TIERS.reduce((t, x, i) => level >= x.level ? i : t
 function itemStats(it) {
   const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + (it.plus || 0) * 0.08), o = {};
   for (const key of ["atk", "def", "hp", "crit", "speed", "mp", "spell"]) if (base[key]) o[key] = +(base[key] * k).toFixed(key === "crit" || key === "spell" ? 3 : 1);
+  for (const id of GEM_IDS) {
+    const n = normalizeGems(it.gems)[id], g = UPGRADE_ITEMS[id];
+    if (n) o[g.stat] = +((o[g.stat] || 0) + n * g.amount).toFixed(g.stat === "crit" ? 3 : 1);
+  }
   return o;
 }
 function sellPrice(it) {
@@ -4034,9 +4081,9 @@ function normalizeGear(s, v = {}) {
   if (!v.equip && !v.bag) return freshGear(s);
   s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
     const it = v.equip?.[k];
-    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))) } : null];
+    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
   }));
-  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))) }));
+  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
   return s;
 }
 var gearUpgradeCost = (it) => 2 * ((it.plus || 0) + 1) + it.tier;
@@ -4044,9 +4091,11 @@ function upgradeGear(s, slot) {
   if (!Object.hasOwn(SLOTS, slot)) return false;
   const it = s.equip?.[slot];
   if (!it || (it.plus || 0) >= 15) return false;
+  normalizeUpgradeItems(s);
   const cost = gearUpgradeCost(it);
-  if (!Number.isFinite(s.stones) || s.stones < cost) return false;
+  if (!Number.isFinite(s.stones) || s.stones < cost || s.upgradeItems.meteor < 1) return false;
   s.stones -= cost;
+  s.upgradeItems.meteor--;
   it.plus = (it.plus || 0) + 1;
   return true;
 }
@@ -4056,6 +4105,7 @@ var VERSION = 1;
 function fresh(hero) {
   const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
+  normalizeUpgradeItems(s);
   freshGear(s);
   normalizeFashion(s);
   return s;
@@ -4128,6 +4178,7 @@ function validSave(v) {
   normalizeProgress(s, v);
   normalizeGear(s, v);
   normalizeFashion(s, v);
+  normalizeUpgradeItems(s, v);
   s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
   if (v.balanceVersion !== BALANCE_VERSION) {
     s.xp = Math.floor(Math.min(1, s.xp / (45 + s.level * s.level * 4)) * xpNeed(s.level));
@@ -4427,7 +4478,7 @@ var World = class {
       if (p.s.level > before) {
         p.hp = maxHP(p.s);
         for (const r of knownSkills(p.s).filter((r2) => r2.level > before && r2.level <= p.s.level)) {
-          const slot = [0, 1, 2].find((i) => !p.s.equipped[i]);
+          const slot = [0, 1, 2, 3, 4].find((i) => !p.s.equipped[i]);
           if (slot !== void 0) p.s.equipped[slot] = r.id;
         }
       }
@@ -4492,6 +4543,12 @@ var World = class {
         case "upgrade":
           if (atHome) upgrade(s);
           break;
+        case "buyUpgradeItem":
+          if (atHome && typeof d.id === "string") buyUpgradeItem(s, d.id);
+          break;
+        case "socketGem":
+          if (atHome && typeof d.id === "string" && typeof d.slot === "string") socketGem(s, d.slot, d.id);
+          break;
         case "upgradeGear":
           if (atHome && typeof d.slot === "string") upgradeGear(s, d.slot);
           break;
@@ -4503,7 +4560,7 @@ var World = class {
           break;
         case "equipSkill": {
           const r2 = knownSkills(s).find((r3) => r3.id === d.id && r3.level <= s.level);
-          if (r2 && Number.isInteger(d.slot) && d.slot >= 0 && d.slot < 3) {
+          if (r2 && Number.isInteger(d.slot) && d.slot >= 0 && d.slot < 5) {
             const old = s.equipped.indexOf(r2.id);
             if (old >= 0) s.equipped[old] = null;
             s.equipped[d.slot] = r2.id;
@@ -4567,7 +4624,7 @@ var World = class {
       this.event(p, { kind: "attack", hero: s.hero });
       return;
     }
-    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 2) return;
+    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return;
     const r = knownSkills(s).find((r2) => r2.id === s.equipped[d.slot] && r2.level <= s.level);
     if (!r) return;
     const k = compileSkill(r);
@@ -4700,7 +4757,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.10.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.11.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
     } else {
       res.writeHead(404);
       res.end();

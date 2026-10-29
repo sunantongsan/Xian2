@@ -8,7 +8,7 @@ async function connect(token){const c={state:null,token,seq:0};c.ws=new WebSocke
 async function main(){
 let a,b,again;
 try{
- a=await connect();b=await connect();await wait(()=>a.state.players.some(p=>p.id===b.id)&&b.state.players.some(p=>p.id===a.id));console.log('PASS two players join the same village');
+ a=await connect();b=await connect();assert.equal(a.state.self.save.equipped.length,5);for(const id of ['meteor','crystal','glowstone','diamond','ruby'])assert.equal(a.state.self.save.upgradeItems[id],0);console.log('PASS five skill slots and upgrade inventory synchronized');await wait(()=>a.state.players.some(p=>p.id===b.id)&&b.state.players.some(p=>p.id===a.id));console.log('PASS two players join the same village');
  const start=a.state.self.x;for(let i=0;i<6;i++){await pause(120);a.send({type:'move',x:a.state.self.x+15,y:a.state.self.y,seq:++a.seq});}
  await wait(()=>b.state.players.some(p=>p.id===a.id&&p.x>start+20));console.log('PASS remote player movement is synchronized');
  a.send({type:'op',op:'fashionWear',id:'cowboy-hat'});await wait(()=>a.state.self.save.fashion?.equipped.hat==='cowboy-hat'&&b.state.players.some(p=>p.id===a.id&&p.appearance?.hat==='cowboy-hat'));console.log('PASS equipped fashion is visible to another player');await pause(150);

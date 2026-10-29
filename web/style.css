@@ -230,3 +230,19 @@ dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
 
 
 #controls .combat #mpPotionBtn{width:54px;height:54px;right:188px;bottom:76px;background:radial-gradient(circle at 35% 25%,#7bcaff,#1453af 70%);border-color:#dfbc71}#hpText{color:#ffaaa2}#mpText{color:#92cfff}#xpText{color:#ffdc70}#hud .meter #hp{background:#d52c38}#hud .meter #mp{background:#258fe3}#hud .meter #xp{background:#edc846}
+
+/* Five skills in a compact arc, with potions in their own column. */
+#controls .combat{width:300px;height:244px}
+#controls .combat #attackBtn{right:8px;bottom:4px}
+#controls .combat #skillBtn{right:112px;bottom:5px;width:58px;height:58px}
+#controls .combat #skillBtn1{right:132px;bottom:72px;width:58px;height:58px}
+#controls .combat #skillBtn2{right:103px;bottom:139px;width:58px;height:58px}
+#controls .combat #skillBtn3{right:35px;bottom:166px;width:58px;height:58px}
+#controls .combat #skillBtn4{right:1px;bottom:100px;width:58px;height:58px}
+#controls .combat #dashBtn{right:174px;bottom:145px;width:48px;height:48px}
+#controls .combat #potionBtn{right:215px;bottom:5px;width:48px;height:48px}
+#controls .combat #mpPotionBtn{right:215px;bottom:66px;width:48px;height:48px}
+.upgrade-card img{width:100px;height:100px;object-fit:contain;border-radius:14px}
+.upgrade-card h3{margin:5px 0}.upgrade-card p{font-size:12px;min-height:18px}.upgrade-card button{margin-top:5px;font-size:12px}
+.upgrade-card button:disabled,.gem-actions button:disabled{opacity:.48}
+.gem-actions{display:grid;grid-template-columns:1fr;gap:5px;margin-top:10px}.gem-actions button{display:flex;align-items:center;text-align:left;gap:7px;width:100%;font-size:12px;padding:5px}.gem-actions img{border-radius:8px}.gem-actions small{display:block;font-size:10px}
