@@ -32,7 +32,24 @@ export const SCORPION_SKILLS=[
 {id:'d5',name:'ลูกพิษระเบิดสายฟ้า',level:40,form:'bolt',element:'lightning',mods:['force','pierce']},
 {id:'d6',name:'หางยักษ์ฟาดพสุธา',level:55,form:'field',element:'poison',mods:['wide','force']}
 ];
-function classSkills(s){if(s.hero==='demon-scorpion')return [...SCORPION_SKILLS,...SCHOOL.filter(r=>r.sect==='demon'&&Number(r.id.slice(1))>=7)];return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
+// Dragonfly: ranged archer (wind / lightning). Cricket: hammer and sound waves (wind / lightning, gold).
+export const DRAGONFLY_SKILLS=[
+{id:'s1',name:'ศรแสงพุ่งทะลวง',level:1,form:'bolt',element:'lightning',mods:['pierce'],combat:{range:520,radius:0,mp:9,cd:2.6,power:2.1}},
+{id:'s2',name:'ศรพัดห้าดอก',level:5,form:'wave',element:'wind',mods:['wide'],combat:{range:420,radius:170,mp:14,cd:4.5,power:1.7}},
+{id:'s3',name:'พายุปีกแมลงปอ',level:12,form:'circle',element:'wind',mods:['wide'],combat:{range:190,radius:190,mp:20,cd:7,power:1.6}},
+{id:'s4',name:'ฝนศรดวงดาว',level:25,form:'field',element:'lightning',mods:['wide'],combat:{range:460,radius:190,mp:26,cd:10,power:.75}},
+{id:'s5',name:'ศรสายฟ้าเจาะฟ้า',level:40,form:'bolt',element:'lightning',mods:['pierce','force']},
+{id:'s6',name:'ปีกแสงพิพากษา',level:55,form:'wave',element:'lightning',mods:['wide','force']}
+];
+export const CRICKET_SKILLS=[
+{id:'s1',name:'ค้อนทุบแผ่นดินแยก',level:1,form:'wave',element:'wind',mods:['wide'],combat:{range:400,radius:150,mp:10,cd:3.4,power:2}},
+{id:'s2',name:'วงคลื่นเสียงจิ้งหรีด',level:5,form:'circle',element:'lightning',mods:['wide'],combat:{range:190,radius:190,mp:14,cd:5,power:1.8}},
+{id:'s3',name:'กระโดดกระแทกพสุธา',level:12,form:'dash',element:'wind',mods:['wide','force'],combat:{range:260,radius:70,mp:18,cd:7,power:2}},
+{id:'s4',name:'สนามคลื่นสั่นสะเทือน',level:25,form:'field',element:'lightning',mods:['wide'],combat:{range:380,radius:190,mp:26,cd:10,power:.8}},
+{id:'s5',name:'ค้อนพายุหมุน',level:40,form:'circle',element:'wind',mods:['wide','force']},
+{id:'s6',name:'โดมคลื่นเสียงทองคำ',level:55,form:'field',element:'lightning',mods:['wide','force'],combat:{range:200,radius:230,mp:40,cd:14,power:.9}}
+];
+function classSkills(s){if(s.hero==='sword-dragonfly')return [...DRAGONFLY_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='sword-cricket')return [...CRICKET_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='demon-scorpion')return [...SCORPION_SKILLS,...SCHOOL.filter(r=>r.sect==='demon'&&Number(r.id.slice(1))>=7)];return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
 export function normalizeSkills(s,v={}){const sect=s.hero.startsWith('sword')?'sword':'demon';s.recipes=Array.isArray(v.recipes)?v.recipes.slice(0,10).filter(r=>r&&FORMS[r.form]&&ELEMENTS[r.element]&&Array.isArray(r.mods)&&r.mods.length<=2&&r.mods.every(m=>MODS[m]&&m!=='none')).map((r,i)=>({...r,id:'custom'+i,name:String(r.name||'วิชาไร้นาม').slice(0,32),level:r.mods.length>1?120:60})):[];const available=[...classSkills(s),...s.recipes].filter(r=>r.level<=s.level);const used=new Set();s.equipped=Array.isArray(v.equipped)?v.equipped.slice(0,3).map(id=>{if(used.has(id)||!available.some(r=>r.id===id))return null;used.add(id);return id;}):[];if(!s.equipped.some(Boolean))s.equipped=[available[0].id];s.materials={};for(const k of ['ink','core',...Object.keys(ELEMENTS)])s.materials[k]=Math.min(99999,Math.max(0,Math.floor(Number(v.materials?.[k])||0)));}
 export function knownSkills(s){return [...classSkills(s),...s.recipes];}
 export function craft(s,r){if(s.level<60)return 'ต้องถึงเลเวล 60';if(s.recipes.length>=10)return 'บันทึกได้สูงสุด 10 วิชา';if(!r||!FORMS[r.form]||!ELEMENTS[r.element]||!Array.isArray(r.mods)||new Set(r.mods).size!==r.mods.length||r.mods.some(m=>!MODS[m]||m==='none'))return 'สูตรไม่ถูกต้อง';if(r.mods.length>(s.level>=120?2:1))return 'สองคุณสมบัติต้องเลเวล 120';const advanced=r.mods.length===2,cost=advanced?12000:3000;if(s.gold<cost||s.materials.ink<1||s.materials[r.element]<3||(advanced&&s.materials.core<2))return 'เงินหรือวัตถุดิบไม่พอ';s.gold-=cost;s.materials.ink--;s.materials[r.element]-=3;if(advanced)s.materials.core-=2;s.recipes.push({id:'custom'+s.recipes.length,name:String(r.name||'วิชาไร้นาม').trim().slice(0,32)||'วิชาไร้นาม',form:r.form,element:r.element,mods:r.mods,level:advanced?120:60});return null;}

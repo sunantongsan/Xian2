@@ -3,7 +3,19 @@ export const HERO_IDS=['sword-male','sword-female','demon-male','demon-female'];
 export const WALK_DISTANCE=112;
 export const CELL=256;
 // New hero classes packed by tools/pack-class-sheet.py (same frame order as the Cockro combat sheet).
-export const CLASS_SHEETS=['demon-scorpion'];
+export const CLASS_SHEETS=['demon-scorpion','sword-dragonfly','sword-cricket'];
+// The cricket sheet was painted with one pose per skill: row 3 and row 4 hold skill poses, idle and hurt.
+const CLASS_FRAMES={'sword-cricket':{idle:14,attack:[14,12,8,14],hurt:15,dead:15,skill:{s1:8,s2:9,s3:10,s4:11,s5:12,s6:13},fallback:13,deadTilt:true}};
+export function classFrame(hero,actor={}){
+ const m=CLASS_FRAMES[hero];if(!m)return cockroFrame(actor);
+ const t=Math.max(0,actor.animTime||0),u=t/(actor.animDuration||.58);
+ if(actor.dead||actor.anim==='dead')return m.dead;
+ if(actor.anim==='hurt')return m.hurt;
+ if(actor.anim==='skill')return m.skill[actor.castId]??m.fallback;
+ if(actor.anim==='attack')return m.attack[u<.25?0:u<.5?1:u<.76?2:3];
+ if(actor.anim==='walk')return (actor.back?4:0)+Math.floor(((actor.walkDistance||0)%112)/28);
+ return m.idle;
+}
 export function heroFrame(actor={}){
  const back=!!actor.back,flip=(actor.face||1)<0;
  const t=Math.max(0,Number.isFinite(actor.animTime)?actor.animTime:0);
@@ -31,9 +43,10 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
  if(CLASS_SHEETS.includes(hero)){
   // Normalised 4x4 class sheets: every frame is foot-anchored at (192,352) inside a 384px cell.
   const im=images.get(`heroes/${hero}.webp`);if(!im||!Number.isFinite(size)||size<=0)return;
-  const frame=cockroFrame(actor),c=im.width/4,k=c/384,unit=size/314;
+  const frame=classFrame(hero,actor),c=im.width/4,unit=size/314;
   ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
-  ctx.drawImage(im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-192*unit,-352*unit,384*unit,384*unit);
+  if((actor.dead||actor.anim==='dead')&&CLASS_FRAMES[hero]?.deadTilt){ctx.translate(0,-18*unit);ctx.rotate(-1.25);ctx.globalAlpha*=.92;}
+  ctx.drawImage(im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit);
   ctx.restore();return {sheet:hero,frame};
  }
  if(!HERO_IDS.includes(hero)||!Number.isFinite(size)||size<=0)return;
