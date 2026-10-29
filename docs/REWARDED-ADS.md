@@ -13,7 +13,7 @@ Implementation uses Google Mobile Ads 25.5.0, UMP 4.0.0, AndroidX origin-scoped 
 - UMP refreshes consent on launch; no ad request until canRequestAds. Required privacy-options entry is available in the in-game privacy page. Only one ad loads at a time.
 
 ## Remaining activation requirements (not completed)
-1. Owner supplies AdMob Android App ID (`ca-app-pub-…~…`) and Rewarded Ad Unit ID (`ca-app-pub-…/…`). Neither is a password. Configure UMP messages in that AdMob app.
+1. AdMob IDs were read directly from the signed-in Cockro Network Android dashboard on 2026-10-30 (Asia/Bangkok): `ADMOB_APP_ID=ca-app-pub-4585492700643566~3340769116`, `ADMOB_REWARDED_UNIT_ID=ca-app-pub-4585492700643566/6530873388`. Do not ask the owner to supply them again. Configure UMP messages in that AdMob app.
 2. Configure rewarded unit reward amount **1**, item **item**, SSV URL **https://game.guardscan.xyz/online/ads/ssv**. Validate callback in AdMob. The deployed reverse proxy must route `/online/ads/ssv` unchanged to port 8091; retain original query order/encoding.
 3. Set `ADMOB_REWARDED_UNIT_ID` in backend service environment; rebuild/deploy server. Real grants stay disabled when absent or using Google's sample publisher.
 4. Build release with env `ADMOB_APP_ID` and `ADMOB_REWARDED_UNIT_ID`. Gradle rejects missing/sample IDs for release. Use the existing production signing key and unchanged application ID `com.sunantongsan.networkcokcro`; versionCode 94 is only valid if higher than current Play version. Confirm Play package/signing identity before upload.
@@ -33,3 +33,10 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Android debug Java compilation, unit tests and lint succeeded with Gradle 8.13 / JDK 17 / SDK 36; 20 native tests passed, 1 optional live-feed test skipped.
 - Hosted GitHub validation run 40907153785 stopped before any job steps; local build used instead. No reason is claimed without runner logs.
 - Production remains 4.11.0 until ad account configuration and on-device verification are complete. Source targets 4.12.0 / native 94. No Play upload or live monetization has occurred.
+
+## Live account inspection (2026-10-30, Asia/Bangkok)
+- The signed-in dashboard is accessible. Cockro Network Android is listed as requiring review, with limited ads and a request to add a store. No package/store link is displayed. This is not evidence of full account or app approval.
+- Existing Reward unit is rewarded format, with reward amount 1 and reward item `Reward`; its frequency cap is 5 impressions per 2 hours. No SSV callback was configured in the inspected settings. These settings were not changed.
+- The game verifier expects `item`; coordinate the reward-name change with server deployment and callback validation before enabling production reward claims.
+- An unauthenticated GET probe to the planned `/online/ads/ssv` URL returned HTTP 404. This does not verify a working SSV route; check deployment/reverse proxy before configuring AdMob callbacks.
+- IDs are now known, but production build environment, backend configuration, SSV validation, store linking and on-device verification remain incomplete. This inspection did not publish an APK/AAB or activate monetization.
