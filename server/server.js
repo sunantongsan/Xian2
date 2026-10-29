@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {World,HEROES,PROTOCOL} from './world.js';
 import {fresh,validSave} from '../web/core.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier}={}){
- mkdirSync(directory,{recursive:true,mode:0o700});const world=new World(),connections=new Set(),limits=new Map();let diskFailure=false;
+ mkdirSync(directory,{recursive:true,mode:0o700});const world=new World(),connections=new Set(),limits=new Map();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=30)return false;q.push(now);limits.set(ip,q);return true;}
  const persist=p=>{try{const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;}catch{diskFailure=true;throw Error('save_unavailable');}};
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
@@ -18,7 +18,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   if(!adsEnabled||req.method!=='GET'){res.writeHead(404);return res.end();}
   if(verifying>=8){res.writeHead(503);return res.end();}verifying++;
   try{
-   const data=await verifySSV(req.url.split('?')[1]);
+   const data=await verifySSV(req.url.split('?')[1]);ssvStatus.verified++;
    // Reserved console validation values: verify Google's signature, never grant inventory.
    if(data.user_id==='0'.repeat(64)&&data.custom_data==='0'.repeat(48)){
     const stamp=Number(data.timestamp);
@@ -31,10 +31,10 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
    const changed=applyVerifiedReward(state,data);
    if(changed){const holder={id:data.user_id,s:state};persist(holder);if(live){live.s=state;live.dirty=false;}}
    res.writeHead(200);res.end('OK');
-  }catch(error){res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
+  }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.12.0',advancedSpecies:20,players:world.players.size,capacity:12}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.12.0',ssv:ssvStatus,advancedSpecies:20,players:world.players.size,capacity:12}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=24||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144)ws.send(JSON.stringify(data));else ws.close(1013,'slow_connection');};

@@ -3808,7 +3808,9 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     const key = cache.get(keyId);
     if (!key || !(0, import_node_crypto.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
-    if (p.ad_unit !== unit.split("/").at(-1) || p.reward_amount !== "1" || p.reward_item !== "item" || !/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward");
+    if (p.ad_unit !== unit.split("/").at(-1)) throw Error("wrong_ad_unit");
+    if (p.reward_amount !== "1" || p.reward_item !== "item") throw Error("wrong_reward");
+    if (!/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward_identity");
     return p;
   };
 }
@@ -4827,6 +4829,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
   const world = new World(), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
   let diskFailure = false;
+  const ssvStatus = { verified: 0, rejected: 0, lastError: null };
   function allow(ip) {
     const now = Date.now();
     let q = (limits.get(ip) || []).filter((t) => t > now - 6e4);
@@ -4863,6 +4866,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       verifying++;
       try {
         const data = await verifySSV(req.url.split("?")[1]);
+        ssvStatus.verified++;
         if (data.user_id === "0".repeat(64) && data.custom_data === "0".repeat(48)) {
           const stamp = Number(data.timestamp);
           if (!Number.isFinite(stamp) || Math.abs(Date.now() - stamp) > 3e5) throw Error("expired_probe");
@@ -4884,6 +4888,8 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
         res.writeHead(200);
         res.end("OK");
       } catch (error) {
+        ssvStatus.rejected++;
+        ssvStatus.lastError = ["wrong_ad_unit", "wrong_reward", "invalid_reward_identity", "invalid_signature", "duplicate_parameter", "invalid_callback", "keys_unavailable", "expired_probe", "unknown_account", "unknown_ticket", "expired_reward", "used_ticket", "duplicate_transaction", "inventory_full", "save_unavailable"].includes(error.message) ? error.message : "verification_failed";
         res.writeHead(error.message === "save_unavailable" || error.message === "keys_unavailable" ? 503 : 400);
         res.end("Unverified reward");
       } finally {
@@ -4895,7 +4901,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.12.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.12.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: 12 }));
     } else {
       res.writeHead(404);
       res.end();
