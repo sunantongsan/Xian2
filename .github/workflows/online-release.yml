@@ -1,6 +1,9 @@
 name: COCKRO Online Release
 run-name: Online ${{ inputs.operation }} by @${{ github.actor }}
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/online-release.yml']
   workflow_dispatch:
     inputs:
       operation:
@@ -22,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: dba7e2c7dcf79dde4557bb6ee5cd608968bbbd6d
+          ref: 5c8765470121be683d6dc82af5a095940469279e
           persist-credentials: false
       - name: Stage reviewed release
         run: |
@@ -38,15 +41,15 @@ jobs:
           done
       - name: Verify advanced world data and combat
         run: |
-          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js
+          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js
       - name: Deploy fixed online service
-        if: inputs.operation == 'deploy'
+        if: github.event_name == 'push' || inputs.operation == 'deploy'
         run: |
           set -euo pipefail
           digest="$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)"
           sudo -n /usr/local/sbin/cockro-deploy-online "$digest"
       - name: Test live world using two players
-        if: inputs.operation != 'stage'
+        if: github.event_name == 'push' || inputs.operation != 'stage'
         run: |
           set -euo pipefail
           curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
