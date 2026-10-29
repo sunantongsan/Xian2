@@ -3752,7 +3752,7 @@ async function connect(token) {
     c.ws.once("error", no);
   });
   c.send = (d) => c.ws.send(JSON.stringify(d));
-  c.send({ type: "hello", version: "cockro-online-1", create: !token, token, hero: "sword-cockro" });
+  c.send({ type: "hello", version: "cockro-online-2", create: !token, token, hero: "sword-cockro" });
   await wait(() => c.state || c.error);
   if (c.error) throw Error(c.error);
   return c;

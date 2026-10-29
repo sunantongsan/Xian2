@@ -94,7 +94,7 @@ for(let i=0;i<N*N;i++)if(walk(i)&&!reach[i])prop[i]=PROPS.indexOf('rock');
 reach=flood();
 
 // 10. Monster camps: Poisson-like sampling per zone, each camp 1-3 monsters; one elite or boss camp per zone.
-// Species (alien art column 0-2) varies per camp; levels rise with distance from the zone's warp gate.
+// Twenty species use three-level habitats; preserve RNG calls for terrain/camp stability; levels rise with distance from the zone's warp gate.
 const spawns=[];let nextId=1;
 const zoneStats=[];
 for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
@@ -105,7 +105,7 @@ for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
  camps.sort((a,b)=>Math.hypot(b[0]-hc,b[1]-hr)-Math.hypot(a[0]-hc,a[1]-hr));
  const regular=camps.length-1;
  camps.forEach(([c,r],k)=>{const elite=k===0;const level=elite?Z.max:Z.min+Math.min(4,Math.floor((regular-k)/regular*5));
-  spawns.push({id:nextId++,name:(elite?(boss?'boss':'elite'):'camp')+'-'+z+'-'+k,c,r,zone:z,level,species:Math.floor(rnd()*3),count:elite?1:1+Math.floor(rnd()*3),elite,boss:elite&&boss});});
+  spawns.push({id:nextId++,name:(elite?(boss?'boss':'elite'):'camp')+'-'+z+'-'+k,c,r,zone:z,level,species:(rnd(),Math.floor((level-61)/3)),count:elite?1:1+Math.floor(rnd()*3),elite,boss:elite&&boss});});
  zoneStats.push({zone:z,camps:camps.length,boss});
 }
 
@@ -128,7 +128,7 @@ const tilesMeta=new Map(terrainTiles.map(t=>[t.id,Object.fromEntries(t.propertie
 const pixel=(c,r)=>({x:(c+.5)*32,y:(r+.5)*32});
 let oid=1;
 const map={type:'map',version:'1.10',tiledversion:'1.10.2',orientation:'isometric',renderorder:'right-down',width:N,height:N,tilewidth:64,tileheight:32,infinite:false,compressionlevel:-1,
- properties:[prop1('title','string','ดาวฮีโร่'),prop1('en','string','Hero Star'),prop1('tileWorld','int',STAR_TILE),prop1('seed','int',seed),prop1('generator','string','tools/gen-hero-star.mjs')],
+ properties:[prop1('title','string','ดาวฮีโร่ • Lv.61–120'),prop1('en','string','Hero Star'),prop1('tileWorld','int',STAR_TILE),prop1('seed','int',seed),prop1('generator','string','tools/gen-hero-star.mjs')],
  tilesets:[
   {firstgid:TERR_GID,name:'hero-star-terrain',tilewidth:64,tileheight:32,tilecount:terrainTiles.length,columns:0,margin:0,spacing:0,grid:{orientation:'isometric',width:64,height:32},tiles:terrainTiles},
   {firstgid:PROP_GID,name:'hero-star-props',tilewidth:64,tileheight:96,tilecount:PROPS.length,columns:0,margin:0,spacing:0,grid:{orientation:'isometric',width:64,height:32},tiles:PROPS.map((k,id)=>({id,properties:[prop1('kind','string',k),prop1('walkable','bool',false)]}))},

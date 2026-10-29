@@ -12,25 +12,25 @@ function reachable(){const seen=new Uint8Array(star.N*star.rows),start=tileIndex
  for(let h=0;h<q.length;h++){const i=q[h],c=i%star.N,r=Math.floor(i/star.N);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const x=c+dx,y=r+dy;if(x<0||y<0||x>=star.N||y>=star.rows)continue;const j=y*star.N+x;if(!seen[j]&&star.walk[j]){seen[j]=1;q.push(j);}}}return seen;}
 const reach=reachable();
 
-test('hero star is a large Tiled isometric map with 12 five-level zones covering 1-60',()=>{
+test('hero star is a large Tiled isometric map with 12 five-level zones covering 61-120',()=>{
  assert.equal(json.orientation,'isometric');assert.equal(json.type,'map');
  assert(star.N>=160&&star.rows>=160,'map should be large');
  assert.equal(star.zones.length,12);
- star.zones.forEach((z,i)=>{assert.equal(z.min,i*5+1);assert.equal(z.max,i*5+5);});
+ star.zones.forEach((z,i)=>{assert.equal(z.min,i*5+61);assert.equal(z.max,i*5+65);});
  assert(star.walk.reduce((a,b)=>a+b,0)>15000,'enough walkable ground');
 });
 
-test('every level 1-60 has camps, every zone has exactly one elite/boss, camps sit inside their zone and level band',()=>{
+test('every level 61-120 has camps, every zone has exactly one elite/boss, camps sit inside their zone and level band',()=>{
  const levels=new Map();
  for(let z=0;z<12;z++){const camps=star.spawns.filter(s=>s.zone===z);assert(camps.length>=12,'zone '+z+' camps');assert.equal(camps.filter(s=>s.elite).length,1,'zone '+z+' elite');}
  for(const s of star.spawns){
   assert(walkable(star,s),'camp walkable '+s.name);assert(reach[tileIndex(star,s.x,s.y)],'camp reachable '+s.name);
   assert.equal(zoneAt(star,s),s.zone,'camp in own zone '+s.name);
   const Z=STAR_ZONES[s.zone];assert(s.level>=Z.min&&s.level<=Z.max,s.name);
-  assert([0,1,2].includes(s.species),'uses an alien-forest.webp art column');
+  assert.equal(s.species,Math.floor((s.level-61)/3),'new species habitat follows level');
   levels.set(s.level,(levels.get(s.level)||0)+1);
  }
- for(let l=1;l<=60;l++)assert(levels.get(l)>=2,'level '+l+' has camps');
+ for(let l=61;l<=120;l++)assert(levels.get(l)>=2,'level '+l+' has camps');
  for(let z=0;z<12;z++)assert.equal(star.spawns.some(s=>s.zone===z&&s.boss),bossZone(z),'boss placement '+z);
 });
 
@@ -62,8 +62,8 @@ test('local chase routing is bounded and still makes progress',()=>{
  assert(route.length>0);let last=from;for(const p of route){const end=traceStep(star,last,p);assert(Math.hypot(end.x-p.x,end.y-p.y)<1);last=p;}
 });
 
-test('star monsters use the exact catalog level, known ids and the six existing bosses',()=>{
- for(const l of [1,10,30,60]){const m=starMonster(l,{slot:2});assert.equal(m.level,l);assert.equal(m.hp,MONSTERS[l-1].hp);assert.equal(m.slot,2);assert(isKnownMonster(m.id));}
- const n=starMonster(25,{slot:1}),e=starMonster(25,{slot:1,elite:true});assert(e.hp>n.hp*3&&e.xp>n.xp*3&&e.elite&&!e.boss);
- for(let r=0;r<6;r++){const b=starMonster(r*10+10,{boss:true});assert(b.boss&&isKnownMonster(b.id)&&b.id===1060+r);}
+test('star monsters have new persistent IDs, distinct art and six advanced bosses',()=>{
+ for(const l of [61,70,90,120]){const m=starMonster(l);assert.equal(m.level,l);assert.equal(m.hp,MONSTERS.find(x=>x.level===l&&!x.boss).hp);assert.equal(m.art,'advanced');assert(isKnownMonster(m.id));}
+ const n=starMonster(85),e=starMonster(85,{elite:true});assert(e.hp>n.hp*3&&e.xp>n.xp*3&&e.elite&&!e.boss);
+ for(let r=0;r<6;r++){const b=starMonster(r*10+70,{boss:true});assert(b.boss&&isKnownMonster(b.id)&&b.id===2060+r);}
 });

@@ -1,4 +1,4 @@
-import {fresh,maxHP,damage,reward,combatStats,buyPotion,upgrade,allocateStat,trainSkill} from '../web/core.js';
+import {fresh,inCone,maxHP,damage,reward,combatStats,buyPotion,upgrade,allocateStat,trainSkill} from '../web/core.js';
 import {knownSkills,compileSkill,skillTargets} from '../web/skills.js';
 import {rollDrop,addToBag,equip,unequip,sell} from '../web/gear.js';
 import {MAPS,REGIONS,toWorld,traceStep,walkable} from '../web/maps.js';
@@ -7,12 +7,12 @@ import {parseTiled} from '../web/tilemap.js';
 import {STAR_ZONES,starMonster} from '../web/star-data.js';
 import mapJSON from '../web/maps/hero-star.json' with {type:'json'};
 export const HEROES=['sword-cockro','sword-dragonfly','sword-cricket','demon-scorpion'];
-export const PROTOCOL='cockro-online-1';
+export const PROTOCOL='cockro-online-2';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finite=(...v)=>v.every(x=>typeof x==='number'&&Number.isFinite(x));
 export class World {
  constructor(){this.players=new Map();this.maps={town:MAPS.town,forest:MAPS.forest,star:parseTiled(mapJSON)};this.mobs={town:[],forest:makePopulation().map(e=>({...e,id:e.spawnId})),star:[]};this.events=[];this.sequence=0;
-  for(const c of this.maps.star.spawns)for(let k=0;k<c.count;k++){const def=starMonster(Math.min(60,c.level),{slot:c.species,elite:c.elite&&!c.boss,boss:c.boss});let pos={x:c.x+Math.cos(k*2.4+c.id)*(k?48:0),y:c.y+Math.sin(k*2.4+c.id)*(k?48:0)};if(!walkable(this.maps.star,pos))pos={x:c.x,y:c.y};this.mobs.star.push({id:`${c.id}-${k}`,def,...pos,homeX:pos.x,homeY:pos.y,hp:def.hp,state:'idle',clock:1,face:1});}
+  for(const c of this.maps.star.spawns)for(let k=0;k<c.count;k++){const def=starMonster(c.level,{slot:c.species,elite:c.elite&&!c.boss,boss:c.boss});let pos={x:c.x+Math.cos(k*2.4+c.id)*(k?48:0),y:c.y+Math.sin(k*2.4+c.id)*(k?48:0)};if(!walkable(this.maps.star,pos))pos={x:c.x,y:c.y};this.mobs.star.push({id:`${c.id}-${k}`,def,...pos,homeX:pos.x,homeY:pos.y,hp:def.hp,state:'idle',clock:1,face:1});}
  }
  join(id,s){if(this.players.has(id))throw Error('already_online');if(this.players.size>=12)throw Error('room_full');const p={id,s,name:'ฮีโร่ '+id.slice(0,5),map:'town',...toWorld(MAPS.town.spawn,MAPS.town),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',walkDX:.707,walkDY:.707,walkDistance:0,animTime:0,cd:{},moveAt:Date.now()/1000,actionUntil:0,seq:0};this.players.set(id,p);return p;}
  home(p){return p.map==='town'||(p.map==='star'&&dist(p,this.maps.star.spawn)<430);}
@@ -37,8 +37,12 @@ export class World {
   if(k.form==='dash')Object.assign(p,traceStep(this.maps[p.map],p,aim));this.event(p,{kind:'skill',hero:s.hero,skillId:k.id,form:k.form,aim,color:k.color,radius:k.radius,range:k.range});
  }
  tick(dt,now=Date.now()/1000){for(const p of this.players.values()){p.animTime+=dt;p.mp=Math.min(combatStats(p.s).mp,p.mp+dt*5);if(this.home(p)&&p.hp>0)p.hp=Math.min(maxHP(p.s),p.hp+dt*maxHP(p.s)*.1);if(now-p.moveAt>.25&&now>=p.actionUntil)p.anim='idle';}
-  for(const map of ['forest','star']){const players=[...this.players.values()].filter(p=>p.map===map&&p.hp>0&&!this.home(p));for(const e of this.mobs[map]){e.clock=Math.max(0,(e.clock||0)-dt);e.flash=Math.max(0,(e.flash||0)-dt);e.moving=false;if(e.hp<=0){if(now>=e.respawnAt&&players.every(p=>dist(p,{x:e.homeX,y:e.homeY})>220))Object.assign(e,{x:e.homeX,y:e.homeY,hp:e.def.hp,state:'idle',dot:null,aggro:null});continue;}if(e.dot?.left>0){const owner=this.players.get(e.dot.owner);if(owner&&owner.map===map)this.hit(owner,e,e.dot.dps*Math.min(dt,e.dot.left),now);e.dot.left-=dt;if(e.hp<=0)continue;}let p=players.filter(p=>dist(p,e)<700).sort((a,b)=>dist(a,e)-dist(b,e))[0];if(!p)continue;const distance=dist(p,e);if(distance>230&&e.aggro!==p.id)continue;if(dist(e,{x:e.homeX,y:e.homeY})>650){e.x=e.homeX;e.y=e.homeY;e.hp=e.def.hp;e.aggro=null;continue;}const ranged=['projectile','burst','cone'].includes(e.def.attack),range=ranged?210:65;
-   if(e.state==='windup'){if(e.clock<=0){if(dist(p,e)<range+35&&dist(traceStep(this.maps[map],e,p),p)<1&&now>(p.inv||0)){p.hp=Math.max(0,p.hp-e.def.damage*100/(100+combatStats(p.s).defense));p.inv=now+.35;}e.state='idle';e.clock=e.def.cooldown;}continue;}
+  for(const map of ['forest','star']){const players=[...this.players.values()].filter(p=>p.map===map&&p.hp>0&&!this.home(p));for(const e of this.mobs[map]){e.clock=Math.max(0,(e.clock||0)-dt);e.flash=Math.max(0,(e.flash||0)-dt);e.moving=false;if(e.hp<=0){if(now>=e.respawnAt&&players.every(p=>dist(p,{x:e.homeX,y:e.homeY})>220))Object.assign(e,{x:e.homeX,y:e.homeY,hp:e.def.hp,state:'idle',dot:null,aggro:null});continue;}if(e.dot?.left>0){const owner=this.players.get(e.dot.owner);if(owner&&owner.map===map)this.hit(owner,e,e.dot.dps*Math.min(dt,e.dot.left),now);e.dot.left-=dt;if(e.hp<=0)continue;}let p=players.filter(p=>dist(p,e)<700).sort((a,b)=>dist(a,e)-dist(b,e))[0];if(!p)continue;const distance=dist(p,e);if(distance>230&&e.aggro!==p.id)continue;if(dist(e,{x:e.homeX,y:e.homeY})>650){e.x=e.homeX;e.y=e.homeY;e.hp=e.def.hp;e.aggro=null;continue;}const kind=e.def.attack,range=kind==='projectile'?280:kind==='cone'?210:kind==='burst'?150:kind==='dash'?180:65;
+   if(e.state==='windup'){if(e.clock<=0){if(kind==='dash'){Object.assign(e,traceStep(this.maps[map],e,{x:e.x+Math.cos(e.angle)*160,y:e.y+Math.sin(e.angle)*160}));}
+    for(const victim of players){const d=dist(victim,e),dx=victim.x-e.x,dy=victim.y-e.y,along=dx*Math.cos(e.angle)+dy*Math.sin(e.angle),across=Math.abs(-dx*Math.sin(e.angle)+dy*Math.cos(e.angle));
+     const hit=kind==='burst'?d<150:kind==='cone'?inCone(victim.x,victim.y,e.x,e.y,e.angle,245,Math.PI*.7):kind==='projectile'?along>0&&along<315&&across<28:d<(kind==='dash'?85:100);
+     if(hit&&dist(traceStep(this.maps[map],e,victim),victim)<1&&now>(victim.inv||0)){victim.hp=Math.max(0,victim.hp-e.def.damage*100/(100+combatStats(victim.s).defense));victim.inv=now+.35;}
+    }e.state='idle';e.clock=e.def.cooldown;}continue;}
    if(distance<range&&e.clock<=0){e.state='windup';e.clock=e.def.boss?1.1:.75;e.aimX=p.x;e.aimY=p.y;e.angle=Math.atan2(p.y-e.y,p.x-e.x);}else if(distance>range*.8){const speed=e.def.speed*(now<(e.slow||0)?.65:1),step=Math.min(distance-range*.8,speed*dt);const next=traceStep(this.maps[map],e,{x:e.x+(p.x-e.x)/distance*step,y:e.y+(p.y-e.y)/distance*step});e.walkDistance=(e.walkDistance||0)+dist(e,next);e.moving=dist(e,next)>.01;e.face=(next.x-e.x)-(next.y-e.y)>=0?1:-1;Object.assign(e,next);}
   }}
  }
