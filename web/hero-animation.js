@@ -13,7 +13,7 @@ export function classFrame(hero,actor={}){
  if(actor.anim==='hurt')return m.hurt;
  if(actor.anim==='skill')return m.skill[actor.castId]??m.fallback;
  if(actor.anim==='attack')return m.attack[u<.25?0:u<.5?1:u<.76?2:3];
- if(actor.anim==='walk')return (actor.back?4:0)+Math.floor(((actor.walkDistance||0)%112)/28);
+ if(actor.anim==='walk')return (actor.back?4:0)+walkFrame(actor);
  return m.idle;
 }
 export function heroFrame(actor={}){
@@ -37,7 +37,7 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
   const rects={8:[0,627,320,290,158,290],9:[323,627,302,290,150,290],10:[630,627,365,290,155,290],11:[323,627,302,290,150,290],12:[0,925,313,310,158,290],13:[314,930,320,305,160,285],14:[638,930,285,305,142,285],15:[937,1100,317,135,158,130]};
   const r=rects[frame]||[(frame%4)*cw,Math.floor(frame/4)*ch,cw,ch,cw*.5,ch*.94],unit=size/314;
   ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
-  ctx.drawImage(im,r[0],r[1],r[2],r[3],-r[4]*unit,-r[5]*unit,r[2]*unit,r[3]*unit);
+  drawFrame(ctx,im,r[0],r[1],r[2],r[3],-r[4]*unit,-r[5]*unit,r[2]*unit,r[3]*unit,walkMotion(actor,unit));
   ctx.restore();return {sheet:'cockro-combat-v2',frame};
  }
  if(CLASS_SHEETS.includes(hero)){
@@ -46,7 +46,9 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
   const frame=classFrame(hero,actor),c=im.width/4,unit=size/314;
   ctx.save();ctx.translate(x,y);ctx.scale((actor.face||1)<0?-1:1,1);
   if((actor.dead||actor.anim==='dead')&&CLASS_FRAMES[hero]?.deadTilt){ctx.translate(0,-18*unit);ctx.rotate(-1.25);ctx.globalAlpha*=.92;}
-  ctx.drawImage(im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit);
+  const m=walkMotion(actor,unit);
+  drawFrame(ctx,im,(frame%4)*c,Math.floor(frame/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit,m);
+  if(m&&m.mix>.55){const nf=(frame-frame%4)+m.next;ctx.globalAlpha*=(m.mix-.55)*1.1;drawFrame(ctx,im,(nf%4)*c,Math.floor(nf/4)*c,c,c,-c/2*unit,-(c-32)*unit,c*unit,c*unit,m);}
   ctx.restore();return {sheet:hero,frame};
  }
  if(!HERO_IDS.includes(hero)||!Number.isFinite(size)||size<=0)return;
@@ -60,6 +62,22 @@ export function drawHero(ctx,images,hero,actor,x,y,size){
 }
 
 
+// Walk cycle: four painted frames per stride (two steps), driven by distance so feet do not slide.
+export const STRIDE=150;
+const walkPhase=actor=>(((actor.walkDistance||0)%STRIDE)+STRIDE)%STRIDE/STRIDE;
+function walkFrame(actor){return Math.floor(walkPhase(actor)*4)%4;}
+// Body motion layered on the painted frames: a dip at each foot contact, a lift on the passing pose,
+// a slight forward lean and a soft cross-fade into the next frame so four drawings read as continuous motion.
+function walkMotion(actor,unit){
+ if(actor.anim!=='walk'||actor.dead)return null;
+ const ph=walkPhase(actor),step=Math.sin(ph*Math.PI*4);
+ return {bob:-Math.abs(Math.sin(ph*Math.PI*2))*7*unit,lean:.045,squash:1-.025*Math.max(0,-step),stretch:1+.012*Math.max(0,step),next:(Math.floor(ph*4)+1)%4,mix:(ph*4)%1};
+}
+function drawFrame(ctx,im,sx,sy,sw,sh,dx,dy,dw,dh,m){
+ if(!m){ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);return;}
+ ctx.save();ctx.translate(0,m.bob);ctx.rotate(m.lean);ctx.scale(1/m.squash*.5+.5,m.squash*m.stretch);
+ ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);ctx.restore();
+}
 // Combat sheet is experimental until a genuine alternating walk cycle passes visual review.
 export function cockroFrame(actor={}){
  const t=Math.max(0,actor.animTime||0),u=t/(actor.animDuration||.58);
@@ -67,6 +85,6 @@ export function cockroFrame(actor={}){
  if(actor.anim==='hurt')return 14;
  if(actor.anim==='skill')return 13;
  if(actor.anim==='attack')return 8+(u<.25?0:u<.5?1:u<.76?2:3);
- if(actor.anim==='walk')return (actor.back?4:0)+Math.floor(((actor.walkDistance||0)%112)/28);
+ if(actor.anim==='walk')return (actor.back?4:0)+walkFrame(actor);
  return 12;
 }

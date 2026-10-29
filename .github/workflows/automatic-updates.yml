@@ -39,7 +39,9 @@ jobs:
       - name: Native tests and build
         env:
           COCKRO_LIVE_UPDATE_TEST: '1'
-        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug
+        run: |
+          export COCKRO_EXPECT_VERSION=$(python3 -c "import json;print(json.load(open('web/release.json'))['version'])")
+          gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug
       - name: Collect validation
         if: always()
         continue-on-error: true
