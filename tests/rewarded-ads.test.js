@@ -22,7 +22,7 @@ test('signed callback grants requested item once and survives save/restart',asyn
 test('tampering, wrong unit/reward, missing signature, duplicate parameter rejected',async()=>{
  const s=fresh('sword-cockro'),t=issueRewardTicket(s,'crystal'),v=verifier(),raw=signed(callback(t));
  await assert.rejects(v(raw.replace('reward_amount=1','reward_amount=100')));
- for(const changes of [{ad_unit:'other'},{ad_unit:unit},{ad_unit:'9999999999'},{reward_amount:'2'},{reward_item:'gold'},{user_id:'../file'},{custom_data:'bad'}])await assert.rejects(v(signed(callback(t,changes))));
+ for(const changes of [{ad_unit:'other'},{ad_unit:'ca-app-pub-9999999999999999/1234567890'},{ad_unit:'9999999999'},{reward_amount:'2'},{reward_item:'gold'},{user_id:'../file'},{custom_data:'bad'}])await assert.rejects(v(signed(callback(t,changes))));
  await assert.rejects(v('custom_data='+t.nonce));
  const c=new URLSearchParams(callback(t)).toString()+'&reward_amount=1';
  await assert.rejects(v(c+'&signature='+sign('sha256',Buffer.from(c),pair.privateKey).toString('base64url')+'&key_id=42'));
@@ -52,6 +52,7 @@ test('console verification requires signed fresh probe and never writes accounts
   const base='http://127.0.0.1:'+app.server.address().port+'/online/ads/ssv?';
   const p=callback({nonce:'0'.repeat(48)},{user_id:'0'.repeat(64)}),raw=signed(p);
   assert.equal((await fetch(base+raw)).status,200);
+  assert.equal((await fetch(base+signed({...p,ad_unit:'console-probe',reward_item:'console-probe'}))).status,200);
   assert.equal((await fetch(base+raw)).status,200);
   assert.equal((await fetch(base+raw.replace('reward_amount=1','reward_amount=2'))).status,400);
   assert.equal((await fetch(base+signed({...p,timestamp:String(Date.now()-360000)}))).status,400);
