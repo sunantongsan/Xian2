@@ -12,14 +12,24 @@ Implementation uses Google Mobile Ads 25.5.0, UMP 4.0.0, AndroidX origin-scoped 
 - Debug APK always uses Google's sample ad IDs and cannot grant real rewards. It installs separately as `com.sunantongsan.networkcokcro.adstest` / COCKRO Ads Test with its own save. The production application ID is unchanged.
 - UMP refreshes consent on launch; no ad request until canRequestAds. Required privacy-options entry is available in the in-game privacy page. Only one ad loads at a time.
 
-## Remaining activation requirements (not completed)
-1. AdMob IDs were read directly from the signed-in Cockro Network Android dashboard on 2026-10-30 (Asia/Bangkok): `ADMOB_APP_ID=ca-app-pub-4585492700643566~3340769116`, `ADMOB_REWARDED_UNIT_ID=ca-app-pub-4585492700643566/6530873388`. Do not ask the owner to supply them again. Configure UMP messages in that AdMob app.
-2. Configure rewarded unit reward amount **1**, item **item**, SSV URL **https://game.guardscan.xyz/online/ads/ssv**. Validate callback in AdMob. The deployed reverse proxy must route `/online/ads/ssv` unchanged to port 8091; retain original query order/encoding.
-3. Set `ADMOB_REWARDED_UNIT_ID` in backend service environment; rebuild/deploy server. Real grants stay disabled when absent or using Google's sample publisher.
-4. Build release with env `ADMOB_APP_ID` and `ADMOB_REWARDED_UNIT_ID`. Gradle rejects missing/sample IDs for release. Use the existing production signing key and unchanged application ID `com.sunantongsan.networkcokcro`; versionCode 94 is only valid if higher than current Play version. Confirm Play package/signing identity before upload.
-5. Publish updated privacy policy, review Play Data safety/Contains ads/target audience and AdMob app verification/app-ads.txt as applicable. Do not claim a general-audience or child-directed audience without owner confirmation.
-6. Verify on physical Android: consent required/denied/accepted, privacy options, real test device, no fill, early close, completion, background/resume, disconnected callback/reconnect, duplicate/restart. Automated server tests do not substitute for device/AdMob end-to-end testing.
-7. Whole-character fashion sets and 7-day fashion rental are a separate unfinished feature; this release grants upgrade materials only.
+## Verified configuration (2026-10-30, Asia/Bangkok)
+- AdMob app ID: `ca-app-pub-4585492700643566~3340769116`.
+- Rewarded unit: `ca-app-pub-4585492700643566/6530873388`.
+- Reward settings saved in AdMob: amount **1**, item **item**, cap **5 impressions per 2 hours**.
+- SSV URL **https://game.guardscan.xyz/online/ads/ssv** passed Google's console verification and was saved.
+- Production backend 4.12.0 deployed successfully by workflow run 40957455863 from source `5488f3c50589db68f0f35fbe5d1633ed0d3d5308`. Health, two-player smoke and unsigned callback rejection passed.
+- Root `admob-config.json` supplies release/native and bundled-backend defaults. Environment overrides remain supported; explicit empty values fail closed. Debug builds continue using Google sample IDs.
+- Google sends the numeric ad-unit suffix in callbacks. The verifier accepts the exact configured full ID or numeric suffix, never a different publisher's full ID.
+- The signed console probe's reserved all-zero user/ticket pair returns success without granting inventory. Signature and freshness checks still apply; real rewards require server-issued tickets and matching unit/reward/account.
+- 99 Node tests passed, including forged/tampered callbacks, console probe isolation, duplicate rewards, persistence and restart.
+
+## Remaining activation requirements
+1. **Store approval:** Cockro Network Android still shows requires review / limited ads and is not linked to a store. AdMob's store search for `com.sunantongsan.networkcokcro` found no result. No store identity was invented.
+2. **Consent/privacy:** The existing published European consent message belongs to Nova Striker, not COCKRO. COCKRO has no privacy-policy URL configured in the message app selector. A new draft save returned Google's “You cannot make these changes / try again later” error; the editor was closed and no COCKRO message was published. Supply/verify the game's public privacy policy, then configure its UMP message.
+3. Review Play Data safety, Contains ads, target audience and applicable app-ads.txt requirements against the actual app. Do not infer a child-directed or general-audience classification.
+4. Verify on physical Android: consent required/denied/accepted, privacy options, registered test device, no fill, early close, completion, background/resume, disconnected callback/reconnect, duplicate/restart. Automated tests and Google's console probe do not prove a completed in-game rewarded ad.
+5. Confirm current Play version and signing/package identity before upload. Source uses versionCode 94 / 4.12.0 and unchanged package `com.sunantongsan.networkcokcro`. No Play upload or public release has been performed.
+6. Whole-character fashion sets and 7-day fashion rental remain separate unfinished features; this release grants upgrade materials only.
 
 ## Validation
 `npm test`, `npm run check`, `npm run build:server`, `node tools/items-mobile-smoke.mjs`, `node tools/ads-browser-smoke.mjs`.
@@ -32,11 +42,12 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Mobile browser regression and mocked native bridge tests passed. Mock completion does not change inventory.
 - Android debug Java compilation, unit tests and lint succeeded with Gradle 8.13 / JDK 17 / SDK 36; 20 native tests passed, 1 optional live-feed test skipped.
 - Hosted GitHub validation run 40907153785 stopped before any job steps; local build used instead. No reason is claimed without runner logs.
-- Production remains 4.11.0 until ad account configuration and on-device verification are complete. Source targets 4.12.0 / native 94. No Play upload or live monetization has occurred.
+- Historical result: production was still 4.11.0 at this earlier check. The newer verified configuration above supersedes that status.
 
-## Live account inspection (2026-10-30, Asia/Bangkok)
-- The signed-in dashboard is accessible. Cockro Network Android is listed as requiring review, with limited ads and a request to add a store. No package/store link is displayed. This is not evidence of full account or app approval.
-- Existing Reward unit is rewarded format, with reward amount 1 and reward item `Reward`; its frequency cap is 5 impressions per 2 hours. No SSV callback was configured in the inspected settings. These settings were not changed.
-- The game verifier expects `item`; coordinate the reward-name change with server deployment and callback validation before enabling production reward claims.
-- An unauthenticated GET probe to the planned `/online/ads/ssv` URL returned HTTP 404. This does not verify a working SSV route; check deployment/reverse proxy before configuring AdMob callbacks.
-- IDs are now known, but production build environment, backend configuration, SSV validation, store linking and on-device verification remain incomplete. This inspection did not publish an APK/AAB or activate monetization.
+## Release artifact validation (2026-10-30)
+- Local Gradle 8.13 / JDK 17 / SDK 36 run succeeded: testDebugUnitTest, bundleRelease, assembleRelease and lintRelease.
+- Native tests: 20 passed, 1 optional live-feed test skipped. Release lint: 0 errors, 5 warnings.
+- AAB signed with the original upload certificate, SHA256 fingerprint `44:3C:10:6C:A7:C2:48:98:F4:15:F2:B9:1F:C7:1C:66:65:13:F8:EA:68:60:98:07:7A:4F:94:DE:A2:3C:D9:DC`. JAR signature verification passed.
+- Package, version name and real AdMob app/unit IDs verified inside the bundle.
+- Artifact: `COCKRO-94-AdMob-signed.aab`, SHA256 `ce195a32ea22a91ed4eb21a807829bb2e073ddcf365bbee88d907c7023300b6d`. This is a Play upload bundle, not a directly installable APK.
+- No physical-device ad completion, Play upload or full ad-serving approval is claimed.
