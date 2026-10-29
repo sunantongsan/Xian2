@@ -3775,6 +3775,14 @@ async function main() {
     await wait(() => a.state.self.save.fashion?.equipped.hat === "cowboy-hat" && b.state.players.some((p) => p.id === a.id && p.appearance?.hat === "cowboy-hat"));
     console.log("PASS equipped fashion is visible to another player");
     await pause(150);
+    const money = a.state.self.save.gold, rare = a.state.self.save.stones, mpBefore = a.state.self.save.mpPotions;
+    (0, import_strict.default)(Number.isInteger(mpBefore));
+    a.send({ type: "op", op: "buyMP" });
+    await wait(() => a.state.self.save.mpPotions === mpBefore + 1);
+    import_strict.default.equal(a.state.self.save.gold, money - 60);
+    import_strict.default.equal(a.state.self.save.stones, rare);
+    console.log("PASS MP potion costs 60 G without spending rare gold");
+    await pause(150);
     const before = a.state.self.save.potions;
     a.send({ type: "op", op: "buy" });
     await wait(() => a.state.self.save.potions === before + 1);
@@ -3787,6 +3795,8 @@ async function main() {
     await pause(700);
     again = await connect(token);
     import_strict.default.equal(again.state.self.save.potions, before + 1);
+    import_strict.default.equal(again.state.self.save.mpPotions, mpBefore + 1);
+    import_strict.default.equal(again.state.self.save.stones, rare);
     import_strict.default.equal(again.state.self.save.fashion.equipped.hat, "cowboy-hat");
     console.log("PASS character progress persists after reconnect");
     again.send({ type: "enter", map: "forest", gate: 0 });

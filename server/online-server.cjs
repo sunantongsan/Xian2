@@ -3738,9 +3738,9 @@ function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}
 
 // web/fashion.js
 var FASHION_SETS = [
-  { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.png" },
-  { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.png" },
-  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight-open.png" }
+  { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.webp" },
+  { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.webp" },
+  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight-open.webp" }
 ];
 var FASHION_ITEMS = FASHION_SETS.flatMap((set) => [
   { id: set.id + "-hat", set: set.id, slot: "hat", name: { cowboy: "\u0E2B\u0E21\u0E27\u0E01\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E40\u0E17\u0E2D\u0E23\u0E4C\u0E04\u0E27\u0E2D\u0E22\u0E0B\u0E4C", wuxia: "\u0E2B\u0E21\u0E27\u0E01\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E2B\u0E22\u0E01", knight: "\u0E2B\u0E21\u0E27\u0E01\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27" }[set.id], file: set.file, color: set.color },
@@ -3824,6 +3824,8 @@ for (let region = 0; region < 6; region++) {
 }
 for (const m of MONSTERS) Object.assign(m, monsterStats(m.level, { boss: m.boss }));
 MONSTERS.push(...ADVANCED_MONSTERS);
+var isKnownMonster = (id) => Number.isInteger(id) && (id >= 0 && id < 100 || id >= 1e3 && id <= 1065 || id >= 2e3 && id <= 2065);
+var isKnownBoss = (id) => Number.isInteger(id) && (id >= 0 && id < 100 && id % 10 === 9 || id >= 1060 && id <= 1065 || id >= 2060 && id <= 2065);
 var HEROES = [{ "id": "sword-male", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E0A\u0E32\u0E22", "sect": "sword", "gender": "male", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "sword-female", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "sword", "gender": "female", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "demon-male", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E0A\u0E32\u0E22", "sect": "demon", "gender": "male", "skill": "\u0E01\u0E23\u0E07\u0E40\u0E25\u0E47\u0E1A\u0E42\u0E25\u0E2B\u0E34\u0E15" }, { "id": "demon-female", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "demon", "gender": "female", "skill": "\u0E1A\u0E31\u0E27\u0E42\u0E25\u0E2B\u0E34\u0E15" }];
 HEROES.push({ id: "sword-cockro", name: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E41\u0E21\u0E19 \u2022 \u0E17\u0E14\u0E25\u0E2D\u0E07", sect: "sword", gender: "mascot", skill: "\u0E43\u0E0A\u0E49\u0E2A\u0E01\u0E34\u0E25\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2022 \u0E20\u0E32\u0E1E\u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27" });
 
@@ -4027,6 +4029,16 @@ function freshGear(s) {
   s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
   return s;
 }
+var validItem = (it) => it && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
+function normalizeGear(s, v = {}) {
+  if (!v.equip && !v.bag) return freshGear(s);
+  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
+    const it = v.equip?.[k];
+    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))) } : null];
+  }));
+  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))) }));
+  return s;
+}
 var gearUpgradeCost = (it) => 2 * ((it.plus || 0) + 1) + it.tier;
 function upgradeGear(s, slot) {
   if (!Object.hasOwn(SLOTS, slot)) return false;
@@ -4097,9 +4109,59 @@ function upgrade(s) {
   s.upgrade++;
   return true;
 }
+function unlocked(s, z) {
+  return z === 0;
+}
+function validSave(v) {
+  if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
+  const s = fresh(v.hero);
+  for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
+    if (!Number.isFinite(v[k])) return null;
+    s[k] = Math.max(k === "level" ? 1 : 0, Math.min(max, Math.floor(v[k])));
+  }
+  s.seen = Array.isArray(v.seen) ? [...new Set(v.seen.filter(isKnownMonster))] : [];
+  s.bosses = Array.isArray(v.bosses) ? [...new Set(v.bosses.filter(isKnownBoss))] : [];
+  s.sound = v.sound !== false;
+  s.quality = ["auto", "low"].includes(v.quality) ? v.quality : "auto";
+  if (!unlocked(s, s.zone)) s.zone = 0;
+  normalizeSkills(s, v);
+  normalizeProgress(s, v);
+  normalizeGear(s, v);
+  normalizeFashion(s, v);
+  s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
+  if (v.balanceVersion !== BALANCE_VERSION) {
+    s.xp = Math.floor(Math.min(1, s.xp / (45 + s.level * s.level * 4)) * xpNeed(s.level));
+  }
+  return s;
+}
 function inCone(px, py, x, y, angle, range, arc) {
   const dx = px - x, dy = py - y;
   return Math.hypot(dx, dy) <= range && Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle))) <= arc / 2;
+}
+var integer = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+function normalizeProgress(s, v = s) {
+  const budget = (s.level - 1) * 10;
+  let left = budget;
+  const attrs = {};
+  for (const key of ["vit", "str", "int", "agi"]) {
+    attrs[key] = Math.min(left, integer(v.attributes?.[key], 2090));
+    left -= attrs[key];
+  }
+  s.attributes = attrs;
+  s.statPoints = left;
+  const ranks = {};
+  let points = budget;
+  for (const [id, value] of Object.entries(v.skillRanks || {})) {
+    if (!knownSkills(s).some((r) => r.id === id && r.level <= s.level)) continue;
+    const rank = Math.min(points, integer(value, 19));
+    ranks[id] = rank;
+    points -= rank;
+  }
+  s.skillRanks = ranks;
+  s.skillPoints = points;
+  s.reputation = integer(v.reputation ?? s.kills, 1e10);
+  s.autoAttack = v.autoAttack === true;
+  return s;
 }
 function allocateStat(s, key) {
   if (!Object.hasOwn(s.attributes, key) || s.statPoints < 1) return false;
@@ -4638,7 +4700,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.9.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.10.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4691,9 +4753,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           const id = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex");
           const path = (0, import_node_path.join)(directory, id + ".json");
           if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
-          const state = created ? fresh(d.hero) : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8"));
+          const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+          if (!state) throw Error("invalid_save");
           p = world.join(id, state);
-          if (created) persist(p);
+          persist(p);
           clearTimeout(timer);
           send(ws, { type: "welcome", id, token: created ? token : void 0, save: state });
           send(ws, world.snapshot(p));
