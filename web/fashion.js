@@ -2,7 +2,7 @@
 export const FASHION_SETS=[
  {id:'cowboy',name:'คาวบอยพเนจร',color:'#d5a86e',file:'fashion/cowboy.png'},
  {id:'wuxia',name:'จอมยุทธเมฆาหยก',color:'#7ed4b2',file:'fashion/wuxia.png'},
- {id:'knight',name:'อัศวินดวงดาว',color:'#98bfff',file:'fashion/knight.png'}
+ {id:'knight',name:'อัศวินดวงดาว',color:'#98bfff',file:'fashion/knight-open.png'}
 ];
 export const FASHION_ITEMS=FASHION_SETS.flatMap(set=>[
  {id:set.id+'-hat',set:set.id,slot:'hat',name:({cowboy:'หมวกคาวบอยเทอร์ควอยซ์',wuxia:'หมวกจอมยุทธหยก',knight:'หมวกอัศวินดวงดาว'})[set.id],file:set.file,color:set.color},
