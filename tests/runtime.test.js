@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const elements=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{style:{},dataset:{},classList:{add(){},remove(){}},addEventListener(){},setAttribute(){},querySelector(){return element('child'+id)},getContext(){return new Proxy({},{get:()=>()=>{}})},toDataURL(){return 'data:image/png;base64,'},showModal(){this.open=true},close(){this.open=false},hidden:false});return elements.get(id);}
 globalThis.innerWidth=844;globalThis.innerHeight=390;globalThis.devicePixelRatio=1;
-globalThis.document={getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
+globalThis.document={body:{appendChild(){},classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
 source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
@@ -21,3 +21,4 @@ test('hurt interrupts windup before it can damage an enemy',()=>{const v=fixture
 test('enemy leaving reach before impact is not hit remotely',()=>{const v=fixture();probe.set(v);probe.attack();v.enemies[0].x=400;for(let i=0;i<12;i++)probe.update(.05);assert.equal(v.enemies[0].hp,1000);});
 test('skill damage waits for casting release and cannot cancel an attack',()=>{const v=fixture();probe.set(v);probe.attack();const mp=v.p.mp;probe.skill(0);assert.equal(v.p.mp,mp);probe.hurt(1);for(let i=0;i<7;i++)probe.update(.05);probe.skill(0);assert(v.p.mp<mp);assert.equal(v.enemies[0].hp,1000);for(let i=0;i<7;i++)probe.update(.05);assert(v.enemies[0].hp<1000);});
 test('dead caster never releases queued melee damage',()=>{const v=fixture();probe.set(v);probe.attack();v.p.dead=true;for(let i=0;i<12;i++)probe.update(.05);assert.equal(v.enemies[0].hp,1000);});
+

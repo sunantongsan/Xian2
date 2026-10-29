@@ -2,13 +2,13 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.sunantongsan.xian2'
     compileSdk 36
-    testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { exceptionFormat = "full"; events "passed", "failed" } } }
+    testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { exceptionFormat = "full"; events "passed", "failed"; showStandardStreams = true } } }
     defaultConfig {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 90
-        versionName '4.5.0'
+        versionCode 93
+        versionName '4.6.4'
     }
     signingConfigs {
         release {
@@ -30,6 +30,7 @@ dependencies { testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
  implementation 'androidx.activity:activity:1.10.1'
  implementation 'androidx.webkit:webkit:1.14.0' }
+
 
 
 
