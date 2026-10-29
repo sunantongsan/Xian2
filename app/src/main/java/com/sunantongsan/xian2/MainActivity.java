@@ -49,7 +49,7 @@ public class MainActivity extends ComponentActivity {
   WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",files).build();
   web.setWebViewClient(new WebViewClient(){
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){WebResourceResponse response=loader.shouldInterceptRequest(request.getUrl());return response!=null?response:new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));}
-   @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !request.getUrl().toString().startsWith(ORIGIN+"/assets/");}
+   @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){String url=request.getUrl().toString();if(url.startsWith(ORIGIN+"/assets/"))return false;if(request.isForMainFrame()&&request.hasGesture()&&url.equals("https://cockro-network-privacy-policy.vercel.app/")){try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,request.getUrl()));}catch(android.content.ActivityNotFoundException e){Toast.makeText(MainActivity.this,"ไม่พบเบราว์เซอร์สำหรับเปิดนโยบาย",Toast.LENGTH_LONG).show();}}return true;}
    @Override public void onPageFinished(WebView view,String url){if(url.equals(ORIGIN+"/assets/index.html")){loading.setVisibility(View.GONE);checkBoot(0);}}
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())failedBoot();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText("เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}return true;}
@@ -65,3 +65,4 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+
