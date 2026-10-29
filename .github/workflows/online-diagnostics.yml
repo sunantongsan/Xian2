@@ -1,0 +1,27 @@
+name: COCKRO Online Diagnostics
+on: workflow_dispatch
+permissions: {}
+jobs:
+  inspect:
+    if: github.ref == 'refs/heads/main' && github.actor == 'sunantongsan'
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 3
+    steps:
+      - name: Inspect existing game server interfaces
+        run: |
+          python3 --version
+          node --version || true
+          ss -ltn
+          ls -ld /opt/cockro3d /opt/cockro-tools /srv/cockro-deploy
+          ls /opt/cockro-tools
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['/opt/cockro3d/server.py', '/opt/cockro3d/network_auth.py']:
+              p=Path(name)
+              try:
+                  source=p.read_text()
+                  print('SOURCE',name)
+                  print(source[:50000])
+              except PermissionError:
+                  print('Not readable',name)
+          PY
