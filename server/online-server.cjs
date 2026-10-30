@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes2, createHash: createHash2 } = require("crypto");
+    var { randomBytes: randomBytes4, createHash: createHash2 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2814,7 +2814,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes2(16).toString("base64");
+      const key = randomBytes4(16).toString("base64");
       const request = isSecure ? https.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -3710,6 +3710,135 @@ var require_websocket_server = __commonJS({
 // server/server.js
 var import_node_http = __toESM(require("node:http"), 1);
 
+// server/test-rewards.js
+var import_node_crypto = require("node:crypto");
+
+// web/upgrade-items.js
+var UPGRADE_ITEMS = {
+  meteor: { name: "\u0E2B\u0E34\u0E19\u0E2D\u0E38\u0E01\u0E32\u0E1A\u0E32\u0E28", price: 20, description: "\u0E43\u0E0A\u0E49\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2D\u0E32\u0E27\u0E38\u0E18 \u0E0A\u0E38\u0E14 \u0E41\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E14\u0E31\u0E1A", icon: "items/meteor.webp" },
+  crystal: { name: "\u0E1C\u0E25\u0E36\u0E01", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E08\u0E21\u0E15\u0E35 +8 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "atk", amount: 8, icon: "items/crystal.webp" },
+  glowstone: { name: "\u0E2B\u0E34\u0E19\u0E40\u0E23\u0E37\u0E2D\u0E07\u0E41\u0E2A\u0E07", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1B\u0E49\u0E2D\u0E07\u0E01\u0E31\u0E19 +4 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "def", amount: 4, icon: "items/glowstone.webp" },
+  diamond: { name: "\u0E40\u0E1E\u0E0A\u0E23", price: 60, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E2D\u0E01\u0E32\u0E2A\u0E04\u0E23\u0E34\u0E15\u0E34\u0E04\u0E2D\u0E25 +0.5% \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "crit", amount: 5e-3, icon: "items/diamond.webp" },
+  ruby: { name: "\u0E17\u0E31\u0E1A\u0E17\u0E34\u0E21", price: 40, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21 HP +60 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "hp", amount: 60, icon: "items/ruby.webp" }
+};
+var GEM_IDS = ["crystal", "glowstone", "diamond", "ruby"];
+var GEM_CAP = 10;
+var bounded = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+function normalizeUpgradeItems(s, v = s) {
+  s.upgradeItems = Object.fromEntries(Object.keys(UPGRADE_ITEMS).map((id) => [id, bounded(v.upgradeItems?.[id], 99999)]));
+  return s;
+}
+function normalizeGems(gems) {
+  return Object.fromEntries(GEM_IDS.map((id) => [id, bounded(gems?.[id], GEM_CAP)]));
+}
+function buyUpgradeItem(s, id) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, id)) return false;
+  normalizeUpgradeItems(s);
+  const item = UPGRADE_ITEMS[id];
+  if (s.stones < item.price || s.upgradeItems[id] >= 99999) return false;
+  s.stones -= item.price;
+  s.upgradeItems[id]++;
+  return true;
+}
+function socketGem(s, slot, id) {
+  if (!GEM_IDS.includes(id) || !Object.hasOwn(s.equip || {}, slot)) return false;
+  const it = s.equip[slot];
+  if (!it) return false;
+  normalizeUpgradeItems(s);
+  const gems = normalizeGems(it.gems);
+  if (s.upgradeItems[id] < 1 || gems[id] >= GEM_CAP) return false;
+  s.upgradeItems[id]--;
+  gems[id]++;
+  it.gems = gems;
+  return true;
+}
+
+// server/test-rewards.js
+function issueTestTicket(s, item, now = Date.now()) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, item)) throw Error("invalid_reward");
+  s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
+  const recent = s.adTickets.filter((t2) => t2.kind === "demo");
+  const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
+  if (pending) return pending;
+  if (recent.length >= 20) throw Error("test_limit");
+  const t = { kind: "demo", nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, created: now };
+  s.adTickets.push(t);
+  return t;
+}
+function completeTestTicket(s, nonce, now = Date.now()) {
+  const t = s.adTickets?.find((t2) => t2.kind === "demo" && t2.nonce === nonce);
+  if (!t || now - t.created > 36e5) throw Error("invalid_test_ticket");
+  if (t.transaction) return { item: t.item, duplicate: true };
+  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
+  t.transaction = "demo:" + nonce;
+  return { item: t.item, duplicate: false };
+}
+
+// server/rewarded-ads.js
+var import_node_crypto2 = require("node:crypto");
+var TTL = 36e5;
+var RETENTION = 864e5;
+function issueRewardTicket(s, item, now = Date.now()) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
+  const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
+  if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
+  if (tickets.length >= 100) throw Error("ad_limit");
+  const ticket = { nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, created: now };
+  s.adTickets = [...tickets, ticket];
+  return ticket;
+}
+function applyVerifiedReward(s, params, now = Date.now()) {
+  const ticket = s.adTickets?.find((t) => t.nonce === params.custom_data);
+  if (!ticket || ticket.kind === "demo") throw Error("unknown_ticket");
+  if (ticket.transaction) {
+    if (ticket.transaction === params.transaction_id) return false;
+    throw Error("used_ticket");
+  }
+  const stamp = Number(params.timestamp);
+  if (!Number.isFinite(stamp) || stamp < ticket.created - 6e4 || stamp > ticket.created + TTL || stamp > now + 6e4 || now - stamp > RETENTION) throw Error("expired_reward");
+  if (!/^[\w.-]{1,200}$/.test(params.transaction_id || "") || s.adTickets.some((t) => t.transaction === params.transaction_id)) throw Error("duplicate_transaction");
+  if (!Object.hasOwn(UPGRADE_ITEMS, ticket.item) || (s.upgradeItems[ticket.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[ticket.item] = (s.upgradeItems[ticket.item] || 0) + 1;
+  ticket.transaction = params.transaction_id;
+  return true;
+}
+function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/admob/reward/verifier-keys.json", { signal: AbortSignal.timeout(5e3) }), unit } = {}) {
+  let cache = /* @__PURE__ */ new Map(), fetched = 0, inflight;
+  async function refresh() {
+    if (!inflight) inflight = (async () => {
+      const r = await fetchKeys();
+      if (!r.ok) throw Error("keys_unavailable");
+      const json = await r.json();
+      const next = new Map(json.keys.map((k) => [String(k.keyId), k.pem]));
+      if (!next.size) throw Error("keys_unavailable");
+      cache = next;
+      fetched = Date.now();
+    })().finally(() => inflight = null);
+    return inflight;
+  }
+  return async (raw) => {
+    if (!unit || unit.includes("3940256099942544")) throw Error("ads_disabled");
+    if (raw.length > 4096) throw Error("invalid_callback");
+    const match = /^(.+)&signature=([A-Za-z0-9_%=-]+)&key_id=(\d+)$/.exec(raw);
+    if (!match) throw Error("invalid_signature");
+    const [, content, signature, keyId] = match, params = new URLSearchParams(content), seen = /* @__PURE__ */ new Set();
+    for (const [key2] of params) {
+      if (seen.has(key2) || ["signature", "key_id"].includes(key2)) throw Error("duplicate_parameter");
+      seen.add(key2);
+    }
+    if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
+    const key = cache.get(keyId);
+    if (!key || !(0, import_node_crypto2.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    const p = Object.fromEntries(params);
+    if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
+    if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
+    if (p.reward_amount !== "1" || p.reward_item !== "item") throw Error("wrong_reward");
+    if (!/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward_identity");
+    return p;
+  };
+}
+
 // node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
 var import_extension = __toESM(require_extension(), 1);
@@ -3721,15 +3850,51 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto = require("node:crypto");
+var import_node_crypto3 = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/checkin.js
+var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
+var DAY = 864e5;
+var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
+function normalizeCheckin(s, v = s) {
+  const c = v.checkin || {};
+  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
+  return s;
+}
+function checkinStatus(s, now = Date.now()) {
+  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
+  const claimed = Number.isInteger(last) && last >= today;
+  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
+  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
+}
+function claimCheckin(s, now = Date.now()) {
+  if (!Number.isFinite(now)) return 0;
+  normalizeCheckin(s);
+  const status = checkinStatus(s, now);
+  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
+  s.stones += status.reward;
+  s.checkin = { lastDay: status.today, streak: status.day };
+  return status.reward;
+}
+
+// web/balance.js
+var BALANCE_VERSION = 2;
+var normalXP = (level) => 20 + level * 8;
+var killsPerLevel = (level) => Math.round(8 + 1.2 * level + 6e-3 * level * level);
+var levelXP = (level) => normalXP(level) * killsPerLevel(level);
+var manaRegen = (s) => 6.5 + Math.min(6, (s.attributes?.int || 0) * 0.02);
+function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}) {
+  const hp = (110 + level * 65 + level * level * 1.4) * (1 + 3 * (1 - Math.exp(-(level - 1) / 10)));
+  return { hp: Math.round(hp * toughness * (boss ? 7 : elite ? 2.6 : 1)), damage: Math.round((12 + level * 5 + level * level * 0.09) * (boss ? 1.65 : elite ? 1.2 : 1)), xp: normalXP(level) * (boss ? 10 : elite ? 3 : 1), gold: Math.round((10 + level * 3) * (boss ? 8 : elite ? 3 : 1)) };
+}
+
 // web/fashion.js
 var FASHION_SETS = [
-  { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.png" },
-  { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.png" },
-  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight.png" }
+  { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.webp" },
+  { id: "wuxia", name: "\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E40\u0E21\u0E06\u0E32\u0E2B\u0E22\u0E01", color: "#7ed4b2", file: "fashion/wuxia.webp" },
+  { id: "knight", name: "\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", color: "#98bfff", file: "fashion/knight-open.webp" }
 ];
 var FASHION_ITEMS = FASHION_SETS.flatMap((set) => [
   { id: set.id + "-hat", set: set.id, slot: "hat", name: { cowboy: "\u0E2B\u0E21\u0E27\u0E01\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E40\u0E17\u0E2D\u0E23\u0E4C\u0E04\u0E27\u0E2D\u0E22\u0E0B\u0E4C", wuxia: "\u0E2B\u0E21\u0E27\u0E01\u0E08\u0E2D\u0E21\u0E22\u0E38\u0E17\u0E18\u0E2B\u0E22\u0E01", knight: "\u0E2B\u0E21\u0E27\u0E01\u0E2D\u0E31\u0E28\u0E27\u0E34\u0E19\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27" }[set.id], file: set.file, color: set.color },
@@ -3793,7 +3958,7 @@ var advancedSpeciesAt = (level) => Math.max(0, Math.min(19, Math.floor((level - 
 function advancedMonster(level, { elite = false, boss = false } = {}) {
   level = Math.max(61, Math.min(120, Math.round(level)));
   const sp = ADVANCED_SPECIES[advancedSpeciesAt(level)], region = 6 + Math.floor((level - 61) / 10);
-  return { id: boss ? 2060 + region - 6 : 2e3 + level - 61, name: (boss ? "\u0E08\u0E49\u0E32\u0E27" : elite ? "\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32" : "") + sp.name, zone: 1, region, slot: sp.species, species: sp.species, art: "advanced", level, boss, elite: elite || boss, hp: Math.round((160 + level * 10) * sp.toughness * (boss ? 8 : elite ? 3.5 : 1)), damage: Math.round((5 + level * 1.4) * (boss ? 1.65 : elite ? 1.25 : 1)), speed: Math.round(85 * sp.pace), attack: sp.attack, cooldown: 2.4 / sp.pace + (boss ? 0.5 : 0), xp: Math.round((40 + level * 16) * (boss ? 10 : elite ? 4 : 1)), gold: Math.round((20 + level * 5) * (boss ? 6 : elite ? 4 : 1)) };
+  return { id: boss ? 2060 + region - 6 : 2e3 + level - 61, name: (boss ? "\u0E08\u0E49\u0E32\u0E27" : elite ? "\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32" : "") + sp.name, zone: 1, region, slot: sp.species, species: sp.species, art: "advanced", level, boss, elite: elite || boss, hp: Math.round((160 + level * 10) * sp.toughness * (boss ? 8 : elite ? 3.5 : 1)), damage: Math.round((5 + level * 1.4) * (boss ? 1.65 : elite ? 1.25 : 1)), speed: Math.round(85 * sp.pace), attack: sp.attack, cooldown: 2.4 / sp.pace + (boss ? 0.5 : 0), xp: Math.round((40 + level * 16) * (boss ? 10 : elite ? 4 : 1)), gold: Math.round((20 + level * 5) * (boss ? 6 : elite ? 4 : 1)), ...monsterStats(level, { boss, elite, toughness: sp.toughness }) };
 }
 var ADVANCED_MONSTERS = [...Array.from({ length: 60 }, (_, i) => advancedMonster(61 + i)), ...Array.from({ length: 6 }, (_, i) => advancedMonster(70 + i * 10, { boss: true }))];
 
@@ -3811,7 +3976,10 @@ for (let region = 0; region < 6; region++) {
   const base = MONSTERS[region * 10 + 9];
   MONSTERS.push({ ...base, id: 1060 + region, name: ["\u0E23\u0E32\u0E0A\u0E32\u0E2B\u0E22\u0E14\u0E1E\u0E25\u0E31\u0E07", "\u0E08\u0E48\u0E32\u0E1D\u0E39\u0E07\u0E40\u0E01\u0E23\u0E32\u0E30\u0E1C\u0E25\u0E36\u0E01", "\u0E23\u0E32\u0E0A\u0E34\u0E19\u0E35\u0E1A\u0E38\u0E1B\u0E1C\u0E32"][region % 3], slot: region % 3, boss: true, hp: base.hp * 9, damage: base.damage * 1.8, attack: ["burst", "cone", "projectile"][region % 3], xp: base.xp * 8, gold: base.gold * 6 });
 }
+for (const m of MONSTERS) Object.assign(m, monsterStats(m.level, { boss: m.boss }));
 MONSTERS.push(...ADVANCED_MONSTERS);
+var isKnownMonster = (id) => Number.isInteger(id) && (id >= 0 && id < 100 || id >= 1e3 && id <= 1065 || id >= 2e3 && id <= 2065);
+var isKnownBoss = (id) => Number.isInteger(id) && (id >= 0 && id < 100 && id % 10 === 9 || id >= 1060 && id <= 1065 || id >= 2060 && id <= 2065);
 var HEROES = [{ "id": "sword-male", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E0A\u0E32\u0E22", "sect": "sword", "gender": "male", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "sword-female", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "sword", "gender": "female", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "demon-male", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E0A\u0E32\u0E22", "sect": "demon", "gender": "male", "skill": "\u0E01\u0E23\u0E07\u0E40\u0E25\u0E47\u0E1A\u0E42\u0E25\u0E2B\u0E34\u0E15" }, { "id": "demon-female", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "demon", "gender": "female", "skill": "\u0E1A\u0E31\u0E27\u0E42\u0E25\u0E2B\u0E34\u0E15" }];
 HEROES.push({ id: "sword-cockro", name: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E41\u0E21\u0E19 \u2022 \u0E17\u0E14\u0E25\u0E2D\u0E07", sect: "sword", gender: "mascot", skill: "\u0E43\u0E0A\u0E49\u0E2A\u0E01\u0E34\u0E25\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2022 \u0E20\u0E32\u0E1E\u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27" });
 
@@ -3835,7 +4003,7 @@ function compileSkill(r) {
   if (!r || !FORMS[r.form] || !ELEMENTS[r.element]) return null;
   const mods = [...new Set(r.mods || [])].filter((m) => m !== "none" && MODS[m]);
   const f = { ...FORMS[r.form], ...r.combat || {} };
-  return { ...r, mods, range: f.range * (mods.includes("wide") ? 1.25 : 1), radius: f.radius * (mods.includes("wide") ? 1.25 : 1), power: f.power * (mods.includes("force") ? 1.25 : 1) * (mods.includes("quick") ? 0.85 : 1) * (mods.includes("pierce") && r.form !== "bolt" ? 1.15 : 1), mp: f.mp + mods.length * 8, cd: f.cd * (mods.includes("quick") ? 0.8 : 1), color: ELEMENTS[r.element].color };
+  return { ...r, mods, range: f.range * (mods.includes("wide") ? 1.25 : 1), radius: f.radius * (mods.includes("wide") ? 1.25 : 1), power: f.power * (mods.includes("force") ? 1.25 : 1) * (mods.includes("quick") ? 0.85 : 1) * (mods.includes("pierce") && r.form !== "bolt" ? 1.15 : 1), mp: f.mp + mods.length * 4, cd: Math.max(1.5, f.cd * 0.8) * (mods.includes("quick") ? 0.8 : 1), color: ELEMENTS[r.element].color };
 }
 var COCKRO_SKILLS = [
   { id: "s1", name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E14\u0E32\u0E1A\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", level: 1, form: "wave", element: "wind", mods: ["wide"], combat: { range: 480, radius: 150, mp: 10, cd: 3.2, power: 1.9 } },
@@ -3880,12 +4048,15 @@ function normalizeSkills(s, v = {}) {
   s.recipes = Array.isArray(v.recipes) ? v.recipes.slice(0, 10).filter((r) => r && FORMS[r.form] && ELEMENTS[r.element] && Array.isArray(r.mods) && r.mods.length <= 2 && r.mods.every((m) => MODS[m] && m !== "none")).map((r, i) => ({ ...r, id: "custom" + i, name: String(r.name || "\u0E27\u0E34\u0E0A\u0E32\u0E44\u0E23\u0E49\u0E19\u0E32\u0E21").slice(0, 32), level: r.mods.length > 1 ? 120 : 60 })) : [];
   const available = [...classSkills(s), ...s.recipes].filter((r) => r.level <= s.level);
   const used = /* @__PURE__ */ new Set();
-  s.equipped = Array.isArray(v.equipped) ? v.equipped.slice(0, 3).map((id) => {
+  s.equipped = Array.isArray(v.equipped) ? v.equipped.slice(0, 5).map((id) => {
     if (used.has(id) || !available.some((r) => r.id === id)) return null;
     used.add(id);
     return id;
   }) : [];
   if (!s.equipped.some(Boolean)) s.equipped = [available[0].id];
+  for (let i = 0; i < 5; i++) {
+    if (s.equipped[i] === void 0) s.equipped[i] = i < 3 ? null : available.find((r) => !s.equipped.includes(r.id))?.id || null;
+  }
   s.materials = {};
   for (const k of ["ink", "core", ...Object.keys(ELEMENTS)]) s.materials[k] = Math.min(99999, Math.max(0, Math.floor(Number(v.materials?.[k]) || 0)));
 }
@@ -3947,6 +4118,10 @@ var tierForLevel = (level) => TIERS.reduce((t, x, i) => level >= x.level ? i : t
 function itemStats(it) {
   const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + (it.plus || 0) * 0.08), o = {};
   for (const key of ["atk", "def", "hp", "crit", "speed", "mp", "spell"]) if (base[key]) o[key] = +(base[key] * k).toFixed(key === "crit" || key === "spell" ? 3 : 1);
+  for (const id of GEM_IDS) {
+    const n = normalizeGems(it.gems)[id], g = UPGRADE_ITEMS[id];
+    if (n) o[g.stat] = +((o[g.stat] || 0) + n * g.amount).toFixed(g.stat === "crit" ? 3 : 1);
+  }
   return o;
 }
 function sellPrice(it) {
@@ -4015,18 +4190,43 @@ function freshGear(s) {
   s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
   return s;
 }
+var validItem = (it) => it && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
+function normalizeGear(s, v = {}) {
+  if (!v.equip && !v.bag) return freshGear(s);
+  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
+    const it = v.equip?.[k];
+    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
+  }));
+  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
+  return s;
+}
+var gearUpgradeCost = (it) => 2 * ((it.plus || 0) + 1) + it.tier;
+function upgradeGear(s, slot) {
+  if (!Object.hasOwn(SLOTS, slot)) return false;
+  const it = s.equip?.[slot];
+  if (!it || (it.plus || 0) >= 15) return false;
+  normalizeUpgradeItems(s);
+  const cost = gearUpgradeCost(it);
+  if (!Number.isFinite(s.stones) || s.stones < cost || s.upgradeItems.meteor < 1) return false;
+  s.stones -= cost;
+  s.upgradeItems.meteor--;
+  it.plus = (it.plus || 0) + 1;
+  return true;
+}
 
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
+  normalizeUpgradeItems(s);
+  normalizeCheckin(s);
   freshGear(s);
   normalizeFashion(s);
   return s;
 }
 function xpNeed(level) {
-  return Math.round(45 + level * level * 4);
+  return levelXP(level);
 }
 function maxHP(s) {
   return Math.round(120 + s.level * 20 + s.upgrade * 12 + (s.attributes?.vit || 0) * 12 + gearTotals(s).hp);
@@ -4041,8 +4241,8 @@ function reward(s, m, rng = Math.random) {
   s.reputation = (s.reputation || 0) + (m.boss ? 25 : 1);
   if (!s.seen.includes(m.id)) s.seen.push(m.id);
   if (m.boss && !s.bosses.includes(m.id)) s.bosses.push(m.id);
-  const stone = rng() < 0.1;
-  if (stone) s.stones++;
+  const stone = rng() < (m.boss ? 1 : m.elite ? 0.25 : 0.1);
+  if (stone) s.stones = Math.min(1e7, s.stones + (m.boss ? 3 : 1));
   while (s.level < 210 && s.xp >= xpNeed(s.level)) {
     s.xp -= xpNeed(s.level);
     s.level++;
@@ -4053,24 +4253,83 @@ function reward(s, m, rng = Math.random) {
   return stone;
 }
 function buyPotion(s) {
-  if (s.gold < 50) return false;
+  if (s.gold < 50 || s.potions >= 99999) return false;
   s.gold -= 50;
   s.potions++;
   return true;
 }
+function buyMPPotion(s) {
+  if (s.gold < 60 || (s.mpPotions || 0) >= 99999) return false;
+  s.gold -= 60;
+  s.mpPotions = (s.mpPotions || 0) + 1;
+  return true;
+}
 function upgradeCost(s) {
-  return 100 * (s.upgrade + 1) ** 2;
+  return 3 + s.upgrade * 2;
 }
 function upgrade(s) {
   const cost = upgradeCost(s);
-  if (s.upgrade >= 20 || s.gold < cost) return false;
-  s.gold -= cost;
+  if (s.upgrade >= 20 || s.stones < cost) return false;
+  s.stones -= cost;
   s.upgrade++;
   return true;
+}
+function unlocked(s, z) {
+  return z === 0;
+}
+function validSave(v) {
+  if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
+  const s = fresh(v.hero);
+  for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
+    if (!Number.isFinite(v[k])) return null;
+    s[k] = Math.max(k === "level" ? 1 : 0, Math.min(max, Math.floor(v[k])));
+  }
+  s.seen = Array.isArray(v.seen) ? [...new Set(v.seen.filter(isKnownMonster))] : [];
+  s.bosses = Array.isArray(v.bosses) ? [...new Set(v.bosses.filter(isKnownBoss))] : [];
+  s.sound = v.sound !== false;
+  s.quality = ["auto", "low"].includes(v.quality) ? v.quality : "auto";
+  if (!unlocked(s, s.zone)) s.zone = 0;
+  normalizeSkills(s, v);
+  normalizeProgress(s, v);
+  normalizeGear(s, v);
+  normalizeFashion(s, v);
+  normalizeUpgradeItems(s, v);
+  normalizeCheckin(s, v);
+  s.adTickets = Array.isArray(v.adTickets) ? v.adTickets.filter((t) => t && /^[a-f0-9]{48}$/.test(t.nonce) && Number.isFinite(t.created)).slice(-100) : [];
+  s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
+  if (v.balanceVersion !== BALANCE_VERSION) {
+    s.xp = Math.floor(Math.min(1, s.xp / (45 + s.level * s.level * 4)) * xpNeed(s.level));
+  }
+  return s;
 }
 function inCone(px, py, x, y, angle, range, arc) {
   const dx = px - x, dy = py - y;
   return Math.hypot(dx, dy) <= range && Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle))) <= arc / 2;
+}
+var integer = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+function normalizeProgress(s, v = s) {
+  const budget = (s.level - 1) * 10;
+  let left = budget;
+  const attrs = {};
+  for (const key of ["vit", "str", "int", "agi"]) {
+    attrs[key] = Math.min(left, integer(v.attributes?.[key], 2090));
+    left -= attrs[key];
+  }
+  s.attributes = attrs;
+  s.statPoints = left;
+  const ranks = {};
+  let points = budget;
+  for (const [id, value] of Object.entries(v.skillRanks || {})) {
+    if (!knownSkills(s).some((r) => r.id === id && r.level <= s.level)) continue;
+    const rank = Math.min(points, integer(value, 19));
+    ranks[id] = rank;
+    points -= rank;
+  }
+  s.skillRanks = ranks;
+  s.skillPoints = points;
+  s.reputation = integer(v.reputation ?? s.kills, 1e10);
+  s.autoAttack = v.autoAttack === true;
+  return s;
 }
 function allocateStat(s, key) {
   if (!Object.hasOwn(s.attributes, key) || s.statPoints < 1) return false;
@@ -4276,7 +4535,9 @@ var PROTOCOL = "cockro-online-2";
 var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 var finite = (...v) => v.every((x) => typeof x === "number" && Number.isFinite(x));
 var World = class {
-  constructor() {
+  constructor({ maxPlayers = 64 } = {}) {
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 256) throw Error("invalid_capacity");
+    this.maxPlayers = maxPlayers;
     this.players = /* @__PURE__ */ new Map();
     this.maps = { town: MAPS.town, forest: MAPS.forest, star: parseTiled(hero_star_default) };
     this.mobs = { town: [], forest: makePopulation().map((e) => ({ ...e, id: e.spawnId })), star: [] };
@@ -4292,7 +4553,7 @@ var World = class {
   join(id, s) {
     normalizeFashion(s);
     if (this.players.has(id)) throw Error("already_online");
-    if (this.players.size >= 12) throw Error("room_full");
+    if (this.players.size >= this.maxPlayers) throw Error("room_full");
     const p = { id, s, name: "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
     this.players.set(id, p);
     return p;
@@ -4336,7 +4597,7 @@ var World = class {
       if (p.s.level > before) {
         p.hp = maxHP(p.s);
         for (const r of knownSkills(p.s).filter((r2) => r2.level > before && r2.level <= p.s.level)) {
-          const slot = [0, 1, 2].find((i) => !p.s.equipped[i]);
+          const slot = [0, 1, 2, 3, 4].find((i) => !p.s.equipped[i]);
           if (slot !== void 0) p.s.equipped[slot] = r.id;
         }
       }
@@ -4392,11 +4653,26 @@ var World = class {
         case "fashionRemove":
           removeFashion(s, d.slot);
           break;
+        case "dailyCheckin":
+          claimCheckin(s, now * 1e3);
+          break;
         case "buy":
-          if (atHome) buyPotion(s);
+          buyPotion(s);
+          break;
+        case "buyMP":
+          buyMPPotion(s);
           break;
         case "upgrade":
           if (atHome) upgrade(s);
+          break;
+        case "buyUpgradeItem":
+          if (typeof d.id === "string") buyUpgradeItem(s, d.id);
+          break;
+        case "socketGem":
+          if (atHome && typeof d.id === "string" && typeof d.slot === "string") socketGem(s, d.slot, d.id);
+          break;
+        case "upgradeGear":
+          if (atHome && typeof d.slot === "string") upgradeGear(s, d.slot);
           break;
         case "stat":
           if (typeof d.key === "string") allocateStat(s, d.key);
@@ -4406,7 +4682,7 @@ var World = class {
           break;
         case "equipSkill": {
           const r2 = knownSkills(s).find((r3) => r3.id === d.id && r3.level <= s.level);
-          if (r2 && Number.isInteger(d.slot) && d.slot >= 0 && d.slot < 3) {
+          if (r2 && Number.isInteger(d.slot) && d.slot >= 0 && d.slot < 5) {
             const old = s.equipped.indexOf(r2.id);
             if (old >= 0) s.equipped[old] = null;
             s.equipped[d.slot] = r2.id;
@@ -4429,6 +4705,14 @@ var World = class {
       return;
     }
     if (p.hp <= 0) return;
+    if (d.type === "mpPotion") {
+      if (now < (p.cd.mpPotion || 0) || (s.mpPotions || 0) < 1 || p.mp >= combatStats(s).mp) return;
+      p.cd.mpPotion = now + 6;
+      s.mpPotions--;
+      p.mp = Math.min(combatStats(s).mp, p.mp + combatStats(s).mp * 0.5);
+      p.dirty = true;
+      return;
+    }
     if (d.type === "potion") {
       if (now < (p.cd.potion || 0) || s.potions < 1 || p.hp >= maxHP(s)) return;
       p.cd.potion = now + 4;
@@ -4462,7 +4746,7 @@ var World = class {
       this.event(p, { kind: "attack", hero: s.hero });
       return;
     }
-    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 2) return;
+    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return;
     const r = knownSkills(s).find((r2) => r2.id === s.equipped[d.slot] && r2.level <= s.level);
     if (!r) return;
     const k = compileSkill(r);
@@ -4491,7 +4775,7 @@ var World = class {
   tick(dt, now = Date.now() / 1e3) {
     for (const p of this.players.values()) {
       p.animTime += dt;
-      p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * 5);
+      p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * manaRegen(p.s));
       if (this.home(p) && p.hp > 0) p.hp = Math.min(maxHP(p.s), p.hp + dt * maxHP(p.s) * 0.1);
       if (now - p.moveAt > 0.25 && now >= p.actionUntil) p.anim = "idle";
     }
@@ -4562,19 +4846,20 @@ var World = class {
     const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
-    return { type: "state", self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
+    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
   }
 };
 
 // server/server.js
-function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false } = {}) {
+function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
   (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const world = new World(), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
+  const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
   let diskFailure = false;
+  const ssvStatus = { verified: 0, rejected: 0, lastError: null };
   function allow(ip) {
     const now = Date.now();
     let q = (limits.get(ip) || []).filter((t) => t > now - 6e4);
-    if (q.length >= 30) return false;
+    if (q.length >= Math.max(30, maxPlayers * 2)) return false;
     q.push(now);
     limits.set(ip, q);
     return true;
@@ -4585,17 +4870,72 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       (0, import_node_fs.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
       (0, import_node_fs.renameSync)(path + ".tmp", path);
       p.dirty = false;
+      p.lastSaved = Date.now();
     } catch {
       diskFailure = true;
       throw Error("save_unavailable");
     }
   };
-  const server = import_node_http.default.createServer((req, res) => {
+  const adsEnabled = /^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit) && !adUnit.includes("3940256099942544");
+  const verifySSV = ssvVerifier || createSSVVerifier({ unit: adUnit });
+  let verifying = 0;
+  const server = import_node_http.default.createServer(async (req, res) => {
+    if (req.url?.startsWith("/online/ads/ssv?")) {
+      res.setHeader("Cache-Control", "no-store");
+      if (!adsEnabled || req.method !== "GET") {
+        res.writeHead(404);
+        return res.end();
+      }
+      if (verifying >= 8) {
+        res.writeHead(503);
+        return res.end();
+      }
+      verifying++;
+      try {
+        const data = await verifySSV(req.url.split("?")[1]);
+        ssvStatus.verified++;
+        if (data.user_id === "0".repeat(64) && data.custom_data === "0".repeat(48)) {
+          const stamp = Number(data.timestamp);
+          if (!Number.isFinite(stamp) || Math.abs(Date.now() - stamp) > 3e5) throw Error("expired_probe");
+          res.writeHead(200);
+          return res.end("Verified configuration; no reward granted");
+        }
+        const live = world.players.get(data.user_id), path = (0, import_node_path.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+        const changed = applyVerifiedReward(state, data);
+        if (changed) {
+          const holder = { id: data.user_id, s: state };
+          persist(holder);
+          if (live) {
+            live.s = state;
+            live.dirty = false;
+            const ticket = state.adTickets.find((t) => t.nonce === data.custom_data);
+            for (const socket of connections) {
+              if (socket.player?.() === live) {
+                send(socket, world.snapshot(live));
+                send(socket, { type: "adReward", item: ticket.item });
+              }
+            }
+          }
+        }
+        res.writeHead(200);
+        res.end("OK");
+      } catch (error) {
+        ssvStatus.rejected++;
+        ssvStatus.lastError = ["wrong_ad_unit", "wrong_reward", "invalid_reward_identity", "invalid_signature", "duplicate_parameter", "invalid_callback", "keys_unavailable", "expired_probe", "unknown_account", "unknown_ticket", "expired_reward", "used_ticket", "duplicate_transaction", "inventory_full", "save_unavailable"].includes(error.message) ? error.message : "verification_failed";
+        res.writeHead(error.message === "save_unavailable" || error.message === "keys_unavailable" ? 503 : 400);
+        res.end("Unverified reward");
+      } finally {
+        verifying--;
+      }
+      return;
+    }
     if (req.url === "/online/health") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.9.0", advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.15.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4606,7 +4946,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     const origin = req.headers.origin;
     const validOrigin = origin === "https://appassets.androidplatform.net" || origin === "https://cockro-game-updates.vercel.app" || /^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin || "") || test && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
     const ip = req.socket.remoteAddress === "127.0.0.1" ? req.headers["x-real-ip"] || req.socket.remoteAddress : req.socket.remoteAddress;
-    if (req.url !== "/online/world" || !validOrigin || connections.size >= 24 || !allow(ip)) {
+    if (req.url !== "/online/world" || !validOrigin || connections.size >= maxPlayers + 16 || !allow(ip)) {
       socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
@@ -4638,26 +4978,78 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.type !== "hello" || d.version !== PROTOCOL) throw Error("version_mismatch");
           let token = d.token;
           let created = false;
+          if (d.preview === true && !token) throw Error("invalid_token");
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto.randomBytes)(32).toString("hex");
+            token = (0, import_node_crypto3.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const id = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex");
+          const id = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex");
           const path = (0, import_node_path.join)(directory, id + ".json");
           if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
-          const state = created ? fresh(d.hero) : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8"));
+          const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+          if (!state) throw Error("invalid_save");
+          if (d.preview === true) {
+            send(ws, { type: "roster", characters: [{ id: "main", hero: state.hero, level: state.level }] });
+            clearTimeout(timer);
+            ws.close(1e3);
+            return;
+          }
           p = world.join(id, state);
-          if (created) persist(p);
+          persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state });
+          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
+        if (d.type === "testAdTicket" || d.type === "testAdComplete") {
+          if (!testRewards) {
+            send(ws, { type: "adError", message: "test_rewards_disabled" });
+            return;
+          }
+          try {
+            const copy = structuredClone(p.s);
+            if (d.type === "testAdTicket") {
+              const ticket = issueTestTicket(copy, d.item);
+              persist({ id: p.id, s: copy });
+              p.s = copy;
+              send(ws, { type: "adTicket", user: p.id, nonce: ticket.nonce, item: ticket.item, test: true });
+            } else {
+              const reward2 = completeTestTicket(copy, d.nonce);
+              persist({ id: p.id, s: copy });
+              p.s = copy;
+              send(ws, world.snapshot(p));
+              send(ws, { type: "adReward", ...reward2 });
+            }
+          } catch (error) {
+            send(ws, { type: "adError", message: error.message });
+          }
+          return;
+        }
+        if (d.type === "adTicket") {
+          if (!adsEnabled) {
+            send(ws, { type: "adError", message: "ads_disabled" });
+            return;
+          }
+          try {
+            const copy = structuredClone(p.s), ticket = issueRewardTicket(copy, d.item);
+            persist({ id: p.id, s: copy });
+            p.s = copy;
+            p.dirty = false;
+            send(ws, { type: "adTicket", user: p.id, nonce: ticket.nonce, item: ticket.item });
+          } catch (error) {
+            send(ws, { type: "adError", message: error.message === "save_unavailable" ? "save_unavailable" : "ad_pending" });
+          }
+          return;
+        }
         world.command(p, d);
-        if (p.dirty) persist(p);
+        if (p.dirty && ["op", "potion", "mpPotion", "enter", "revive"].includes(d.type)) persist(p);
+        if (d.type === "op") {
+          send(ws, world.snapshot(p));
+          send(ws, { type: "opResult", op: d.op });
+        }
       } catch (error) {
         send(ws, { type: "error", message: ["already_online", "room_full", "account_missing", "save_unavailable"].includes(error.message) ? error.message : "invalid_request" });
         if (!p || error.message === "save_unavailable") ws.close(1008);
@@ -4685,7 +5077,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       const p = ws.player();
       if (!p) continue;
       try {
-        if (p.dirty) persist(p);
+        if (p.dirty && now - (p.lastSaved || 0) >= 5e3) persist(p);
         send(ws, world.snapshot(p));
       } catch {
         send(ws, { type: "error", message: "save_unavailable" });
@@ -4714,8 +5106,15 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   return { server, world, close };
 }
 
+// admob-config.json
+var admob_config_default = {
+  appId: "ca-app-pub-4585492700643566~3340769116",
+  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388",
+  internalTestRewards: true
+};
+
 // server/main.js
-var app = startServer({ directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091) });
+var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
   await app.close();

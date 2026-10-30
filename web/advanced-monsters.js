@@ -1,3 +1,4 @@
+import {monsterStats} from './balance.js';
 // Twenty new species. Each occupies three consecutive levels on Hero Star.
 export const ADVANCED_SPECIES=[
  ['ด้วงเกราะหยก','beetle','melee','#29866f','#b4fcb8',1.25,.85],
@@ -24,6 +25,7 @@ export const ADVANCED_SPECIES=[
 export const advancedSpeciesAt=level=>Math.max(0,Math.min(19,Math.floor((level-61)/3)));
 export function advancedMonster(level,{elite=false,boss=false}={}){
  level=Math.max(61,Math.min(120,Math.round(level)));const sp=ADVANCED_SPECIES[advancedSpeciesAt(level)],region=6+Math.floor((level-61)/10);
- return {id:boss?2060+region-6:2000+level-61,name:(boss?'จ้าว':elite?'หัวหน้า':'')+sp.name,zone:1,region,slot:sp.species,species:sp.species,art:'advanced',level,boss,elite:elite||boss,hp:Math.round((160+level*10)*sp.toughness*(boss?8:elite?3.5:1)),damage:Math.round((5+level*1.4)*(boss?1.65:elite?1.25:1)),speed:Math.round(85*sp.pace),attack:sp.attack,cooldown:2.4/sp.pace+(boss?.5:0),xp:Math.round((40+level*16)*(boss?10:elite?4:1)),gold:Math.round((20+level*5)*(boss?6:elite?4:1))};
+ return {id:boss?2060+region-6:2000+level-61,name:(boss?'จ้าว':elite?'หัวหน้า':'')+sp.name,zone:1,region,slot:sp.species,species:sp.species,art:'advanced',level,boss,elite:elite||boss,hp:Math.round((160+level*10)*sp.toughness*(boss?8:elite?3.5:1)),damage:Math.round((5+level*1.4)*(boss?1.65:elite?1.25:1)),speed:Math.round(85*sp.pace),attack:sp.attack,cooldown:2.4/sp.pace+(boss?.5:0),xp:Math.round((40+level*16)*(boss?10:elite?4:1)),gold:Math.round((20+level*5)*(boss?6:elite?4:1)),...monsterStats(level,{boss,elite,toughness:sp.toughness})};
 }
 export const ADVANCED_MONSTERS=[...Array.from({length:60},(_,i)=>advancedMonster(61+i)),...Array.from({length:6},(_,i)=>advancedMonster(70+i*10,{boss:true}))];
+

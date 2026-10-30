@@ -1,3 +1,4 @@
+import {UPGRADE_ITEMS,GEM_IDS,normalizeGems,normalizeUpgradeItems} from './upgrade-items.js';
 // Equipment: eight slots, six tiers by level, four rarities (MU-style colours), drops, bag, equip and sell.
 // Pure rules (no DOM) so saves, combat and the paper-doll UI share one definition.
 export const SLOTS={
@@ -20,6 +21,7 @@ export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
 export function itemStats(it){
  const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult*(1+(it.plus||0)*.08),o={};
  for(const key of ['atk','def','hp','crit','speed','mp','spell'])if(base[key])o[key]=+(base[key]*k).toFixed(key==='crit'||key==='spell'?3:1);
+ for(const id of GEM_IDS){const n=normalizeGems(it.gems)[id],g=UPGRADE_ITEMS[id];if(n)o[g.stat]=+((o[g.stat]||0)+n*g.amount).toFixed(g.stat==='crit'?3:1);}
  return o;
 }
 export function itemPower(it){const st=itemStats(it);return Math.round((st.atk||0)*4+(st.def||0)*6+(st.hp||0)*.5+(st.crit||0)*900+(st.speed||0)*3+(st.mp||0)*.4+(st.spell||0)*500);}
@@ -47,8 +49,18 @@ export function freshGear(s){s.equip=Object.fromEntries(SLOT_ORDER.map(k=>[k,nul
 const validItem=it=>it&&typeof it.id==='string'&&SLOTS[it.slot]&&Number.isInteger(it.tier)&&it.tier>=0&&it.tier<TIERS.length&&Number.isInteger(it.rarity)&&it.rarity>=0&&it.rarity<RARITY.length;
 export function normalizeGear(s,v={}){
  if(!v.equip&&!v.bag)return freshGear(s);
- s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(15,Math.floor(it.plus||0)))}:null];}));
- s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(15,Math.floor(it.plus||0)))}));
+ s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(15,Math.floor(it.plus||0))),...(it.gems?{gems:normalizeGems(it.gems)}:{})}:null];}));
+ s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(15,Math.floor(it.plus||0))),...(it.gems?{gems:normalizeGems(it.gems)}:{})}));
  return s;
 }
 export function heroPower(s,base){return Math.round(base+Object.values(s.equip||{}).reduce((a,it)=>a+(it?itemPower(it):0),0));}
+
+
+// Save keys remain compatible: gold = spending money G, stones = rare upgrade gold.
+export const gearUpgradeCost=it=>2*((it.plus||0)+1)+it.tier;
+export function upgradeGear(s,slot){
+ if(!Object.hasOwn(SLOTS,slot))return false;
+ const it=s.equip?.[slot];if(!it||(it.plus||0)>=15)return false;
+ normalizeUpgradeItems(s);const cost=gearUpgradeCost(it);if(!Number.isFinite(s.stones)||s.stones<cost||s.upgradeItems.meteor<1)return false;
+ s.stones-=cost;s.upgradeItems.meteor--;it.plus=(it.plus||0)+1;return true;
+}

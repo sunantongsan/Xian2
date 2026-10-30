@@ -18,15 +18,17 @@ public class MainActivity extends ComponentActivity {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private final AutoUpdater updater=new AutoUpdater();
+ private RewardedAds ads;
  private WebView web;private FrameLayout root;private StartupScreen loading;private TextView status;private ProgressBar progress;private boolean destroyed,gameLoaded,startedCheck,foreground;
  @Override public void onCreate(Bundle state){
   super.onCreate(state);root=new FrameLayout(this);setContentView(root);
   getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+  ads=new RewardedAds(this);ads.start();
   loading=new StartupScreen(this);status=loading.status;progress=loading.progress;
   loading.skip.setOnClickListener(v->{loading.skip.setEnabled(false);status.setText("กำลังเปิดรุ่นที่ติดตั้งอยู่…");updater.cancel();});root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){updater.cancel();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
  }
- @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();web.resumeTimers();}if(!startedCheck){startedCheck=true;checkUpdate();}}
+ @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();}if(!startedCheck){startedCheck=true;checkUpdate();}}
  private void checkUpdate(){worker.execute(()->{
   File archive=null;String message=null;File[] stale=getCacheDir().listFiles();if(stale!=null)for(File file:stale)if(file.getName().startsWith("cockro-update-")&&file.getName().endsWith(".zip"))file.delete();
   try{
@@ -42,24 +44,27 @@ public class MainActivity extends ComponentActivity {
   finally{if(archive!=null)archive.delete();final String text=message;runOnUiThread(()->{if(destroyed)return;if(text!=null)Toast.makeText(this,text,Toast.LENGTH_LONG).show();loadGame();});}
  });}
  private void loadGame(){if(destroyed||gameLoaded)return;gameLoaded=true;for(int i=root.getChildCount()-1;i>=0;i--)if(root.getChildAt(i)!=loading)root.removeViewAt(i);web=new WebView(this);root.addView(web,0,new FrameLayout.LayoutParams(-1,-1));
-  WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setMediaPlaybackRequiresUserGesture(true);
+  // Clear only resource cache, preserving localStorage and online account tokens.
+  web.clearCache(true);
+  WebSettings settings=web.getSettings();settings.setCacheMode(WebSettings.LOAD_NO_CACHE);settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setMediaPlaybackRequiresUserGesture(true);
   File active=GamePatch.active(this);WebViewAssetLoader.PathHandler files=active==null?new WebViewAssetLoader.AssetsPathHandler(this):new WebViewAssetLoader.InternalStoragePathHandler(this,active);
   WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",files).build();
   web.setWebViewClient(new WebViewClient(){
-   @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){WebResourceResponse response=loader.shouldInterceptRequest(request.getUrl());return response!=null?response:new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));}
-   @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !request.getUrl().toString().startsWith(ORIGIN+"/assets/");}
+   @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){WebResourceResponse response=loader.shouldInterceptRequest(request.getUrl());if(response!=null){java.util.Map<String,String> headers=new java.util.HashMap<>();if(response.getResponseHeaders()!=null)headers.putAll(response.getResponseHeaders());headers.put("Cache-Control","no-store");response.setResponseHeaders(headers);return response;}return new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));}
+   @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){String url=request.getUrl().toString();if(url.startsWith(ORIGIN+"/assets/"))return false;if(request.isForMainFrame()&&request.hasGesture()&&url.equals("https://cockro-network-privacy-policy.vercel.app/")){try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,request.getUrl()));}catch(android.content.ActivityNotFoundException e){Toast.makeText(MainActivity.this,"ไม่พบเบราว์เซอร์สำหรับเปิดนโยบาย",Toast.LENGTH_LONG).show();}}return true;}
    @Override public void onPageFinished(WebView view,String url){if(url.equals(ORIGIN+"/assets/index.html")){loading.setVisibility(View.GONE);checkBoot(0);}}
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())failedBoot();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText("เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}return true;}
   });
-  web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();web.pauseTimers();}
+  ads.attach(web);
+  web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();}
  }
  private void checkBoot(int attempt){if(destroyed||web==null)return;if(!foreground){handler.postDelayed(()->checkBoot(attempt),500);return;}web.evaluateJavascript("Boolean(document.getElementById('loading')?.hidden && document.getElementById('choose'))",value->{if(destroyed)return;if("true".equals(value)){worker.execute(()->GamePatch.healthy(this));}else if(attempt<40){handler.postDelayed(()->checkBoot(attempt+1),500);}else failedBoot();});}
  private void failedBoot(){if(destroyed)return;if(GamePatch.pending(this)&&GamePatch.rollback(this)){Toast.makeText(this,"แพตช์เปิดไม่สำเร็จ กลับไปใช้รุ่นเดิม",Toast.LENGTH_LONG).show();recreate();}else{loading.setVisibility(View.VISIBLE);status.setText("เปิดเกมไม่สำเร็จ กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}}
  @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request!=PICK_PATCH||result!=RESULT_OK||data==null||data.getData()==null)return;
   loading.setVisibility(View.VISIBLE);status.setText("กำลังตรวจสอบแพตช์…");android.net.Uri uri=data.getData();worker.execute(()->{try{GamePatch.install(this,uri);runOnUiThread(()->{if(!destroyed){gameLoaded=false;if(web!=null){root.removeView(web);web.destroy();web=null;}loadGame();}});}catch(Exception e){runOnUiThread(()->{if(!destroyed){loading.setVisibility(View.GONE);Toast.makeText(this,"ติดตั้งแพตช์ไม่ได้: "+e.getMessage(),Toast.LENGTH_LONG).show();}});}});
  }
- @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();web.pauseTimers();}super.onPause();}
- @Override protected void onDestroy(){destroyed=true;updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
+ @Override protected void onDestroy(){destroyed=true;if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
 
