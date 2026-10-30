@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: a14f60a0c2520508ce7288ff4f3ce3fbea22d3a4
+          ref: 227c726564e12f4d39b56eb0be9db9bc1d898a04
           persist-credentials: false
       - name: Stage reviewed release
         run: |
