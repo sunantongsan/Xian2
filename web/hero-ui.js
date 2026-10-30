@@ -1,8 +1,8 @@
 // Gameplay IDs remain stable so existing local saves retain their progression.
 export const HERO_CLASSES=Object.freeze([
  {id:'sword-cockro',name:'แมงสาบแมน',icon:12,color:'#ee654f',playable:true,description:'ฮีโร่ดาบพลังงาน • แนวหน้าปกป้องเมือง'},
- {id:'demon-scorpion',name:'แมงป่องแมน',icon:13,color:'#b78aff',playable:true,description:'นักฆ่าพิษ • มีดคู่และหางแมงป่อง สกิลพิษวงกว้าง'},
- {id:'sword-dragonfly',name:'แมลงปอเกิล',icon:14,color:'#5eddeb',playable:true,description:'นักธนูปีกแสง • โจมตีระยะไกล ศรลมและสายฟ้า'},
+ {id:'demon-scorpion',name:'แมงป่องแมน',icon:13,color:'#b78aff',playable:true,description:'นักฆ่าพิษ • มีดนาโนและสนามชีวพิษวงกว้าง'},
+ {id:'sword-dragonfly',name:'แมลงปอเกิล',icon:14,color:'#5eddeb',playable:true,description:'นักธนูปีกแสง • โจมตีระยะไกล ธนูเรลกันและศรโฟตอน'},
  {id:'sword-cricket',name:'จิ้งหรีดแมน',icon:15,color:'#a2df68',playable:true,description:'นักรบค้อนคลื่นเสียง • ทนทาน ตีวงกว้าง'}
 ]);
 export function heroIdentity(id){return HERO_CLASSES.find(h=>h.id===id)||{name:'ฮีโร่รุ่นเดิม',icon:5};}

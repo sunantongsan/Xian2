@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {drawCombatEffect} from '../web/combat-vfx.js';
+const heroes=['sword-cockro','demon-scorpion','sword-dragonfly','sword-cricket'];
+function canvas(){const calls=[];const ctx=new Proxy({},{get:(o,k)=>o[k]||((...a)=>{assert.ok(a.every(v=>typeof v!=='number'||Number.isFinite(v)));calls.push([k,...a]);}),set:(o,k,v)=>{o[k]=v;return true;}});return {ctx,calls};}
+test('all sci-fi forms render finite bounded geometry for every class and quality',()=>{for(const hero of heroes)for(const form of ['bolt','wave','circle','field','dash'])for(const quality of ['low','auto'])for(const life of [1,.6,.1,0]){const {ctx,calls}=canvas();assert.equal(drawCombatEffect(ctx,{hero,form,x:0,y:0,aim:{x:100,y:100},radius:120,range:300,life,max:1},(x,y)=>({x:x-y,y:(x+y)/2}),.8,quality),true);assert.ok(calls.length<1000);assert.equal(calls[0][0],'save');assert.equal(calls.at(-1)[0],'restore');}});
+test('arrow geometry moves downrange as lifetime elapses',()=>{const render=life=>{const c=canvas();drawCombatEffect(c.ctx,{hero:heroes[2],form:'bolt',x:0,y:0,aim:{x:300,y:0},life,max:1},(x,y)=>({x,y}),1,'low');return c.calls.filter(c=>c[0]==='lineTo')[0][1];};assert.ok(render(.4)>render(.8));});

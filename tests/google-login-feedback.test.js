@@ -6,9 +6,9 @@ import {OnlineClient} from '../web/online.js';
 
 function loginHarness(bridge,account=async()=>({flow:'flow',url:'https://example.invalid'})){
  const elements={googleLogin:{disabled:false},modalContent:{appendChild(e){elements[e.id]=e;}}};
- const context=vm.createContext({window:bridge?{CockroAuth:bridge}:{},document:{createElement(){return {setAttribute(){},scrollIntoView(){}};}},$:id=>elements[id],net:{account},sessionStorage:{setItem(){}},accountError:()=> 'login error'});
+ const context=vm.createContext({window:bridge?{CockroAuth:bridge}:{},document:{createElement(){return {setAttribute(){},scrollIntoView(){}};}},$:id=>elements[id],net:{account},localStorage:{setItem(){}},accountError:()=> 'login error'});
  const source=readFileSync(new URL('../web/game.js',import.meta.url),'utf8');
- vm.runInContext(source.slice(source.indexOf('function googleStatus('),source.indexOf("window.addEventListener('cockro-google-callback'")),context);
+ vm.runInContext(source.slice(source.indexOf('function googleStatus('),source.indexOf('let googleFinishing=false;')),context);
  return {context,elements,run:()=>vm.runInContext('googleLogin()',context)};
 }
 test('missing native bridge displays explanation inside active dialog',async()=>{

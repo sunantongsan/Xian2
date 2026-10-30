@@ -17,7 +17,7 @@ export const RARITY=[
  {name:'หายาก',color:'#4ff08a',mult:1.6},{name:'ตำนาน',color:'#ffb440',mult:2.1}
 ];
 export const BAG_SIZE=40;
-const NOUN={weapon:{'sword-cockro':'ดาบพลังงาน','demon-scorpion':'มีดคู่พิษ','sword-dragonfly':'ธนูแสง','sword-cricket':'ค้อนคลื่นเสียง'}};
+const NOUN={weapon:{'sword-cockro':'ดาบพลาสมา','demon-scorpion':'มีดคู่นาโนชีวพิษ','sword-dragonfly':'ธนูเรลกัน','sword-cricket':'ค้อนโซนิก'}};
 export function itemName(it,hero){const noun=it.slot==='weapon'?(NOUN.weapon[hero]||'อาวุธฮีโร่'):SLOTS[it.slot].name;return `${noun}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'');}
 export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
 export function itemStats(it){
