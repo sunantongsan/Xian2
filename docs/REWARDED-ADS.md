@@ -67,3 +67,14 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Native resource cache is cleared on load; localStorage, cookies, online credentials and saves are not cleared. Local responses use no-store and WebView LOAD_NO_CACHE. Shop shows game 4.12.2 and native build code.
 - Source 70a35cba02a0767a594dc0290befdde2cdd9782b; signed AAB version96/4.12.2. 99 Node tests and 21 native tests passed (one optional live-feed skipped); release lint and bundle build passed, JAR signature verified.
 - Published INTERNAL release10 on track4701506968907566093, console reports ready for internal testers at07:02 Asia/Bangkok. No devices removed. Physical-device confirmation and ad completion still pending; no new ad approval claimed.
+
+## Online welcome release 97 (2026-10-30)
+- Source a91c90df560d369b34f6e6a49aa4d767d8902a53, native 97 / game 4.13.0.
+- Welcome previews the authenticated account's current online character; select and Play connects directly online. New accounts choose their first hero on that screen. No offline/online menu choice. Current account storage supports one character, not multiple slots or cross-device login.
+- Old offline saves remain untouched and separate; no migration to online inventory is claimed. Preview neither joins the world nor writes progress.
+- Server default capacity increased to 64, configurable within 1..256; nearby character rendering limited to 32. This is not unlimited capacity or a production load-performance guarantee.
+- 102 Node tests passed, including 64 real local WebSocket clients, rejection of the 65th, roster authentication/no mutation and online-only welcome. 21 native tests passed, one optional live-feed test skipped; local release build and lint passed. Hosted Android workflows did not run successfully.
+- Backend deployed successfully via run 40978862416; actual production health reports release 4.13.0 and capacity 64.
+- Signed bundle validated for packaged 4.13.0, native 97 and original upload key; Play accepted package/version/signature. Stale Gradle output was detected before upload; the current signed artifact was produced from the verified new intermediary bundle.
+- Published INTERNAL release 11, named 97 (4.13.0) Online character selection, track 4701506968907566093. Play reports ready for internal testers at 07:23 Asia/Bangkok. Closed/public tracks unchanged.
+- Removing offline entry addresses the user's confirmed offline path. Physical-device rewarded ad completion remains unverified and AdMob approval/serving limitations above still apply.
