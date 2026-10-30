@@ -8,3 +8,4 @@ export const HERO_CLASSES=Object.freeze([
 export function heroIdentity(id){return HERO_CLASSES.find(h=>h.id===id)||{name:'ฮีโร่รุ่นเดิม',icon:5};}
 export function uiArt(index,extra=''){if(!Number.isInteger(index)||index<0||index>15)throw new RangeError('Invalid UI tile');return `<span class="ui-art ${extra}" aria-hidden="true" style="background-position:${index%4/3*100}% ${Math.floor(index/4)/3*100}%"></span>`;}
 export function menuTile(id,label,index){return `<button class="menu-tile" id="${id}">${uiArt(index)}<span>${label}</span></button>`;}
+

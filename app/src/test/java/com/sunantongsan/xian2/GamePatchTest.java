@@ -32,3 +32,4 @@ public class GamePatchTest {
  @Test public void rejectsTraversal()throws Exception{try{extract(bundle(false,88,"../escaped.js"));fail();}catch(IOException expected){}assertFalse(new File(root,"escaped.js").exists());}
  @Test public void rejectsUnlistedFiles()throws Exception{try{extract(bundle(false,88,"extra.js"));fail();}catch(IOException expected){}}
 }
+

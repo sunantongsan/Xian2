@@ -29,3 +29,4 @@ final class PatchArchive {
    return version;
  }
 }
+

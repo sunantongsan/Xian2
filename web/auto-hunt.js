@@ -31,3 +31,4 @@ export class AutoHunt {
   return {target:this.target,ready:false,point:this.path[0]};
  }
 }
+

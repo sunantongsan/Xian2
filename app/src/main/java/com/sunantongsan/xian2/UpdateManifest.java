@@ -17,3 +17,4 @@ final class UpdateManifest {
  }
  static int compare(String a,String b)throws IOException{int[] x=versionParts(a),y=versionParts(b);for(int i=0;i<3;i++)if(x[i]!=y[i])return Integer.compare(x[i],y[i]);return 0;}
 }
+

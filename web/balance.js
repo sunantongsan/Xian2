@@ -8,3 +8,4 @@ export function monsterStats(level,{boss=false,elite=false,toughness=1}={}){
  const hp=(110+level*65+level*level*1.4)*(1+3*(1-Math.exp(-(level-1)/10)));
  return {hp:Math.round(hp*toughness*(boss?7:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*(boss?1.65:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
 }
+

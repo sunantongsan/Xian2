@@ -5,3 +5,4 @@ test('partial paths cannot qualify as reachable targets',()=>{assert.equal(new A
 test('stuck pursuit is abandoned and another enemy selected',()=>{const h=new AutoHunt(),e=foe(150),other=foe(240),nav={route:(_,e)=>[e],clear:()=>true};for(let i=0;i<16;i++)h.update(a,[e,other],i*.1,.1,60,nav);assert.equal(h.update(a,[e,other],1.7,.1,60,nav).target,other);});
 test('walls prevent attacks even within weapon range',()=>{assert.equal(new AutoHunt().update(a,[foe(40)],0,.016,90,{route:()=>[],clear:()=>false}),null);});
 test('reconsiders long pursuit when a closer enemy arrives',()=>{const h=new AutoHunt(),far=foe(420),near=foe(70),nav={route:(_,e)=>[e],clear:()=>true};assert.equal(h.update(a,[far],0,.016,60,nav).target,far);assert.equal(h.update(a,[far,near],.7,.016,60,nav).target,near);});
+

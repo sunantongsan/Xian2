@@ -27,3 +27,4 @@ public class AutoUpdaterTest {
  @Test public void comparesNumericVersionsAndRejectsDowngrades()throws Exception{assertTrue(UpdateManifest.compare("4.10.0","4.9.9")>0);assertEquals(0,UpdateManifest.compare("4.5.1","4.5.1"));assertTrue(UpdateManifest.compare("4.5.0","4.5.1")<0);try{UpdateManifest.compare("4.5.1-preview","4.5.1");fail();}catch(IOException expected){}}
  @Test public void rejectsWrongGameEngineAndOversizedBundle()throws Exception{for(String field:new String[]{"game","engine","size"}){JSONObject m=new JSONObject(manifest(new byte[]{1}));m.put(field,field.equals("game")?"another":field.equals("engine")?99:UpdateManifest.MAX_BYTES+1);try{new UpdateManifest(m.toString());fail();}catch(IOException expected){}}}
 }
+

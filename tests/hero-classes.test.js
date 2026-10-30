@@ -22,3 +22,4 @@ test('Dragonfly and Cricket have six skills each and a skill-specific cricket po
  const {classFrame}=await import('../web/hero-animation.js');
  assert.equal(classFrame('sword-cricket',{anim:'skill',castId:'s6'}),13);assert.equal(classFrame('sword-cricket',{anim:'idle'}),14);assert.equal(classFrame('sword-dragonfly',{anim:'idle'}),12);
 });
+

@@ -92,3 +92,4 @@ export function cockroFrame(actor={}){
  if(actor.anim==='walk')return (actor.back?4:0)+walkFrame(actor);
  return 12;
 }
+

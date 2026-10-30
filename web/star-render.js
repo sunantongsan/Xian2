@@ -221,3 +221,4 @@ export function buildMinimap(scene,art={}){
  return cv;
 }
 export function minimapPoint(scene,x,y){const c=x/scene.T,r=y/scene.T;return {x:c-r+scene.rows,y:(c+r)/2};}
+

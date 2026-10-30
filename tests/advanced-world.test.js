@@ -32,3 +32,4 @@ test('online area attacks hit nearby players and directional attacks respect the
   if(kind==='dash'){assert(e.x>e.homeX+100);assert.equal(b.hp,before);}
  }
 });
+

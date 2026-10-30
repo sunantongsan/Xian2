@@ -41,3 +41,4 @@ final class AutoUpdater {
  }
  static String hex(byte[] bytes){StringBuilder s=new StringBuilder();for(byte b:bytes)s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}
 }
+

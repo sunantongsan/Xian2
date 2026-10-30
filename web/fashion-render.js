@@ -37,3 +37,4 @@ export function drawFashion(g,images,hero,actor,x,y,size,frame){
  const hat=fashionItem(look.hat),hi=hat&&images.get(hat.file);if(hi){const lift=hat.set==='knight'?0:({'sword-cockro':24,'sword-cricket':24,'demon-scorpion':12,'sword-dragonfly':10}[hero]||20);head[1]-=lift;const r=fashionRect(hi,hat.set,'hat',back?1:0),width=hat.set==='knight'?110:160,height=width*r[3]/r[2];const brim=hat.set==='wuxia'?.5:hat.set==='knight'?.6:.87;g.drawImage(hi,...r,head[0]-width/2,head[1]-height*brim,width,height);}
  g.restore();
 }
+

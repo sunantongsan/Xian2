@@ -19,3 +19,4 @@ test('water, rooftops and outer scenery cannot be entered or dashed through',()=
 });
 test('painted-map projection round trips accurately',()=>{for(const uv of [[.1,.1],[.5,.6],[.9,.9]]){const actual=toUV(toWorld(uv));assert(Math.abs(actual[0]-uv[0])<1e-9);assert(Math.abs(actual[1]-uv[1])<1e-9)}});
 
+

@@ -57,3 +57,4 @@ export function tileRoute(scene,from,to,limit=60000,trace){
  while(k<pts.length){let far=k;for(let m=Math.min(pts.length-1,k+24);m>k;m--){const e=trace(scene,anchor,pts[m]);if(Math.hypot(e.x-pts[m].x,e.y-pts[m].y)<1){far=m;break;}}out.push(pts[far]);anchor=pts[far];k=far+1;}
  return out;
 }
+

@@ -33,3 +33,4 @@ test('opening wave hits an entire pack across its width, but not outside its foo
  assert.equal(skillTargets(skill,{x:0,y:0},{x:240,y:0},pack).length,6);
  assert.equal(skillTargets(skill,{x:0,y:0},{x:240,y:0},[{x:240,y:skill.radius+1,hp:100}]).length,0);
 });
+

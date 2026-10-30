@@ -18,3 +18,4 @@ export const HEROES=[{"id": "sword-male", "name": "กระบี่ • ชา
 HEROES.push({id:"sword-cockro",name:"แมงสาบแมน • ทดลอง",sect:"sword",gender:"mascot",skill:"ใช้สกิลกระบี่สำหรับทดสอบ • ภาพชั่วคราว"});
 
 
+

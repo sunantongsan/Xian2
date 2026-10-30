@@ -34,3 +34,4 @@ export const bossZone=z=>STAR_ZONES[z].max%10===0;
 
 // Hero Star is the advanced map, levels 61–120; identities match the bestiary.
 export const starMonster=advancedMonster;
+

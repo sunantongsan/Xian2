@@ -22,3 +22,4 @@ test('full-body renderer never rotates, stretches or separates body parts',()=>{
 
 
 test('Cockro anticipation, strike and recovery match the combat impact time',()=>{assert.equal(cockroFrame({anim:'attack',animTime:0,animDuration:.58}),8);assert.equal(cockroFrame({anim:'attack',animTime:.145,animDuration:.58}),9);assert.equal(cockroFrame({anim:'attack',animTime:.29,animDuration:.58}),10);assert.equal(cockroFrame({anim:'attack',animTime:.5,animDuration:.58}),11);assert.equal(cockroFrame({anim:'hurt'}),14);assert.equal(cockroFrame({dead:true}),15);});
+

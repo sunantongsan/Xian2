@@ -44,3 +44,4 @@ export function drawCombatEffect(ctx,e,project,scale,quality='auto'){
  }
  ctx.restore();return true;
 }
+

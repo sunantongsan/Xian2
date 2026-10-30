@@ -68,3 +68,4 @@ test('star monsters have new persistent IDs, distinct art and six advanced bosse
  for(let r=0;r<6;r++){const b=starMonster(r*10+70,{boss:true});assert(b.boss&&isKnownMonster(b.id)&&b.id===2060+r);}
 });
 
+

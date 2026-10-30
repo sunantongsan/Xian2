@@ -32,3 +32,4 @@ final class StartupScreen extends FrameLayout {
  private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
  private TextView text(Context context,String value,int size,int color){TextView t=new TextView(context);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setGravity(Gravity.CENTER);t.setShadowLayer(4,0,2,0xff001020);return t;}
 }
+

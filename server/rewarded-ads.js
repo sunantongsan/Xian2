@@ -1,13 +1,14 @@
+import {rewardTarget,deliverReward} from './reward-target.js';
 import {randomBytes,verify} from 'node:crypto';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
 const TTL=3600000, RETENTION=86400000;
 // Only Google-signed callbacks can consume these server-created tickets.
 export function issueRewardTicket(s,item,now=Date.now()){
- if(!Object.hasOwn(UPGRADE_ITEMS,item)||(s.upgradeItems?.[item]||0)>=99999)throw Error('invalid_reward');
+ const restore=rewardTarget(s,item);
  const tickets=(s.adTickets||[]).filter(t=>t.created>now-RETENTION);
  if(tickets.some(t=>!t.transaction&&t.created>now-90000))throw Error('ad_pending');
  if(tickets.length>=100)throw Error('ad_limit');
- const ticket={nonce:randomBytes(24).toString('hex'),item,created:now};
+ const ticket={nonce:randomBytes(24).toString('hex'),item,restore,created:now};
  s.adTickets=[...tickets,ticket];return ticket;
 }
 export function applyVerifiedReward(s,params,now=Date.now()){
@@ -17,8 +18,7 @@ export function applyVerifiedReward(s,params,now=Date.now()){
  const stamp=Number(params.timestamp);
  if(!Number.isFinite(stamp)||stamp<ticket.created-60000||stamp>ticket.created+TTL||stamp>now+60000||now-stamp>RETENTION)throw Error('expired_reward');
  if(!/^[\w.-]{1,200}$/.test(params.transaction_id||'')||s.adTickets.some(t=>t.transaction===params.transaction_id))throw Error('duplicate_transaction');
- if(!Object.hasOwn(UPGRADE_ITEMS,ticket.item)||(s.upgradeItems[ticket.item]||0)>=99999)throw Error('inventory_full');
- s.upgradeItems[ticket.item]=(s.upgradeItems[ticket.item]||0)+1;
+ deliverReward(s,ticket);
  ticket.transaction=params.transaction_id;return true;
 }
 export function createSSVVerifier({fetchKeys=()=>fetch('https://www.gstatic.com/admob/reward/verifier-keys.json',{signal:AbortSignal.timeout(5000)}),unit}={}){

@@ -3707,22 +3707,98 @@ var require_websocket_server = __commonJS({
   }
 });
 
+// web/enhancement.js
+var ENHANCE_SLOTS = ["weapon", "ring", "amulet"];
+var MAX_PLUS = 9;
+var SPECIALS = [
+  { id: "hp25", name: "\u0E1F\u0E37\u0E49\u0E19 HP 25% \u0E17\u0E38\u0E01 2 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35", stat: "hpRegen", value: 0.25, weight: 5 },
+  { id: "mp10", name: "\u0E1F\u0E37\u0E49\u0E19 MP 10% \u0E17\u0E38\u0E01 2 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35", stat: "mpRegen", value: 0.1, weight: 20 },
+  { id: "crit5", name: "\u0E42\u0E2D\u0E01\u0E32\u0E2A\u0E04\u0E23\u0E34\u0E15\u0E34\u0E04\u0E2D\u0E25 +5%", stat: "crit", value: 0.05, weight: 20 },
+  { id: "atk30", name: "\u0E42\u0E08\u0E21\u0E15\u0E35 +30", stat: "atk", value: 30, weight: 25 },
+  { id: "def20", name: "\u0E1B\u0E49\u0E2D\u0E07\u0E01\u0E31\u0E19 +20", stat: "def", value: 20, weight: 20 },
+  { id: "hp300", name: "HP \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 +300", stat: "hp", value: 300, weight: 10 }
+];
+var specialInfo = (id) => SPECIALS.find((x) => x.id === id);
+var auraLevel = (s) => Math.max(0, ...ENHANCE_SLOTS.map((k) => Math.min(9, s.equip?.[k]?.plus || 0)));
+function rerollSpecial(s, slot, rng = Math.random) {
+  const it = s.equip?.[slot];
+  if (!ENHANCE_SLOTS.includes(slot) || !it || !(s.upgradeItems?.meteor >= 1)) return false;
+  let n = Math.min(0.999999, Math.max(0, rng())) * 100, choice = SPECIALS.at(-1);
+  for (const row of SPECIALS) {
+    n -= row.weight;
+    if (n < 0) {
+      choice = row;
+      break;
+    }
+  }
+  s.upgradeItems.meteor--;
+  it.previousSpecial = it.special || null;
+  it.special = choice.id;
+  it.rollRevision = (it.rollRevision || 0) + 1;
+  it.restoreAvailable = true;
+  return true;
+}
+function restoreTarget(s, slot) {
+  const it = s.equip?.[slot];
+  return ENHANCE_SLOTS.includes(slot) && it?.restoreAvailable ? { itemId: it.id, revision: it.rollRevision } : null;
+}
+function restoreSpecial(s, target) {
+  const it = [...Object.values(s.equip || {}), ...s.bag || []].find((x) => x?.id === target?.itemId);
+  if (!it?.restoreAvailable || it.rollRevision !== target.revision) return false;
+  it.special = it.previousSpecial || null;
+  it.previousSpecial = null;
+  it.restoreAvailable = false;
+  return true;
+}
+function specialFields(it) {
+  return { special: specialInfo(it.special)?.id || null, previousSpecial: specialInfo(it.previousSpecial)?.id || null, rollRevision: Number.isSafeInteger(it.rollRevision) && it.rollRevision >= 0 ? it.rollRevision : 0, restoreAvailable: it.restoreAvailable === true };
+}
+function applyRegen(p, dt, maxHP2, maxMP) {
+  if (p.hp <= 0) {
+    p.regenClock = 0;
+    return;
+  }
+  p.regenClock = (p.regenClock || 0) + Math.max(0, dt);
+  if (p.regenClock < 2) return;
+  const ticks = Math.floor(p.regenClock / 2);
+  p.regenClock %= 2;
+  let hp = 0, mp = 0;
+  for (const slot of ENHANCE_SLOTS) {
+    const opt = specialInfo(p.s.equip?.[slot]?.special);
+    if (opt?.stat === "hpRegen") hp += opt.value;
+    if (opt?.stat === "mpRegen") mp += opt.value;
+  }
+  p.hp = Math.min(maxHP2, p.hp + maxHP2 * hp * ticks);
+  p.mp = Math.min(maxMP, (p.mp || 0) + maxMP * mp * ticks);
+}
+var TEST_GRANT_ID = "pioneer-50000-v1";
+function grantTestGold(s, enabled) {
+  if (!enabled || s.testGoldGrant === TEST_GRANT_ID) return false;
+  s.stones += 5e4;
+  s.testGoldGrant = TEST_GRANT_ID;
+  return true;
+}
+function exchangeGold(s, amount) {
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1e3 || s.stones < amount || s.gold + amount * 1e3 > 1e10) return false;
+  s.stones -= amount;
+  s.gold += amount * 1e3;
+  return true;
+}
+
 // server/server.js
 var import_node_http = __toESM(require("node:http"), 1);
 
-// server/test-rewards.js
-var import_node_crypto = require("node:crypto");
-
 // web/upgrade-items.js
 var UPGRADE_ITEMS = {
-  meteor: { name: "\u0E2B\u0E34\u0E19\u0E2D\u0E38\u0E01\u0E32\u0E1A\u0E32\u0E28", price: 20, description: "\u0E43\u0E0A\u0E49\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2D\u0E32\u0E27\u0E38\u0E18 \u0E0A\u0E38\u0E14 \u0E41\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E14\u0E31\u0E1A", icon: "items/meteor.webp" },
+  alloy: { name: "\u0E42\u0E25\u0E2B\u0E30\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1E\u0E25\u0E31\u0E07", price: 15, description: "\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E15\u0E35\u0E1A\u0E27\u0E01 +1 \u0E16\u0E36\u0E07 +9 \u2022 \u0E43\u0E0A\u0E49\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19", icon: "items/glowstone.webp" },
+  meteor: { name: "\u0E2B\u0E34\u0E19\u0E2D\u0E38\u0E01\u0E32\u0E1A\u0E32\u0E28", price: 20, description: "\u0E2A\u0E38\u0E48\u0E21\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E1A\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E40\u0E28\u0E29 \u2022 \u0E1F\u0E37\u0E49\u0E19 HP 25% \u0E21\u0E35\u0E42\u0E2D\u0E01\u0E32\u0E2A 5%", icon: "items/meteor.webp" },
   crystal: { name: "\u0E1C\u0E25\u0E36\u0E01", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E08\u0E21\u0E15\u0E35 +8 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "atk", amount: 8, icon: "items/crystal.webp" },
   glowstone: { name: "\u0E2B\u0E34\u0E19\u0E40\u0E23\u0E37\u0E2D\u0E07\u0E41\u0E2A\u0E07", price: 35, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1B\u0E49\u0E2D\u0E07\u0E01\u0E31\u0E19 +4 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "def", amount: 4, icon: "items/glowstone.webp" },
   diamond: { name: "\u0E40\u0E1E\u0E0A\u0E23", price: 60, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E42\u0E2D\u0E01\u0E32\u0E2A\u0E04\u0E23\u0E34\u0E15\u0E34\u0E04\u0E2D\u0E25 +0.5% \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "crit", amount: 5e-3, icon: "items/diamond.webp" },
   ruby: { name: "\u0E17\u0E31\u0E1A\u0E17\u0E34\u0E21", price: 40, description: "\u0E40\u0E2A\u0E23\u0E34\u0E21 HP +60 \u0E15\u0E48\u0E2D\u0E02\u0E31\u0E49\u0E19", stat: "hp", amount: 60, icon: "items/ruby.webp" }
 };
 var GEM_IDS = ["crystal", "glowstone", "diamond", "ruby"];
-var GEM_CAP = 10;
+var GEM_CAP = 1;
 var bounded = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
 function normalizeUpgradeItems(s, v = s) {
   s.upgradeItems = Object.fromEntries(Object.keys(UPGRADE_ITEMS).map((id) => [id, bounded(v.upgradeItems?.[id], 99999)]));
@@ -3741,27 +3817,49 @@ function buyUpgradeItem(s, id) {
   return true;
 }
 function socketGem(s, slot, id) {
-  if (!GEM_IDS.includes(id) || !Object.hasOwn(s.equip || {}, slot)) return false;
-  const it = s.equip[slot];
+  if (!GEM_IDS.includes(id) || !ENHANCE_SLOTS.includes(slot)) return false;
+  const it = s.equip?.[slot];
   if (!it) return false;
   normalizeUpgradeItems(s);
-  const gems = normalizeGems(it.gems);
-  if (s.upgradeItems[id] < 1 || gems[id] >= GEM_CAP) return false;
+  if (s.upgradeItems[id] < 1) return false;
+  const old = GEM_IDS.find((k) => (it.gems?.[k] || 0) > 0);
+  if (old === id) return false;
+  if (old && s.upgradeItems[old] >= 99999) return false;
   s.upgradeItems[id]--;
-  gems[id]++;
-  it.gems = gems;
+  if (old) s.upgradeItems[old]++;
+  it.gems = normalizeGems({ [id]: 1 });
   return true;
 }
 
+// server/reward-target.js
+function rewardTarget(s, item) {
+  if (typeof item === "string" && item.startsWith("restore:")) {
+    const target = restoreTarget(s, item.slice(8));
+    if (!target) throw Error("invalid_reward");
+    return target;
+  }
+  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
+  return null;
+}
+function deliverReward(s, t) {
+  if (t.item.startsWith("restore:")) {
+    if (!restoreSpecial(s, t.restore)) throw Error("restore_expired");
+    return;
+  }
+  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
+}
+
 // server/test-rewards.js
+var import_node_crypto = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
-  if (!Object.hasOwn(UPGRADE_ITEMS, item)) throw Error("invalid_reward");
+  const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
   const recent = s.adTickets.filter((t2) => t2.kind === "demo");
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
-  if (pending) return pending;
+  if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -3769,8 +3867,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
   const t = s.adTickets?.find((t2) => t2.kind === "demo" && t2.nonce === nonce);
   if (!t || now - t.created > 36e5) throw Error("invalid_test_ticket");
   if (t.transaction) return { item: t.item, duplicate: true };
-  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
-  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
+  deliverReward(s, t);
   t.transaction = "demo:" + nonce;
   return { item: t.item, duplicate: false };
 }
@@ -3780,11 +3877,11 @@ var import_node_crypto2 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
-  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
+  const restore = rewardTarget(s, item);
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, created: now };
+  const ticket = { nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -3798,8 +3895,7 @@ function applyVerifiedReward(s, params, now = Date.now()) {
   const stamp = Number(params.timestamp);
   if (!Number.isFinite(stamp) || stamp < ticket.created - 6e4 || stamp > ticket.created + TTL || stamp > now + 6e4 || now - stamp > RETENTION) throw Error("expired_reward");
   if (!/^[\w.-]{1,200}$/.test(params.transaction_id || "") || s.adTickets.some((t) => t.transaction === params.transaction_id)) throw Error("duplicate_transaction");
-  if (!Object.hasOwn(UPGRADE_ITEMS, ticket.item) || (s.upgradeItems[ticket.item] || 0) >= 99999) throw Error("inventory_full");
-  s.upgradeItems[ticket.item] = (s.upgradeItems[ticket.item] || 0) + 1;
+  deliverReward(s, ticket);
   ticket.transaction = params.transaction_id;
   return true;
 }
@@ -3853,6 +3949,33 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 var import_node_crypto3 = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
+
+// web/daily-activities.js
+var dayKey = (now = Date.now()) => new Date(now + 7 * 36e5).toISOString().slice(0, 10);
+var DAILY_TASKS = [{ id: "hunt", name: "\u0E25\u0E48\u0E32\u0E21\u0E2D\u0E19\u0E2A\u0E40\u0E15\u0E2D\u0E23\u0E4C 100 \u0E15\u0E31\u0E27", target: 100, g: 5e3, alloy: 3 }, { id: "boss", name: "\u0E1B\u0E23\u0E32\u0E1A\u0E1A\u0E2D\u0E2A 3 \u0E15\u0E31\u0E27", target: 3, g: 1e4, alloy: 5 }, { id: "upgrade", name: "\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 1 \u0E04\u0E23\u0E31\u0E49\u0E07", target: 1, g: 2e3, alloy: 2 }];
+function dailyState(s, now = Date.now()) {
+  const day = dayKey(now);
+  if (s.dailyActivities?.day !== day) s.dailyActivities = { day, hunt: 0, boss: 0, upgrade: 0, claimed: [] };
+  return s.dailyActivities;
+}
+function countActivity(s, id, now = Date.now()) {
+  const d = dailyState(s, now);
+  if (DAILY_TASKS.some((t) => t.id === id)) d[id] = Math.min(1e5, (d[id] || 0) + 1);
+}
+function claimActivity(s, id, now = Date.now()) {
+  const t = DAILY_TASKS.find((t2) => t2.id === id), d = dailyState(s, now);
+  if (!t || d.claimed.includes(id) || (d[id] || 0) < t.target) return false;
+  s.gold += t.g;
+  s.upgradeItems.alloy = Math.min(99999, (s.upgradeItems.alloy || 0) + t.alloy);
+  d.claimed.push(id);
+  return true;
+}
+function normalizeActivities(s, v) {
+  const d = v.dailyActivities;
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.day)) return;
+  s.dailyActivities = { day: d.day, claimed: Array.isArray(d.claimed) ? d.claimed.filter((id) => DAILY_TASKS.some((t) => t.id === id)) : [] };
+  for (const t of DAILY_TASKS) s.dailyActivities[t.id] = Number.isFinite(d[t.id]) ? Math.max(0, Math.min(1e5, Math.floor(d[t.id]))) : 0;
+}
 
 // web/checkin.js
 var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
@@ -4116,12 +4239,14 @@ var RARITY = [
 var BAG_SIZE = 40;
 var tierForLevel = (level) => TIERS.reduce((t, x, i) => level >= x.level ? i : t, 0);
 function itemStats(it) {
-  const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + (it.plus || 0) * 0.08), o = {};
+  const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + Math.max(it.plus || 0, it.legacyPlus || 0) * 0.08), o = {};
   for (const key of ["atk", "def", "hp", "crit", "speed", "mp", "spell"]) if (base[key]) o[key] = +(base[key] * k).toFixed(key === "crit" || key === "spell" ? 3 : 1);
   for (const id of GEM_IDS) {
     const n = normalizeGems(it.gems)[id], g = UPGRADE_ITEMS[id];
     if (n) o[g.stat] = +((o[g.stat] || 0) + n * g.amount).toFixed(g.stat === "crit" ? 3 : 1);
   }
+  const opt = specialInfo(it.special);
+  if (opt && !["hpRegen", "mpRegen"].includes(opt.stat)) o[opt.stat] = (o[opt.stat] || 0) + opt.value;
   return o;
 }
 function sellPrice(it) {
@@ -4134,10 +4259,10 @@ function gearTotals(s) {
 }
 var uid = 0;
 function makeItem(slot, tier, rarity, rng = Math.random) {
-  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0 };
+  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0, ...specialFields({}) };
 }
 function rollDrop(m, rng = Math.random) {
-  const chance = m.boss ? 1 : m.elite ? 0.6 : 0.07;
+  const chance = m.boss ? 1 : m.elite ? 0.15 : 0.01;
   if (rng() >= chance) return null;
   const slot = SLOT_ORDER[Math.floor(rng() * SLOT_ORDER.length)], tier = tierForLevel(m.level);
   const r = rng();
@@ -4195,29 +4320,42 @@ function normalizeGear(s, v = {}) {
   if (!v.equip && !v.bag) return freshGear(s);
   s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
     const it = v.equip?.[k];
-    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
+    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
   }));
-  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(15, Math.floor(it.plus || 0))), ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
+  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
   return s;
 }
-var gearUpgradeCost = (it) => 2 * ((it.plus || 0) + 1) + it.tier;
+var gearUpgradeCost = (it) => 20 * ((it.plus || 0) + 1) + it.tier * 5;
+var gearUpgradeG = (it) => 500 * ((it.plus || 0) + 1) ** 2;
 function upgradeGear(s, slot) {
-  if (!Object.hasOwn(SLOTS, slot)) return false;
   const it = s.equip?.[slot];
-  if (!it || (it.plus || 0) >= 15) return false;
+  if (!ENHANCE_SLOTS.includes(slot) || !it || (it.plus || 0) >= MAX_PLUS) return false;
   normalizeUpgradeItems(s);
-  const cost = gearUpgradeCost(it);
-  if (!Number.isFinite(s.stones) || s.stones < cost || s.upgradeItems.meteor < 1) return false;
+  const cost = gearUpgradeCost(it), g = gearUpgradeG(it), n = (it.plus || 0) + 1;
+  if (!Number.isFinite(s.stones) || s.stones < cost || s.gold < g || s.upgradeItems.alloy < n) return false;
   s.stones -= cost;
-  s.upgradeItems.meteor--;
-  it.plus = (it.plus || 0) + 1;
+  s.gold -= g;
+  s.upgradeItems.alloy -= n;
+  it.plus = n;
+  countActivity(s, "upgrade");
+  return true;
+}
+function gearShopPrice(slot, tier) {
+  return 150 + 100 * tier + (slot === "weapon" ? 100 : 0);
+}
+function buyShopGear(s, slot) {
+  if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE) return false;
+  const tier = tierForLevel(s.level), cost = gearShopPrice(slot, tier);
+  if (s.stones < cost) return false;
+  s.stones -= cost;
+  s.bag.push(makeItem(slot, tier, 2));
   return true;
 }
 
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4235,14 +4373,18 @@ function damage(s) {
   return Math.round(16 + s.level * 4 + s.upgrade * 8 + (s.attributes?.str || 0) * 2 + gearTotals(s).atk);
 }
 function reward(s, m, rng = Math.random) {
+  countActivity(s, "hunt");
+  if (m.boss) countActivity(s, "boss");
   s.gold += m.gold;
   s.xp += m.xp;
   s.kills++;
   s.reputation = (s.reputation || 0) + (m.boss ? 25 : 1);
   if (!s.seen.includes(m.id)) s.seen.push(m.id);
   if (m.boss && !s.bosses.includes(m.id)) s.bosses.push(m.id);
-  const stone = rng() < (m.boss ? 1 : m.elite ? 0.25 : 0.1);
-  if (stone) s.stones = Math.min(1e7, s.stones + (m.boss ? 3 : 1));
+  const stone = false;
+  normalizeUpgradeItems(s);
+  if (m.boss) s.upgradeItems.alloy = Math.min(99999, s.upgradeItems.alloy + 3);
+  else if (rng() < 0.08) s.upgradeItems.alloy = Math.min(99999, s.upgradeItems.alloy + 1);
   while (s.level < 210 && s.xp >= xpNeed(s.level)) {
     s.xp -= xpNeed(s.level);
     s.level++;
@@ -4264,22 +4406,14 @@ function buyMPPotion(s) {
   s.mpPotions = (s.mpPotions || 0) + 1;
   return true;
 }
-function upgradeCost(s) {
-  return 3 + s.upgrade * 2;
-}
-function upgrade(s) {
-  const cost = upgradeCost(s);
-  if (s.upgrade >= 20 || s.stones < cost) return false;
-  s.stones -= cost;
-  s.upgrade++;
-  return true;
-}
 function unlocked(s, z) {
   return z === 0;
 }
 function validSave(v) {
   if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
   const s = fresh(v.hero);
+  normalizeActivities(s, v);
+  if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
   for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
     if (!Number.isFinite(v[k])) return null;
     s[k] = Math.max(k === "level" ? 1 : 0, Math.min(max, Math.floor(v[k])));
@@ -4291,9 +4425,26 @@ function validSave(v) {
   if (!unlocked(s, s.zone)) s.zone = 0;
   normalizeSkills(s, v);
   normalizeProgress(s, v);
-  normalizeGear(s, v);
-  normalizeFashion(s, v);
   normalizeUpgradeItems(s, v);
+  const gearSave = structuredClone(v);
+  if (v.enhancementVersion !== 2) {
+    for (const it of [...Object.values(gearSave.equip || {}), ...gearSave.bag || []]) {
+      if (!it) continue;
+      let kept = false;
+      for (const id of ["crystal", "glowstone", "diamond", "ruby"]) {
+        const n = Math.max(0, Math.min(10, Math.floor(it.gems?.[id] || 0)));
+        if (!n) continue;
+        const keep = !kept && ["weapon", "ring", "amulet"].includes(it.slot);
+        kept = kept || keep;
+        s.upgradeItems[id] = Math.min(99999, s.upgradeItems[id] + n - (keep ? 1 : 0));
+        it.gems[id] = keep ? 1 : 0;
+      }
+      if (it.plus > 9 && ["weapon", "ring", "amulet"].includes(it.slot)) it.legacyPlus = it.plus;
+    }
+    gearSave.upgradeItems = s.upgradeItems;
+  }
+  normalizeGear(s, gearSave);
+  normalizeFashion(s, v);
   normalizeCheckin(s, v);
   s.adTickets = Array.isArray(v.adTickets) ? v.adTickets.filter((t) => t && /^[a-f0-9]{48}$/.test(t.nonce) && Number.isFinite(t.created)).slice(-100) : [];
   s.mpPotions = Number.isFinite(v.mpPotions) ? Math.max(0, Math.min(99999, Math.floor(v.mpPotions))) : 5;
@@ -4647,6 +4798,18 @@ var World = class {
       p.cd.op = now + 0.1;
       const atHome = this.home(p);
       switch (d.op) {
+        case "claimActivity":
+          claimActivity(s, d.id, now * 1e3);
+          break;
+        case "rerollSpecial":
+          if (atHome) rerollSpecial(s, d.slot);
+          break;
+        case "exchangeGold":
+          exchangeGold(s, Number(d.amount));
+          break;
+        case "buyShopGear":
+          buyShopGear(s, d.slot);
+          break;
         case "fashionWear":
           wearFashion(s, d.id);
           break;
@@ -4663,7 +4826,6 @@ var World = class {
           buyMPPotion(s);
           break;
         case "upgrade":
-          if (atHome) upgrade(s);
           break;
         case "buyUpgradeItem":
           if (typeof d.id === "string") buyUpgradeItem(s, d.id);
@@ -4775,6 +4937,7 @@ var World = class {
   tick(dt, now = Date.now() / 1e3) {
     for (const p of this.players.values()) {
       p.animTime += dt;
+      applyRegen(p, dt, maxHP(p.s), combatStats(p.s).mp);
       p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * manaRegen(p.s));
       if (this.home(p) && p.hp > 0) p.hp = Math.min(maxHP(p.s), p.hp + dt * maxHP(p.s) * 0.1);
       if (now - p.moveAt > 0.25 && now >= p.actionUntil) p.anim = "idle";
@@ -4843,7 +5006,7 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
@@ -4935,7 +5098,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.15.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.16.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4997,10 +5160,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             ws.close(1e3);
             return;
           }
+          grantTestGold(state, testRewards);
           p = world.join(id, state);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.16.0", id, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5113,7 +5277,26 @@ var admob_config_default = {
   internalTestRewards: true
 };
 
+// server/release-backup.js
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
+function backupBefore416(directory) {
+  (0, import_node_fs2.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path2.join)(directory, "release-backups"), final = (0, import_node_path2.join)(root, "before-4.16.0");
+  if ((0, import_node_fs2.existsSync)((0, import_node_path2.join)(final, "complete.json"))) return false;
+  (0, import_node_fs2.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path2.join)(root, `before-4.16.0-${Date.now()}-${process.pid}`);
+  (0, import_node_fs2.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs2.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs2.copyFileSync)((0, import_node_path2.join)(directory, name), (0, import_node_path2.join)(stage, name), import_node_fs2.constants.COPYFILE_EXCL);
+  (0, import_node_fs2.writeFileSync)((0, import_node_path2.join)(stage, "complete.json"), JSON.stringify({ release: "4.16.0", accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs2.renameSync)(stage, final);
+  console.log(`Pre-4.16.0 backup complete: ${names.length} accounts`);
+  return true;
+}
+
 // server/main.js
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {

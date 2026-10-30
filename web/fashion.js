@@ -18,3 +18,4 @@ export function normalizeFashion(s,v=s){
 export function wearFashion(s,id){const it=fashionItem(id);if(!it)return false;const f=s.fashion||normalizeFashion(s);if(!f.owned.includes(id))return false;f.equipped[it.slot]=id;return true;}
 export function removeFashion(s,slot){if(slot!=='hat'&&slot!=='outfit')return false;const f=s.fashion||normalizeFashion(s);f.equipped[slot]=null;return true;}
 export function appearance(s){return {...(s.fashion?.equipped||{hat:null,outfit:null})};}
+

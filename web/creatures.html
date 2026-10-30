@@ -6,3 +6,4 @@ const types={melee:'โจมตีประชิด',dash:'พุ่งเข�
 const actors=ADVANCED_SPECIES.map(sp=>{const el=document.createElement('article');el.innerHTML=`<canvas width="260" height="180" aria-label="${sp.name}"></canvas><h2>${sp.name}</h2><b>Lv.${sp.min}–${sp.max}</b><small>${types[sp.attack]}</small>`;cards.append(el);return {g:el.querySelector('canvas').getContext('2d'),e:{def:advancedMonster(sp.min),hp:1,face:1,moving:true,state:'idle',walkDistance:0}};});
 function frame(t){for(const a of actors){a.g.clearRect(0,0,260,180);a.g.fillStyle='#07131c80';a.g.beginPath();a.g.ellipse(130,166,38,9,0,0,7);a.g.fill();a.e.walkDistance=t*.03;drawAdvancedMonster(a.g,a.e,130,166,135,t/1000);}requestAnimationFrame(frame)}requestAnimationFrame(frame);
 </script></html>
+

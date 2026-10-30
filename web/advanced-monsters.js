@@ -29,3 +29,4 @@ export function advancedMonster(level,{elite=false,boss=false}={}){
 }
 export const ADVANCED_MONSTERS=[...Array.from({length:60},(_,i)=>advancedMonster(61+i)),...Array.from({length:6},(_,i)=>advancedMonster(70+i*10,{boss:true}))];
 
+

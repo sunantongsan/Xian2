@@ -9,3 +9,4 @@ export class RewardedAdsClient {
  show(ticket={}){return this.send({type:'show',nonce:ticket.nonce||'',user:ticket.user||''});}
  privacy(){return this.send({type:'privacy'});}
 }
+

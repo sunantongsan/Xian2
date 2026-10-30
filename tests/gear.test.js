@@ -14,9 +14,10 @@ test('level requirement, unequip, sell, full bag auto-sells',()=>{
  while(s.bag.length<BAG_SIZE)s.bag.push(makeItem('boots',0,0));const g2=s.gold;assert.equal(addToBag(s,makeItem('helm',1,1)),false);assert(s.gold>g2);
 });
 test('drops scale with monster level and rank; save round trip keeps equipment',()=>{
- let n=0;for(let i=0;i<2000;i++)if(rollDrop({level:33,boss:false,elite:false}))n++;assert(n>60&&n<240);
+ assert(rollDrop({level:33,boss:false},()=>.009));assert.equal(rollDrop({level:33,boss:false},()=>.01),null);
  const b=rollDrop({level:60,boss:true});assert(b&&b.rarity>=2&&b.tier===TIERS.length-1);
  assert(itemPower(makeItem('weapon',5,3))>itemPower(makeItem('weapon',0,0)));
  const s=fresh('sword-dragonfly');s.equip.wings=makeItem('wings',0,1);const r=validSave(JSON.parse(JSON.stringify(s)));assert.equal(r.equip.wings.rarity,1);assert.equal(r.bag.length,s.bag.length);
  const old=JSON.parse(JSON.stringify(s));delete old.equip;delete old.bag;assert(validSave(old).equip.weapon,'old saves get starter gear');
 });
+

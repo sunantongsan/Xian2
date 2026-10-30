@@ -18,7 +18,7 @@ with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
  entry=zipfile.ZipInfo('patch.json',date_time=(2026,1,1,0,0,0));entry.compress_type=zipfile.ZIP_DEFLATED;z.writestr(entry,json.dumps(manifest,sort_keys=True))
 digest=hashlib.sha256(archive.read_bytes()).hexdigest();size=archive.stat().st_size
 archive.rename(output/'patches'/f'{digest}.zip')
-feed={'game':'cockro','engine':88,'minAppVersionCode':91,'version':version,'size':size,'sha256':digest,'path':f'patches/{digest}.zip'}
+feed={'game':'cockro','engine':88,'minAppVersionCode':100,'version':version,'size':size,'sha256':digest,'path':f'patches/{digest}.zip'}
 (output/'latest.json').write_text(json.dumps(feed,sort_keys=True))
 (output/'index.html').write_text('<!doctype html><meta charset="utf-8"><title>COCKRO Updates</title><h1>COCKRO</h1><p>Game update distribution.</p>')
 shutil.copytree(root/'web',output/'play')

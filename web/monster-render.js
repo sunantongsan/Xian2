@@ -42,3 +42,4 @@ export function drawAdvancedMonster(g,e,x,y,size,time=0){
  if(e.def.boss){g.strokeStyle='#ffdf88';g.lineWidth=2;g.beginPath();g.ellipse(0,-91,22,6,0,0,Math.PI*2);g.stroke();}
  g.restore();
 }
+
