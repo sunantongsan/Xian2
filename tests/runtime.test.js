@@ -6,7 +6,7 @@ function element(id){if(!elements.has(id))elements.set(id,{style:{},dataset:{},c
 globalThis.innerWidth=844;globalThis.innerHeight=390;globalThis.devicePixelRatio=1;
 globalThis.document={body:{appendChild(){},classList:{add(){},remove(){},toggle(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
-source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,ads,isOnline:()=>onlineMode};';
+source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,celebrateReward,ads,isOnline:()=>onlineMode};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const {fresh}=await import('../web/core.js');
 function fixture(){const s=fresh('sword-male');s.sound=false;return {s,p:{x:0,y:0,hp:140,mp:83,face:1,anim:'idle',animTime:1,walkDistance:0,gaitBlend:0,inv:0,dead:false},enemies:[{def:{id:0,slot:0,hp:1000,speed:0,attack:'melee',cooldown:1,damage:1,level:1},x:70,y:0,hp:1000,state:'idle',clock:100,face:1,flash:0}]};}
@@ -40,4 +40,29 @@ test('shop snapshots update values without recreating modal or losing scroll',()
  v.s.stones=0;v.s.upgradeItems.ruby=4;probe.refreshOnlineShop();assert.equal(stock.textContent,'มี 4 ชิ้น');assert.equal(buy.disabled,true);
  assert.equal(content.innerHTML,'unchanged shop');assert.equal(element('modal').scrollTop,250);
  }finally{document.querySelectorAll=saved;}
+});
+
+
+test('reward confirmation waits for ad dismissal, shows icon, and claim opens owned item',()=>{
+ const v=fixture();v.s.upgradeItems.ruby=1;probe.set(v);
+ element('modalContent').innerHTML='shop before reward';
+ probe.ads.onChange({status:'loading'});
+ probe.net.onAdReward({item:'ruby',duplicate:false});
+ assert.equal(element('modalContent').innerHTML,'shop before reward');
+ probe.ads.onChange({status:'dismissed'});
+ assert.match(element('modalContent').innerHTML,/ยินดีด้วย!/);
+ assert.match(element('modalContent').innerHTML,/items\/ruby.webp/);
+ assert.match(element('modalContent').innerHTML,/รับรางวัล/);
+ element('claimAdReward').onclick();
+ assert.match(element('modalContent').innerHTML,/inventory-grid/);
+ assert.match(element('modalContent').innerHTML,/material:ruby/);
+ const bag=element('modalContent').innerHTML;
+ probe.net.onAdReward({item:'ruby',duplicate:true});
+ assert.equal(element('modalContent').innerHTML,bag);
+ assert.equal(v.s.upgradeItems.ruby,1);
+});
+test('closing a video early never displays a success dialog',()=>{
+ probe.set(fixture());element('modalContent').innerHTML='no earned reward';
+ probe.ads.onChange({status:'loading'});probe.ads.onChange({status:'dismissed'});
+ assert.equal(element('modalContent').innerHTML,'no earned reward');
 });

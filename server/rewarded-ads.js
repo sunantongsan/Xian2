@@ -12,7 +12,7 @@ export function issueRewardTicket(s,item,now=Date.now()){
 }
 export function applyVerifiedReward(s,params,now=Date.now()){
  const ticket=s.adTickets?.find(t=>t.nonce===params.custom_data);
- if(!ticket)throw Error('unknown_ticket');
+ if(!ticket||ticket.kind==='demo')throw Error('unknown_ticket');
  if(ticket.transaction){if(ticket.transaction===params.transaction_id)return false;throw Error('used_ticket');}
  const stamp=Number(params.timestamp);
  if(!Number.isFinite(stamp)||stamp<ticket.created-60000||stamp>ticket.created+TTL||stamp>now+60000||now-stamp>RETENTION)throw Error('expired_reward');

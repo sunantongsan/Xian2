@@ -33,3 +33,21 @@ test('old online saves migrate once before welcome and persist both balances',as
  const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,2);assert.equal(saved.mpPotions,5);
  b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,1234);assert.equal(c.welcome.save.stones,7);
 });
+
+
+test('internal demo ticket persists once, replies after snapshot, and is disabled by default',async t=>{
+ for(const enabled of [false,true]){
+ const directory=mkdtempSync(join(tmpdir(),'cockro-demo-')),app=startServer({port:0,directory,test:true,testRewards:enabled});await once(app.server,'listening');t.after(()=>app.close());
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,hero:'sword-cockro'});t.after(()=>a.ws.terminate());
+ a.ws.send(JSON.stringify({type:'testAdTicket',item:'ruby'}));
+ if(!enabled){await until(()=>a.messages.find(m=>m.type==='adError'&&m.message==='test_rewards_disabled'));assert.equal(app.world.players.get(a.welcome.id).s.upgradeItems.ruby,0);continue;}
+ const ticket=await until(()=>a.messages.find(m=>m.type==='adTicket'));assert.equal(ticket.test,true);
+ a.ws.send(JSON.stringify({type:'testAdComplete',nonce:ticket.nonce}));
+ await until(()=>a.messages.find(m=>m.type==='adReward'));
+ const first=a.messages.findIndex(m=>m.type==='adReward');assert.equal(a.messages[first-1].self.save.upgradeItems.ruby,1);
+ assert.equal(JSON.parse(readFileSync(join(directory,a.welcome.id+'.json'))).upgradeItems.ruby,1);
+ a.ws.send(JSON.stringify({type:'testAdComplete',nonce:ticket.nonce}));await until(()=>a.messages.find(m=>m.type==='adReward'&&m.duplicate));
+ a.ws.close();await until(()=>!app.world.players.has(a.welcome.id));
+ const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.upgradeItems.ruby,1);
+ }
+});

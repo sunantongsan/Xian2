@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes3, createHash: createHash2 } = require("crypto");
+    var { randomBytes: randomBytes4, createHash: createHash2 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2814,7 +2814,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes3(16).toString("base64");
+      const key = randomBytes4(16).toString("base64");
       const request = isSecure ? https.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -3710,7 +3710,7 @@ var require_websocket_server = __commonJS({
 // server/server.js
 var import_node_http = __toESM(require("node:http"), 1);
 
-// server/rewarded-ads.js
+// server/test-rewards.js
 var import_node_crypto = require("node:crypto");
 
 // web/upgrade-items.js
@@ -3753,7 +3753,30 @@ function socketGem(s, slot, id) {
   return true;
 }
 
+// server/test-rewards.js
+function issueTestTicket(s, item, now = Date.now()) {
+  if (!Object.hasOwn(UPGRADE_ITEMS, item)) throw Error("invalid_reward");
+  s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
+  const recent = s.adTickets.filter((t2) => t2.kind === "demo");
+  const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
+  if (pending) return pending;
+  if (recent.length >= 20) throw Error("test_limit");
+  const t = { kind: "demo", nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, created: now };
+  s.adTickets.push(t);
+  return t;
+}
+function completeTestTicket(s, nonce, now = Date.now()) {
+  const t = s.adTickets?.find((t2) => t2.kind === "demo" && t2.nonce === nonce);
+  if (!t || now - t.created > 36e5) throw Error("invalid_test_ticket");
+  if (t.transaction) return { item: t.item, duplicate: true };
+  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
+  t.transaction = "demo:" + nonce;
+  return { item: t.item, duplicate: false };
+}
+
 // server/rewarded-ads.js
+var import_node_crypto2 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -3761,13 +3784,13 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, created: now };
+  const ticket = { nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
 function applyVerifiedReward(s, params, now = Date.now()) {
   const ticket = s.adTickets?.find((t) => t.nonce === params.custom_data);
-  if (!ticket) throw Error("unknown_ticket");
+  if (!ticket || ticket.kind === "demo") throw Error("unknown_ticket");
   if (ticket.transaction) {
     if (ticket.transaction === params.transaction_id) return false;
     throw Error("used_ticket");
@@ -3806,7 +3829,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto2.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -3827,7 +3850,7 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto2 = require("node:crypto");
+var import_node_crypto3 = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
@@ -4828,7 +4851,7 @@ var World = class {
 };
 
 // server/server.js
-function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
+function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
   (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
   const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
   let diskFailure = false;
@@ -4887,6 +4910,13 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (live) {
             live.s = state;
             live.dirty = false;
+            const ticket = state.adTickets.find((t) => t.nonce === data.custom_data);
+            for (const socket of connections) {
+              if (socket.player?.() === live) {
+                send(socket, world.snapshot(live));
+                send(socket, { type: "adReward", item: ticket.item });
+              }
+            }
           }
         }
         res.writeHead(200);
@@ -4905,7 +4935,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.14.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.15.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4952,11 +4982,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto2.randomBytes)(32).toString("hex");
+            token = (0, import_node_crypto3.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const id = (0, import_node_crypto2.createHash)("sha256").update(token).digest("hex");
+          const id = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex");
           const path = (0, import_node_path.join)(directory, id + ".json");
           if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
           const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
@@ -4970,8 +5000,32 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           p = world.join(id, state);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state, adsEnabled });
+          send(ws, { type: "welcome", id, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
+          return;
+        }
+        if (d.type === "testAdTicket" || d.type === "testAdComplete") {
+          if (!testRewards) {
+            send(ws, { type: "adError", message: "test_rewards_disabled" });
+            return;
+          }
+          try {
+            const copy = structuredClone(p.s);
+            if (d.type === "testAdTicket") {
+              const ticket = issueTestTicket(copy, d.item);
+              persist({ id: p.id, s: copy });
+              p.s = copy;
+              send(ws, { type: "adTicket", user: p.id, nonce: ticket.nonce, item: ticket.item, test: true });
+            } else {
+              const reward2 = completeTestTicket(copy, d.nonce);
+              persist({ id: p.id, s: copy });
+              p.s = copy;
+              send(ws, world.snapshot(p));
+              send(ws, { type: "adReward", ...reward2 });
+            }
+          } catch (error) {
+            send(ws, { type: "adError", message: error.message });
+          }
           return;
         }
         if (d.type === "adTicket") {
@@ -5055,11 +5109,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 // admob-config.json
 var admob_config_default = {
   appId: "ca-app-pub-4585492700643566~3340769116",
-  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388"
+  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388",
+  internalTestRewards: true
 };
 
 // server/main.js
-var app = startServer({ directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
+var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
   await app.close();
