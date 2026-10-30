@@ -16,6 +16,9 @@ final class RewardedAds {
  private final ConsentInformation consent;
  private WebView web;
  private boolean initialized,initializing,busy,dead;
+ private String failure="";
+ private final android.os.Handler handler=new android.os.Handler(android.os.Looper.getMainLooper());
+ private int requestId;
  private static final String ORIGIN="https://appassets.androidplatform.net";
  RewardedAds(Activity activity){this.activity=activity;consent=UserMessagingPlatform.getConsentInformation(activity);}
  void start(){
@@ -36,30 +39,36 @@ final class RewardedAds {
    }catch(Exception ignored){emit("error");}
   });
  }
+ private void fail(String stage,AdError error){failure=stage+" • "+error.getDomain()+" / "+error.getCode()+" • "+error.getMessage();emit("unavailable");}
  private void emit(String status){
   if(dead||web==null)return;
-  try{JSONObject out=new JSONObject();out.put("status",status);out.put("nativeVersion",BuildConfig.VERSION_NAME);out.put("nativeCode",BuildConfig.VERSION_CODE);out.put("ready",initialized&&consent.canRequestAds()&&!busy);out.put("test",BuildConfig.DEBUG);out.put("privacy",consent.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED);
+  try{JSONObject out=new JSONObject();out.put("status",status);out.put("diagnostic",failure);out.put("nativeVersion",BuildConfig.VERSION_NAME);out.put("nativeCode",BuildConfig.VERSION_CODE);out.put("ready",initialized&&consent.canRequestAds()&&!busy);out.put("test",BuildConfig.DEBUG);out.put("privacy",consent.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED);
    String script="window.dispatchEvent(new CustomEvent('cockro-ad',{detail:"+out.toString()+"}));";
    web.evaluateJavascript(script,null);
   }catch(Exception ignored){}
  }
  private void show(String nonce,String user){
-  if(busy||dead||!initialized||!consent.canRequestAds()||!activity.hasWindowFocus()){emit("unavailable");return;}
+  if(dead)return;
+  if(busy||!initialized||!consent.canRequestAds()||!activity.hasWindowFocus()){failure=busy?"มีคำขอโฆษณากำลังทำงาน":!activity.hasWindowFocus()?"กลับมาที่หน้าเกมแล้วลองใหม่":"ระบบโฆษณาหรือความยินยอมยังไม่พร้อม";emit("unavailable");return;}
   if(!BuildConfig.DEBUG&&(!nonce.matches("[a-f0-9]{48}")||!user.matches("[a-f0-9]{64}"))){emit("error");return;}
-  busy=true;emit("loading");
+  failure="";busy=true;emit("loading");
+  final int request=++requestId;
+  final Runnable timeout=()->{if(dead||request!=requestId)return;requestId++;busy=false;failure="โหลดโฆษณาเกิน 45 วินาที กรุณาลองใหม่";emit("unavailable");};
+  handler.postDelayed(timeout,45000);
   RewardedAd.load(activity,BuildConfig.ADMOB_REWARDED_UNIT_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
-   @Override public void onAdFailedToLoad(LoadAdError error){busy=false;emit("unavailable");}
+   @Override public void onAdFailedToLoad(LoadAdError error){if(dead||request!=requestId)return;handler.removeCallbacks(timeout);busy=false;fail("โหลดโฆษณาไม่สำเร็จ",error);}
    @Override public void onAdLoaded(RewardedAd ad){
-    if(dead||activity.isFinishing()||!activity.hasWindowFocus()){busy=false;emit("unavailable");return;}
+    if(dead||request!=requestId)return;handler.removeCallbacks(timeout);
+    if(activity.isFinishing()||!activity.hasWindowFocus()){busy=false;failure="วิดีโอโหลดแล้ว แต่เกมไม่ได้อยู่ด้านหน้า กรุณาลองใหม่";emit("unavailable");return;}
     if(!BuildConfig.DEBUG)ad.setServerSideVerificationOptions(new ServerSideVerificationOptions.Builder().setUserId(user).setCustomData(nonce).build());
     ad.setFullScreenContentCallback(new FullScreenContentCallback(){
      @Override public void onAdDismissedFullScreenContent(){busy=false;emit("dismissed");}
-     @Override public void onAdFailedToShowFullScreenContent(AdError error){busy=false;emit("unavailable");}
+     @Override public void onAdFailedToShowFullScreenContent(AdError error){busy=false;fail("เปิดวิดีโอไม่สำเร็จ",error);}
     });
     ad.show(activity,reward->emit(BuildConfig.DEBUG?"test-earned":"verifying"));
    }
   });
  }
- void destroy(){dead=true;web=null;}
+ void destroy(){dead=true;requestId++;handler.removeCallbacksAndMessages(null);web=null;}
 }
 

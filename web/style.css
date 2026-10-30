@@ -254,3 +254,6 @@ dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
 .welcome-roster .hero-card[aria-pressed="true"]{outline:2px solid #ffe3a1;background:linear-gradient(#34536b,#172936)}
 .welcome-roster .hero-card small{display:block;margin-top:5px}
 body.welcome-screen #choose{background:linear-gradient(#c7973e,#77531c);color:#fff4d1;font-size:17px;min-width:140px}
+
+#adMessage:not(:empty){position:sticky;top:0;z-index:2;background:#122d35;color:#fff0b8;border:1px solid #b99e66;border-radius:8px;padding:8px 12px;font-size:14px;overflow-wrap:anywhere;}
+#adMessage:empty{display:none}
