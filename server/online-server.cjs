@@ -2263,9 +2263,9 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes4, createHash: createHash3 } = require("crypto");
+    var { randomBytes: randomBytes5, createHash: createHash4 } = require("crypto");
     var { Duplex, Readable } = require("stream");
-    var { URL } = require("url");
+    var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
     var Receiver2 = require_receiver();
     var Sender2 = require_sender();
@@ -2779,11 +2779,11 @@ var require_websocket = __commonJS({
         );
       }
       let parsedUrl;
-      if (address instanceof URL) {
+      if (address instanceof URL2) {
         parsedUrl = address;
       } else {
         try {
-          parsedUrl = new URL(address);
+          parsedUrl = new URL2(address);
         } catch {
           throw new SyntaxError(`Invalid URL: ${address}`);
         }
@@ -2814,7 +2814,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes4(16).toString("base64");
+      const key = randomBytes5(16).toString("base64");
       const request = isSecure ? https.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -2920,7 +2920,7 @@ var require_websocket = __commonJS({
           req.abort();
           let addr;
           try {
-            addr = new URL(location, address);
+            addr = new URL2(location, address);
           } catch (e) {
             const err = new SyntaxError(`Invalid URL: ${location}`);
             emitErrorAndClose(websocket, err);
@@ -2944,7 +2944,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash3("sha1").update(key + GUID).digest("base64");
+        const digest = createHash4("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3313,7 +3313,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http2 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash3 } = require("crypto");
+    var { createHash: createHash4 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3620,7 +3620,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash3("sha1").update(key + GUID).digest("base64");
+        const digest = createHash4("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -3706,6 +3706,12 @@ var require_websocket_server = __commonJS({
     }
   }
 });
+
+// server/accounts.js
+var import_node_crypto2 = require("node:crypto");
+var import_node_util = require("node:util");
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
 
 // server/characters.js
 var import_node_crypto = require("node:crypto");
@@ -4446,6 +4452,146 @@ function characterRoster(directory, account) {
   });
 }
 
+// server/accounts.js
+var scrypt = (0, import_node_util.promisify)(import_node_crypto2.scrypt);
+var hash = (v) => (0, import_node_crypto2.createHash)("sha256").update(v).digest("hex");
+var AUTH_URL = "https://kfohckvypopaoogmnjuy.supabase.co";
+var AUTH_KEY = "sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA";
+var AUTH_REDIRECT = "cockronetwork://auth/callback";
+function createAccounts(directory, { fetcher = fetch } = {}) {
+  const root = (0, import_node_path2.join)(directory, "accounts");
+  const flows = /* @__PURE__ */ new Map(), attempts = /* @__PURE__ */ new Map(), busy = /* @__PURE__ */ new Set();
+  const path = (kind, key) => (0, import_node_path2.join)(root, kind + "-" + hash(key) + ".json");
+  const read = (kind, key) => {
+    const p = path(kind, key);
+    return (0, import_node_fs2.existsSync)(p) ? JSON.parse((0, import_node_fs2.readFileSync)(p, "utf8")) : null;
+  };
+  const write = (kind, key, data) => {
+    (0, import_node_fs2.mkdirSync)(root, { recursive: true, mode: 448 });
+    const p = path(kind, key);
+    (0, import_node_fs2.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs2.renameSync)(p + ".tmp", p);
+  };
+  function resolve(token) {
+    if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
+    const session = read("session", token);
+    if (session) {
+      if (session.expires < Date.now()) throw Error("login_required");
+      return session.account;
+    }
+    const account = hash(token);
+    if (read("profile", account)?.uid) throw Error("login_required");
+    if (!read("profile", account) && !characterRoster(directory, account).length) throw Error("account_missing");
+    return account;
+  }
+  const exists = (account) => !!read("profile", account) || characterRoster(directory, account).length > 0;
+  const meta = (account) => read("profile", account) || {};
+  function throttle(account) {
+    const now = Date.now(), q = (attempts.get(account) || []).filter((t) => t > now - 6e5);
+    if (q.length >= 5) throw Error("password_locked");
+    q.push(now);
+    attempts.set(account, q);
+  }
+  async function verifyPassword(account, password) {
+    throttle(account);
+    const m = meta(account);
+    if (!m.password || typeof password !== "string" || password.length > 128) throw Error("wrong_password");
+    const key = await scrypt(password, m.salt, 32);
+    if (!(0, import_node_crypto2.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
+    attempts.delete(account);
+    return m;
+  }
+  async function manageUnlocked(token, d) {
+    const account = resolve(token);
+    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid };
+    if (d.action === "rename") {
+      const state = readCharacter(directory, account, d.character);
+      if (!state) throw Error("character_missing");
+      if (state.name) throw Error("already_named");
+      const name = characterName(d.name);
+      if (!name) throw Error("invalid_name");
+      state.name = name;
+      const p = (0, import_node_path2.join)(directory, characterId(account, d.character) + ".json");
+      (0, import_node_fs2.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
+      (0, import_node_fs2.renameSync)(p + ".tmp", p);
+      return { characters: characterRoster(directory, account) };
+    }
+    if (d.action === "setPassword") {
+      const m = meta(account);
+      if (m.password) await verifyPassword(account, d.oldPassword);
+      if (typeof d.password !== "string" || d.password.length < 8 || d.password.length > 128) throw Error("weak_password");
+      const salt = (0, import_node_crypto2.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
+      write("profile", account, { ...meta(account), salt, password: key.toString("hex") });
+      return { hasPassword: true };
+    }
+    if (d.action === "delete") {
+      await verifyPassword(account, d.password);
+      if (!CHARACTER_SLOTS.includes(d.character)) throw Error("character_missing");
+      const state = readCharacter(directory, account, d.character);
+      if (!state) throw Error("character_missing");
+      if (d.confirmName !== (state.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D")) throw Error("name_mismatch");
+      write("profile", account, meta(account));
+      const trash = (0, import_node_path2.join)(directory, "deleted-characters");
+      (0, import_node_fs2.mkdirSync)(trash, { recursive: true, mode: 448 });
+      (0, import_node_fs2.renameSync)((0, import_node_path2.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path2.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
+      return { characters: characterRoster(directory, account) };
+    }
+    throw Error("invalid_request");
+  }
+  async function authStart(token) {
+    let account = null;
+    if (token) {
+      try {
+        account = resolve(token);
+      } catch (e) {
+        if (e.message !== "login_required") throw e;
+      }
+    }
+    for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
+    if (flows.size >= 100) throw Error("auth_busy");
+    const flow = (0, import_node_crypto2.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto2.randomBytes)(48).toString("base64url");
+    flows.set(flow, { account, verifier, until: Date.now() + 3e5 });
+    const u = new URL(AUTH_URL + "/auth/v1/authorize");
+    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto2.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
+    return { flow, url: u.href };
+  }
+  async function authFinish(flow, code) {
+    const f = flows.get(flow);
+    if (!f || f.until < Date.now() || typeof code !== "string" || code.length > 2048) throw Error("auth_expired");
+    flows.delete(flow);
+    const response = await fetcher(AUTH_URL + "/auth/v1/token?grant_type=pkce", { method: "POST", headers: { apikey: AUTH_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ auth_code: code, code_verifier: f.verifier }), signal: AbortSignal.timeout(15e3) });
+    if (!response.ok) throw Error("auth_failed");
+    const session = await response.json();
+    const check = await fetcher(AUTH_URL + "/auth/v1/user", { headers: { apikey: AUTH_KEY, Authorization: "Bearer " + session.access_token }, signal: AbortSignal.timeout(15e3) });
+    if (!check.ok) throw Error("auth_failed");
+    const user = await check.json();
+    if (typeof user.id !== "string" || !user.identities?.some((i) => i.provider === "google")) throw Error("auth_failed");
+    const existing = read("google", user.id);
+    let account = existing?.account;
+    if (!account) {
+      account = f.account || hash((0, import_node_crypto2.randomBytes)(32));
+      const profile = meta(account);
+      if (profile.uid && profile.uid !== user.id) throw Error("account_linked");
+      write("profile", account, { ...profile, uid: user.id });
+      write("google", user.id, { account });
+    }
+    const token = (0, import_node_crypto2.randomBytes)(32).toString("hex");
+    write("session", token, { account, expires: Date.now() + 30 * 864e5 });
+    return { token, google: true, characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
+  }
+  async function manage(token, d) {
+    const account = resolve(token);
+    if (busy.has(account)) throw Error("account_busy");
+    busy.add(account);
+    try {
+      return await manageUnlocked(token, d);
+    } finally {
+      busy.delete(account);
+    }
+  }
+  return { resolve, exists, meta, manage, authStart, authFinish, busy };
+}
+
 // server/server.js
 var import_node_http = __toESM(require("node:http"), 1);
 
@@ -4469,7 +4615,7 @@ function deliverReward(s, t) {
 }
 
 // server/test-rewards.js
-var import_node_crypto2 = require("node:crypto");
+var import_node_crypto3 = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
   const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
@@ -4477,7 +4623,7 @@ function issueTestTicket(s, item, now = Date.now()) {
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
   if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto3.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -4491,7 +4637,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
 }
 
 // server/rewarded-ads.js
-var import_node_crypto3 = require("node:crypto");
+var import_node_crypto4 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -4499,7 +4645,7 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto3.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const ticket = { nonce: (0, import_node_crypto4.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -4543,7 +4689,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto3.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto4.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -4564,9 +4710,9 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto4 = require("node:crypto");
-var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
+var import_node_crypto5 = require("node:crypto");
+var import_node_fs3 = require("node:fs");
+var import_node_path3 = require("node:path");
 
 // web/star-data.js
 var STAR_ZONES = [
@@ -4681,8 +4827,8 @@ var REGIONS = [
   { id: 5, name: "\u0E2B\u0E31\u0E27\u0E43\u0E08\u0E1B\u0E48\u0E32\u0E14\u0E32\u0E27\u0E44\u0E01\u0E25", min: 51, max: 60, center: [1 / 6, 0.25], entry: [1 / 6, 0.4] }
 ];
 var MAPS = {
-  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 2e3, height: 1333, spawn: [0.5, 0.59], walk: [rect(0.31, 0.43, 0.69, 0.75), rect(0.24, 0.48, 0.76, 0.59), rect(0.45, 0.33, 0.55, 0.83)], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.79], name: "\u0E1B\u0E23\u0E30\u0E15\u0E39\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "forest" }, { uv: [0.64, 0.7], name: "\u0E22\u0E32\u0E19\u0E2A\u0E39\u0E48\u0E14\u0E32\u0E27\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "star" }] },
-  forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.935], name: "\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
+  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 4e3, height: 2666, spawn: [0.5, 0.59], walk: [rect(0.31, 0.43, 0.69, 0.75), rect(0.24, 0.48, 0.76, 0.59), rect(0.45, 0.2, 0.55, 0.97), rect(0.68, 0.49, 0.97, 0.59), rect(0.15, 0.48, 0.32, 0.59)], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
+  forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
 };
 function inside(u, v, poly) {
   let hit = false;
@@ -4707,6 +4853,29 @@ function traceStep(scene, from, to) {
     p = q;
   }
   return p;
+}
+
+// web/roads.js
+var TOWN_ROADS = [{ id: "forest", from: [0.5, 0.76], end: [0.5, 0.94], arrival: [0.5, 0.87], min: 1 }, { id: "star", from: [0.73, 0.54], end: [0.94, 0.54], arrival: [0.87, 0.54], min: 61 }];
+var FOREST_ROAD_EXIT = [1 / 6, 0.95];
+var FOREST_ROAD_ARRIVAL = [1 / 6, 0.91];
+function roadDestination(map, point, level, star) {
+  const near = (w) => Math.hypot(point.x - w.x, point.y - w.y) < 85;
+  if (map === "town") {
+    for (const r of TOWN_ROADS) if (near(toWorld(r.end, MAPS.town))) return level >= r.min ? { map: r.id, road: r.id } : null;
+  }
+  if (map === "forest" && near(toWorld(FOREST_ROAD_EXIT, MAPS.forest))) return { map: "town", road: "forest" };
+  if (map === "star") {
+    const gate = star.pois.find((p) => p.action === "town");
+    if (gate && near(gate.world)) return { map: "town", road: "star" };
+  }
+  return null;
+}
+function roadArrival(destination, star) {
+  if (destination.map === "town") return toWorld(TOWN_ROADS.find((r) => r.id === destination.road).arrival, MAPS.town);
+  if (destination.map === "forest") return toWorld(FOREST_ROAD_ARRIVAL, MAPS.forest);
+  const g = star.pois.find((p) => p.action === "warp" && p.zone === 0);
+  return { x: g.world.x + 40, y: g.world.y + 70 };
 }
 
 // web/alien-population.js
@@ -4775,7 +4944,7 @@ var World = class {
     normalizeFashion(s);
     if (this.players.has(id)) throw Error("already_online");
     if (this.players.size >= this.maxPlayers) throw Error("room_full");
-    const p = { id, s, name: s.name || "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
+    const p = { id, s, name: s.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D", map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
     this.players.set(id, p);
     return p;
   }
@@ -4847,6 +5016,12 @@ var World = class {
         p.walkDX = dx;
         p.walkDY = dy;
         p.back = dx + dy < 0;
+      }
+      const destination = roadDestination(p.map, p, s.level, this.maps.star);
+      if (destination && now > (p.cd.road || 0)) {
+        const arrival = roadArrival(destination, this.maps.star);
+        Object.assign(p, arrival, { map: destination.map, entered: true });
+        p.cd.road = now + 2;
       }
       return;
     }
@@ -5106,7 +5281,8 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
-  (0, import_node_fs2.mkdirSync)(directory, { recursive: true, mode: 448 });
+  (0, import_node_fs3.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const accounts = createAccounts(directory);
   const world = new World({ maxPlayers, testRewards }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
   const ssvStatus = { verified: 0, rejected: 0, lastError: null };
@@ -5120,9 +5296,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   }
   const persist = (p) => {
     try {
-      const path = (0, import_node_path2.join)(directory, p.id + ".json");
-      (0, import_node_fs2.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs2.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path3.join)(directory, p.id + ".json");
+      (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs3.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -5154,9 +5330,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.players.get(data.user_id), path = (0, import_node_path2.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs2.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs2.readFileSync)(path, "utf8")));
+        const live = world.players.get(data.user_id), path = (0, import_node_path3.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs3.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -5189,7 +5365,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.19.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.20.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5218,7 +5394,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     ws.on("pong", () => ws.alive = true);
     ws.on("error", () => {
     });
-    ws.on("message", (raw) => {
+    let managing = false;
+    ws.on("message", async (raw) => {
+      if (managing) return;
       try {
         const now = Date.now();
         if (now - since >= 1e3) {
@@ -5228,6 +5406,34 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
         if (++count > 35) throw Error("rate_limit");
         const d = JSON.parse(raw);
         if (!d || Array.isArray(d) || typeof d !== "object") throw Error("invalid_message");
+        if (!p && ["manage", "authStart", "authFinish"].includes(d.type)) {
+          managing = true;
+          clearTimeout(timer);
+          try {
+            let result;
+            if (d.type === "authStart") {
+              if (d.token) {
+                try {
+                  if (activeAccounts.has(accounts.resolve(d.token))) throw Error("already_online");
+                } catch (e) {
+                  if (e.message !== "login_required") throw e;
+                }
+              }
+              result = await accounts.authStart(d.token);
+            } else if (d.type === "authFinish") {
+              result = await accounts.authFinish(d.flow, d.code);
+            } else {
+              if (activeAccounts.has(accounts.resolve(d.token))) throw Error("already_online");
+              result = await accounts.manage(d.token, d);
+            }
+            send(ws, { type: "accountResult", ...result });
+          } catch (e) {
+            send(ws, { type: "error", message: e.message });
+          } finally {
+            ws.close(1e3);
+          }
+          return;
+        }
         if (!p) {
           if (d.type !== "hello" || d.version !== PROTOCOL) throw Error("version_mismatch");
           let token = d.token;
@@ -5235,21 +5441,21 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.preview === true && !token) throw Error("invalid_token");
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs2.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto4.randomBytes)(32).toString("hex");
+            if ((0, import_node_fs3.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            token = (0, import_node_crypto5.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const account = (0, import_node_crypto4.createHash)("sha256").update(token).digest("hex");
+          const account = created ? (0, import_node_crypto5.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
           const main = created ? fresh(d.hero) : readCharacter(directory, account);
-          if (!main) throw Error("account_missing");
+          if (!main && !accounts.exists(account)) throw Error("account_missing");
           if (d.preview === true) {
             send(ws, { type: "roster", characters: characterRoster(directory, account) });
             clearTimeout(timer);
             ws.close(1e3);
             return;
           }
-          if (activeAccounts.has(account)) throw Error("already_online");
+          if (activeAccounts.has(account) || accounts.busy.has(account)) throw Error("already_online");
           let character = d.character || "main", state;
           if (d.newCharacter === true && !created) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
@@ -5258,6 +5464,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             state = fresh(d.hero);
           } else state = character === "main" ? main : readCharacter(directory, account, character);
           if (!state) throw Error("character_missing");
+          if (!created && !d.newCharacter && !characterName(state.name)) throw Error("name_required");
           if (created || d.newCharacter === true) {
             const name = characterName(d.name);
             if (!name) throw Error("invalid_name");
@@ -5273,7 +5480,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.19.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.20.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5324,7 +5531,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           send(ws, { type: "opResult", op: d.op, requestId: d.requestId, ...p.opResult });
         }
       } catch (error) {
-        send(ws, { type: "error", message: ["invalid_name", "already_online", "room_full", "account_missing", "save_unavailable", "character_missing", "character_limit"].includes(error.message) ? error.message : "invalid_request" });
+        send(ws, { type: "error", message: ["login_required", "name_required", "invalid_name", "already_online", "room_full", "account_missing", "save_unavailable", "character_missing", "character_limit"].includes(error.message) ? error.message : "invalid_request" });
         if (!p || error.message === "save_unavailable") ws.close(1008);
       }
     });
@@ -5381,19 +5588,20 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 }
 
 // server/release-backup.js
-var import_node_fs3 = require("node:fs");
-var import_node_path3 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_path4 = require("node:path");
 function backupBefore416(directory, release = "4.16.0") {
-  (0, import_node_fs3.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path3.join)(directory, "release-backups"), final = (0, import_node_path3.join)(root, "before-" + release);
-  if ((0, import_node_fs3.existsSync)((0, import_node_path3.join)(final, "complete.json"))) return false;
-  (0, import_node_fs3.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path3.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
-  (0, import_node_fs3.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs3.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs3.copyFileSync)((0, import_node_path3.join)(directory, name), (0, import_node_path3.join)(stage, name), import_node_fs3.constants.COPYFILE_EXCL);
-  (0, import_node_fs3.writeFileSync)((0, import_node_path3.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs3.renameSync)(stage, final);
+  (0, import_node_fs4.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path4.join)(directory, "release-backups"), final = (0, import_node_path4.join)(root, "before-" + release);
+  if ((0, import_node_fs4.existsSync)((0, import_node_path4.join)(final, "complete.json"))) return false;
+  (0, import_node_fs4.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path4.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs4.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs4.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs4.copyFileSync)((0, import_node_path4.join)(directory, name), (0, import_node_path4.join)(stage, name), import_node_fs4.constants.COPYFILE_EXCL);
+  for (const name of ["accounts", "deleted-characters"]) if ((0, import_node_fs4.existsSync)((0, import_node_path4.join)(directory, name))) (0, import_node_fs4.cpSync)((0, import_node_path4.join)(directory, name), (0, import_node_path4.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
+  (0, import_node_fs4.writeFileSync)((0, import_node_path4.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs4.renameSync)(stage, final);
   console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
@@ -5406,7 +5614,7 @@ var admob_config_default = {
 };
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.19.0");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.20.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
