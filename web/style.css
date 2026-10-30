@@ -257,3 +257,5 @@ body.welcome-screen #choose{background:linear-gradient(#c7973e,#77531c);color:#f
 
 #adMessage:not(:empty){position:sticky;top:0;z-index:2;background:#122d35;color:#fff0b8;border:1px solid #b99e66;border-radius:8px;padding:8px 12px;font-size:14px;overflow-wrap:anywhere;}
 #adMessage:empty{display:none}
+
+#modal #adMessage:not(:empty){position:static;font-size:13px;line-height:1.45;max-height:64px;overflow:auto;margin:8px 0;padding:6px 10px;}

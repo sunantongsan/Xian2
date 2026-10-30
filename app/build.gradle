@@ -1,4 +1,5 @@
 plugins { id 'com.android.application' }
+def internalTestAds = providers.gradleProperty('cockroTestAds').orElse('false').get().toBoolean()
 def adsConfig = new groovy.json.JsonSlurper().parse(rootProject.file('admob-config.json'))
 def adsApp = providers.environmentVariable('ADMOB_APP_ID').orElse(adsConfig.appId).get()
 def adsUnit = providers.environmentVariable('ADMOB_REWARDED_UNIT_ID').orElse(adsConfig.rewardedUnitId).get()
@@ -12,8 +13,8 @@ android {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 98
-        versionName '4.13.1'
+        versionCode 99
+        versionName '4.14.0'
     }
     signingConfigs {
         release {
@@ -27,13 +28,15 @@ android {
     }
     buildTypes {
         debug {
+            buildConfigField 'boolean', 'TEST_ADS', 'true'
             applicationIdSuffix '.adstest'; versionNameSuffix '-adstest'
             manifestPlaceholders = [appLabel: 'COCKRO Ads Test', admobAppId: 'ca-app-pub-3940256099942544~3347511713']
             buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"ca-app-pub-3940256099942544/5224354917"'
         }
         release {
-            manifestPlaceholders = [appLabel: 'COCKRO', admobAppId: adsApp]
-            buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"' + adsUnit + '"'
+            buildConfigField 'boolean', 'TEST_ADS', internalTestAds.toString()
+            manifestPlaceholders = [appLabel: 'COCKRO', admobAppId: internalTestAds ? 'ca-app-pub-3940256099942544~3347511713' : adsApp]
+            buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"' + (internalTestAds ? 'ca-app-pub-3940256099942544/5224354917' : adsUnit) + '"'
             if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
     }
     sourceSets { main.assets.srcDirs = [rootProject.file('web')] }

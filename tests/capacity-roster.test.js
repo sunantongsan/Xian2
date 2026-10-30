@@ -27,3 +27,16 @@ test('authenticated character preview does not enter world or overwrite saved pr
  assert.equal(app.world.players.size,0);assert.equal(readFileSync(path,'utf8'),before);
  const bad=await client(app.url,{...hello,preview:true});assert.equal(bad.data.type,'error');bad.ws.terminate();assert.equal(app.world.players.size,0);
 });
+test('ordinary progress batches disk writes but purchases persist and reply immediately',async t=>{
+ const app=await setup(t),a=await client(app.url,hello);t.after(()=>a.ws.terminate());
+ const p=app.world.players.get(a.data.id),path=join(app.directory,a.data.id+'.json');
+ p.s.gold=1000;p.dirty=true;
+ await new Promise(r=>setTimeout(r,250));assert.notEqual(JSON.parse(readFileSync(path,'utf8')).gold,1000);
+ p.lastSaved=Date.now()-5001;
+ await until(()=>JSON.parse(readFileSync(path,'utf8')).gold===1000);
+ const before=p.s.potions;let ack,seen;
+ a.ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='state')seen=d;if(d.type==='opResult')ack=d;});
+ a.ws.send(JSON.stringify({type:'op',op:'buy'}));await until(()=>ack);
+ assert.equal(seen.self.save.potions,before+1);
+ const disk=JSON.parse(readFileSync(path,'utf8'));assert.equal(disk.potions,before+1);assert.equal(disk.gold,950);
+});

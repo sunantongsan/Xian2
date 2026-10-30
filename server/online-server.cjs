@@ -4847,6 +4847,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       (0, import_node_fs.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
       (0, import_node_fs.renameSync)(path + ".tmp", path);
       p.dirty = false;
+      p.lastSaved = Date.now();
     } catch {
       diskFailure = true;
       throw Error("save_unavailable");
@@ -4904,7 +4905,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.13.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.14.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4990,7 +4991,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           return;
         }
         world.command(p, d);
-        if (p.dirty) persist(p);
+        if (p.dirty && ["op", "potion", "mpPotion", "enter", "revive"].includes(d.type)) persist(p);
+        if (d.type === "op") {
+          send(ws, world.snapshot(p));
+          send(ws, { type: "opResult", op: d.op });
+        }
       } catch (error) {
         send(ws, { type: "error", message: ["already_online", "room_full", "account_missing", "save_unavailable"].includes(error.message) ? error.message : "invalid_request" });
         if (!p || error.message === "save_unavailable") ws.close(1008);
@@ -5018,7 +5023,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       const p = ws.player();
       if (!p) continue;
       try {
-        if (p.dirty) persist(p);
+        if (p.dirty && now - (p.lastSaved || 0) >= 5e3) persist(p);
         send(ws, world.snapshot(p));
       } catch {
         send(ws, { type: "error", message: "save_unavailable" });
