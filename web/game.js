@@ -528,7 +528,7 @@ function drawGearAura(g,x,y,size,t,back){if(!back)drawEnhanceAura(g,x,y,size,t,a
 let statPending=false;
 let sheetTab='stats',sheetSel=null,sheetPose=0,sheetAnim=0;
 const POSES=[{anim:'idle'},{anim:'walk'},{anim:'attack'},{anim:'skill'}];
-function statMenu(tab=sheetTab){if(!s||!p||travelBusy)return;sheetTab=tab;statPending=false;
+function statMenu(tab=sheetTab){if(!s||!p||travelBusy)return;if(onlineMode&&tab==='bag')return onlineInventory();sheetTab=tab;statPending=false;
  const c=combatStats(s),power=heroPower(s,basePower());
  const slotHtml=k=>{const it=s.equip[k];return `<button class="gear-slot ${sheetSel?.where==='equip'&&sheetSel.slot===k?'sel':''}" data-eq="${k}" style="--rc:${it?RARITY[it.rarity].color:'#5b4224'}" title="${SLOTS[k].name}">${slotIcon(k,it?RARITY[it.rarity].color:'#6b5434')}${it?`<i>${TIERS[it.tier].name}</i>`:`<i>${SLOTS[k].name}</i>`}</button>`;};
  const left=SLOT_ORDER.slice(0,4).map(slotHtml).join(''),right=SLOT_ORDER.slice(4).map(slotHtml).join('');
@@ -608,6 +608,3 @@ function updateWardrobe(){
  $('fashionItemName').textContent=selected?.name||'ลุคที่สวมอยู่';$('fashionItemDescription').textContent=selected?'ภาพด้านหน้าและด้านหลัง • ใช้ได้ทั้ง 4 อาชีพ':'เลือกไอเท็มในกระเป๋าเพื่อลองสวม';
  const equipped=selected&&look[selected.slot]===selected.id;$('fashionWear').disabled=!selected||equipped;$('fashionWear').textContent=equipped?'✓ สวมอยู่':'สวมใส่';$('fashionMessage').textContent=equipped?'บันทึกลุคนี้แล้ว • มองเห็นในสนามและออนไลน์':'';
 }
-
-
-
