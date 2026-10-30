@@ -78,3 +78,12 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Signed bundle validated for packaged 4.13.0, native 97 and original upload key; Play accepted package/version/signature. Stale Gradle output was detected before upload; the current signed artifact was produced from the verified new intermediary bundle.
 - Published INTERNAL release 11, named 97 (4.13.0) Online character selection, track 4701506968907566093. Play reports ready for internal testers at 07:23 Asia/Bangkok. Closed/public tracks unchanged.
 - Removing offline entry addresses the user's confirmed offline path. Physical-device rewarded ad completion remains unverified and AdMob approval/serving limitations above still apply.
+
+## Rewarded ad diagnostics release 98 (2026-10-30)
+- User reports enabled ad button but no video. Exact physical-device SDK failure is still unknown.
+- Source c450817a62d184283e5ac5bcddd1631f18632be1, native 98 / game 4.13.1.
+- Persistent status inside the shop modal exposes ticket request, native load, verification and failures. Previous generic toasts were outside the modal top layer.
+- Online transport now reports send failure; ticket wait expires after 15 seconds. Native loading expires after 45 seconds and ignores stale callbacks. Actual SDK error domain/code/message is shown locally, without account tokens.
+- 103 Node tests passed, including transport disconnect/backpressure/exception regression. 21 native tests passed, one optional live-feed test skipped; local release bundle and lint passed. Original-key signature verified and Play accepted version/package.
+- INTERNAL release 12 published as 98 (4.13.1) Rewarded ads diagnostics; console reports ready for internal testers, updated 30 Oct 08:30. Server remains 4.13.0; no backend change.
+- Signed artifact COCKRO-98-Ads-diagnostics-signed.aab, 32959872 bytes. This release improves failure handling/visibility; it does not establish real ad fill, completed viewing or reward receipt. These require physical-device confirmation.
