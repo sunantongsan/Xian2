@@ -4512,7 +4512,9 @@ var PROTOCOL = "cockro-online-2";
 var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 var finite = (...v) => v.every((x) => typeof x === "number" && Number.isFinite(x));
 var World = class {
-  constructor() {
+  constructor({ maxPlayers = 64 } = {}) {
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 256) throw Error("invalid_capacity");
+    this.maxPlayers = maxPlayers;
     this.players = /* @__PURE__ */ new Map();
     this.maps = { town: MAPS.town, forest: MAPS.forest, star: parseTiled(hero_star_default) };
     this.mobs = { town: [], forest: makePopulation().map((e) => ({ ...e, id: e.spawnId })), star: [] };
@@ -4528,7 +4530,7 @@ var World = class {
   join(id, s) {
     normalizeFashion(s);
     if (this.players.has(id)) throw Error("already_online");
-    if (this.players.size >= 12) throw Error("room_full");
+    if (this.players.size >= this.maxPlayers) throw Error("room_full");
     const p = { id, s, name: "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
     this.players.set(id, p);
     return p;
@@ -4821,20 +4823,20 @@ var World = class {
     const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
-    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
+    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
   }
 };
 
 // server/server.js
-function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
+function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
   (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const world = new World(), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
+  const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
   let diskFailure = false;
   const ssvStatus = { verified: 0, rejected: 0, lastError: null };
   function allow(ip) {
     const now = Date.now();
     let q = (limits.get(ip) || []).filter((t) => t > now - 6e4);
-    if (q.length >= 30) return false;
+    if (q.length >= Math.max(30, maxPlayers * 2)) return false;
     q.push(now);
     limits.set(ip, q);
     return true;
@@ -4902,7 +4904,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.12.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: 12 }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.13.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -4913,7 +4915,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     const origin = req.headers.origin;
     const validOrigin = origin === "https://appassets.androidplatform.net" || origin === "https://cockro-game-updates.vercel.app" || /^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin || "") || test && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
     const ip = req.socket.remoteAddress === "127.0.0.1" ? req.headers["x-real-ip"] || req.socket.remoteAddress : req.socket.remoteAddress;
-    if (req.url !== "/online/world" || !validOrigin || connections.size >= 24 || !allow(ip)) {
+    if (req.url !== "/online/world" || !validOrigin || connections.size >= maxPlayers + 16 || !allow(ip)) {
       socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
@@ -4945,6 +4947,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.type !== "hello" || d.version !== PROTOCOL) throw Error("version_mismatch");
           let token = d.token;
           let created = false;
+          if (d.preview === true && !token) throw Error("invalid_token");
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
@@ -4957,6 +4960,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
           const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
           if (!state) throw Error("invalid_save");
+          if (d.preview === true) {
+            send(ws, { type: "roster", characters: [{ id: "main", hero: state.hero, level: state.level }] });
+            clearTimeout(timer);
+            ws.close(1e3);
+            return;
+          }
           p = world.join(id, state);
           persist(p);
           clearTimeout(timer);

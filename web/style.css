@@ -250,3 +250,7 @@ dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
 #hud .right .direct-shortcut{display:flex;flex-direction:column;align-items:center;justify-content:center;width:43px;min-width:43px;height:49px;min-height:49px;padding:3px;margin:0;border:1px solid #b69652;border-radius:10px;background:linear-gradient(#264456,#0c1d2c);color:#ffe3a1;pointer-events:auto}
 .direct-shortcut svg{width:28px;height:28px}.direct-shortcut small{font-size:8px!important}
 .checkin-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:18px 0}.checkin-day{display:flex;flex-direction:column;align-items:center;gap:8px;border:1px solid #576779;border-radius:9px;padding:10px 2px;background:#102338}.checkin-day.today{border-color:#ffda7c;background:#44351f;box-shadow:0 0 12px #e6b34744}.checkin-day.claimed{border-color:#5fbd8f}.checkin-day small{font-size:10px;min-height:13px}.checkin-day b{font-size:12px}.gold-coin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:2px solid #ffe4a2;border-radius:50%;background:radial-gradient(circle at 35% 25%,#ffe588,#b97a12);color:#68400a;font-size:21px;box-shadow:0 2px 8px #0005}
+
+.welcome-roster .hero-card[aria-pressed="true"]{outline:2px solid #ffe3a1;background:linear-gradient(#34536b,#172936)}
+.welcome-roster .hero-card small{display:block;margin-top:5px}
+body.welcome-screen #choose{background:linear-gradient(#c7973e,#77531c);color:#fff4d1;font-size:17px;min-width:140px}
