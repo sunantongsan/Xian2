@@ -60,3 +60,10 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - Tester link: https://play.google.com/apps/internaltest/4701506968907566093 — owner account verified enrolled.
 - Backend health remained healthy on server release 4.12.0; this client-only update did not redeploy backend.
 - Physical-device ad load/consent/reward completion is still unverified. AdMob store link/app approval and public store metadata remain outstanding. Do not claim production monetization is fully approved.
+
+## Internal recovery release 96 (2026-10-30)
+- User still saw the disabled placeholder from 4.11.0 after Play displayed 4.12.1. Exact on-device cause is unconfirmed; do not claim the user failed to update.
+- Reproduced a patch-selection defect: unreadable/missing patch.json fell through to using that patch. Regression failed before the fix and passes after. Invalid, older and equal-version patches now use bundled assets.
+- Native resource cache is cleared on load; localStorage, cookies, online credentials and saves are not cleared. Local responses use no-store and WebView LOAD_NO_CACHE. Shop shows game 4.12.2 and native build code.
+- Source 70a35cba02a0767a594dc0290befdde2cdd9782b; signed AAB version96/4.12.2. 99 Node tests and 21 native tests passed (one optional live-feed skipped); release lint and bundle build passed, JAR signature verified.
+- Published INTERNAL release10 on track4701506968907566093, console reports ready for internal testers at07:02 Asia/Bangkok. No devices removed. Physical-device confirmation and ad completion still pending; no new ad approval claimed.
