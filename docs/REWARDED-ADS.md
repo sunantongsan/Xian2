@@ -87,3 +87,15 @@ References: https://developers.google.com/admob/android/quick-start ; https://de
 - 103 Node tests passed, including transport disconnect/backpressure/exception regression. 21 native tests passed, one optional live-feed test skipped; local release bundle and lint passed. Original-key signature verified and Play accepted version/package.
 - INTERNAL release 12 published as 98 (4.13.1) Rewarded ads diagnostics; console reports ready for internal testers, updated 30 Oct 08:30. Server remains 4.13.0; no backend change.
 - Signed artifact COCKRO-98-Ads-diagnostics-signed.aab, 32959872 bytes. This release improves failure handling/visibility; it does not establish real ad fill, completed viewing or reward receipt. These require physical-device confirmation.
+
+## Internal demo ads and responsive shop release 99 (2026-10-30)
+- User physical-device screenshot of 98 confirms SDK error code 3 with Account not approved yet. Requests reached Google; account approval blocks real serving.
+- Source a14f60a0c2520508ce7288ff4f3ce3fbea22d3a4, native 99 / game 4.14.0.
+- INTERNAL ONLY bundle built with -PcockroTestAds=true. Uses Google's sample app ID and rewarded unit; BuildConfig.TEST_ADS=true verified. Sample mode initializes directly without production consent messaging, does not request an SSV ticket and reports test-earned without real inventory grants. Normal release default remains real IDs/consent/SSV; do not promote this test artifact to public production.
+- Shop now updates existing balance, stock and button nodes on snapshots instead of recreating the modal every second. Scroll position stays intact. Immediate pending feedback, duplicate-click guard and bounded confirmation wait; no automatic purchase replay.
+- Server sends a snapshot then opResult immediately after an operation; purchases and rewards persist immediately. Other dirty gameplay progress persists at 5-second intervals and on disconnect. Abrupt process failure can lose up to that interval of non-transaction progress. Client never uploads authoritative balances or inventories.
+- 105 Node tests passed, including real-socket batched persistence/immediate purchase durability and shop DOM/scroll preservation. Local Android unit tests, release bundle and lint passed (21 native tests; one optional live-feed skipped).
+- Backend deployment run 40988039538 succeeded; live health reports 4.14.0 / capacity 64. Main workflow commit 60c335d48d325c2b54143cb811fe76447338711e. Hosted Android validation still fails before useful validation; local build is the evidence.
+- Original-key signed COCKRO-99-TestAds-signed.aab, 32962035 bytes, packaged version and sample manifest ID verified; Play accepted native 99 (4.14.0).
+- Published INTERNAL release 13: 99 (4.14.0) INTERNAL demo ads and shop. Console reports ready for testers, updated 30 Oct 08:52. Public/closed tracks unchanged.
+- Physical-phone demo playback/completion and subjective latency remain to be confirmed. Demo completion does not test real SSV reward delivery or account approval.
