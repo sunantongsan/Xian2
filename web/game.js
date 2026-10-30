@@ -163,12 +163,21 @@ function bindAccountButtons(owned,selected){
  if($('deletePassword'))$('deletePassword').onclick=()=>passwordScreen();
  if($('deleteCharacter'))$('deleteCharacter').onclick=()=>{const c=selected?.();if(c)deleteCharacterScreen(c);};
 }
-async function googleLogin(){
- if(!window.CockroAuth){toast('Google Login ต้องใช้ตัวแอปรุ่น 103 ขึ้นไป');return;}
- const b=$('googleLogin');if(b)b.disabled=true;
- try{const result=await net.account('authStart');sessionStorage.setItem('cockro-google-flow',result.flow);window.CockroAuth.postMessage(JSON.stringify({url:result.url}));toast('เลือกบัญชี Google ในเบราว์เซอร์');}catch(e){toast(accountError(e));if(b)b.disabled=false;}
+function googleStatus(text){
+ let status=$('googleStatus');
+ if(!status){status=document.createElement('p');status.id='googleStatus';status.setAttribute('role','status');$('modalContent').appendChild(status);}
+ status.textContent=text;
+ status.scrollIntoView?.({block:'nearest'});
 }
-window.addEventListener('cockro-google-callback',async e=>{const flow=sessionStorage.getItem('cockro-google-flow');if(!flow||typeof e.detail?.code!=='string')return;sessionStorage.removeItem('cockro-google-flow');try{const result=await net.account('authFinish',{flow,code:e.detail.code});net.setToken(result.token);await title();toast(result.loadedExisting?'โหลดตัวละครจากบัญชี Google แล้ว':'เชื่อมบัญชี Google แล้ว');}catch(err){await title();toast(accountError(err));}});
+async function googleLogin(){
+ if(!window.CockroAuth||typeof window.CockroAuth.postMessage!=='function'){googleStatus('ตัวแอปนี้ยังเปิด Google ไม่ได้ ต้องใช้แอปรหัส 103 ขึ้นไป และ Android System WebView รุ่นที่รองรับ ไม่ใช่อัปเดตเฉพาะแพตช์เกม');return;}
+ const b=$('googleLogin');if(b?.disabled)return;if(b)b.disabled=true;
+ googleStatus('กำลังเชื่อมต่อเพื่อเปิด Google…');
+ try{const result=await net.account('authStart');if(typeof result.flow!=='string'||typeof result.url!=='string')throw Error('invalid_response');sessionStorage.setItem('cockro-google-flow',result.flow);window.CockroAuth.postMessage(JSON.stringify({url:result.url}));googleStatus('เลือกบัญชี Google ในเบราว์เซอร์ หากยกเลิก สามารถกดเข้าสู่ระบบอีกครั้งได้');}
+ catch(e){googleStatus(({timeout:'เซิร์ฟเวอร์ตอบกลับช้า กรุณาลองใหม่',network_error:'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่',connection_closed:'การเชื่อมต่อขาดก่อนเปิด Google กรุณาลองใหม่',invalid_response:'เซิร์ฟเวอร์ตอบกลับไม่สมบูรณ์ กรุณาลองใหม่'})[e.message]||accountError(e));}
+ finally{if(b)b.disabled=false;}
+}
+window.addEventListener('cockro-google-callback',async e=>{const flow=sessionStorage.getItem('cockro-google-flow');if(!flow||typeof e.detail?.code!=='string')return;sessionStorage.removeItem('cockro-google-flow');try{const result=await net.account('authFinish',{flow,code:e.detail.code});net.setToken(result.token);await title();toast(result.loadedExisting?'โหลดตัวละครจากบัญชี Google แล้ว':'เชื่อมบัญชี Google แล้ว');}catch(err){await title();googleStatus(accountError(err));}});
 function requireCharacterName(c){show(`<h2>กรุณาตั้งชื่อ</h2><label>ชื่อตัวละคร<input id="requiredName" maxlength="20" minlength="2" required autocomplete="off"></label><p id="nameError" role="status"></p>${button('saveName','ยืนยันชื่อ')}${button('nameBack','กลับ')}`);$('saveName').onclick=async()=>{const name=characterName($('requiredName').value);if(!name){$('nameError').textContent='กรุณาตั้งชื่อ 2–20 ตัวอักษร';return;}$('saveName').disabled=true;try{await net.account('rename',{character:c.id,name});title();}catch(e){$('saveName').disabled=false;$('nameError').textContent=accountError(e);}};$('nameBack').onclick=title;}
 async function passwordScreen(){let status;try{status=await net.account('status');}catch(e){toast(accountError(e));return;}show(`<h2>ตั้งรหัสลบตัวละคร</h2><p>รหัสเฉพาะเกม ไม่ใช่รหัสผ่าน Google • อย่างน้อย 8 ตัวอักษร</p>${status.hasPassword?'<label>รหัสเดิม<input id="oldDeletePassword" type="password" autocomplete="current-password"></label>':''}<label>รหัสใหม่<input id="newDeletePassword" type="password" minlength="8" maxlength="128" autocomplete="new-password"></label><label>ยืนยันรหัสใหม่<input id="repeatDeletePassword" type="password" autocomplete="new-password"></label><p id="passwordError" role="status"></p>${button('saveDeletePassword','บันทึกรหัส')}${button('passwordBack','กลับ')}`);$('passwordBack').onclick=title;$('saveDeletePassword').onclick=async()=>{const password=$('newDeletePassword').value;if(password.length<8||password!==$('repeatDeletePassword').value){$('passwordError').textContent='รหัสอย่างน้อย 8 ตัวอักษร และต้องตรงกัน';return;}$('saveDeletePassword').disabled=true;try{await net.account('setPassword',{password,oldPassword:$('oldDeletePassword')?.value});title();toast('ตั้งรหัสลบตัวละครแล้ว');}catch(e){$('saveDeletePassword').disabled=false;$('passwordError').textContent=accountError(e);}};}
 async function deleteCharacterScreen(c){let status;try{status=await net.account('status');}catch(e){toast(accountError(e));return;}if(!status.hasPassword)return passwordScreen();show(`<h2>ลบตัวละคร</h2><p>${escapeHTML(c.name||'กรุณาตั้งชื่อ')} • Lv.${c.level}</p><p>ตัวละครและไอเท็มจะถูกนำออกจากบัญชี</p><label>พิมพ์ชื่อตัวละครเพื่อยืนยัน<input id="deleteName" autocomplete="off"></label><label>รหัสลบตัวละคร<input id="deleteSecret" type="password" autocomplete="current-password" maxlength="128"></label><p id="deleteError" role="status"></p>${button('confirmDeleteCharacter','ยืนยันลบตัวละคร')}${button('cancelDeleteCharacter','ยกเลิก')}`);$('cancelDeleteCharacter').onclick=title;$('confirmDeleteCharacter').onclick=async()=>{$('confirmDeleteCharacter').disabled=true;try{await net.account('delete',{character:c.id,confirmName:$('deleteName').value,password:$('deleteSecret').value});title();toast('ลบตัวละครแล้ว');}catch(e){$('confirmDeleteCharacter').disabled=false;$('deleteError').textContent=accountError(e);}};}
@@ -634,6 +643,7 @@ function updateWardrobe(){
  $('fashionItemName').textContent=selected?.name||'ลุคที่สวมอยู่';$('fashionItemDescription').textContent=selected?'ภาพด้านหน้าและด้านหลัง • ใช้ได้ทั้ง 4 อาชีพ':'เลือกไอเท็มในกระเป๋าเพื่อลองสวม';
  const equipped=selected&&look[selected.slot]===selected.id;$('fashionWear').disabled=!selected||equipped;$('fashionWear').textContent=equipped?'✓ สวมอยู่':'สวมใส่';$('fashionMessage').textContent=equipped?'บันทึกลุคนี้แล้ว • มองเห็นในสนามและออนไลน์':'';
 }
+
 
 
 

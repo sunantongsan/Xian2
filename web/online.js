@@ -1,7 +1,17 @@
 export const ONLINE_URL='wss://game.guardscan.xyz/online/world';
 const KEY='cockro-online-device-token-v1';
 export class OnlineClient {
- async account(action,data={}){return new Promise((resolve,reject)=>{const ws=new WebSocket(ONLINE_URL),timeout=setTimeout(()=>{ws.close();reject(Error('timeout'));},20000);ws.onopen=()=>ws.send(JSON.stringify({type:action==='authStart'||action==='authFinish'?action:'manage',action,token:localStorage.getItem(KEY),...data}));ws.onmessage=e=>{const d=JSON.parse(e.data);clearTimeout(timeout);ws.close();d.type==='error'?reject(Error(d.message)):resolve(d);};ws.onerror=()=>{clearTimeout(timeout);reject(Error('network_error'));};});}
+ async account(action,data={}){return new Promise((resolve,reject)=>{
+  let ws,timeout,done=false;
+  const finish=(error,value)=>{if(done)return;done=true;clearTimeout(timeout);try{ws?.close();}catch{}error?reject(error):resolve(value);};
+  try{const token=localStorage.getItem(KEY);ws=new WebSocket(ONLINE_URL);
+   timeout=setTimeout(()=>finish(Error('timeout')),20000);
+   ws.onopen=()=>{try{ws.send(JSON.stringify({type:action==='authStart'||action==='authFinish'?action:'manage',action,token,...data}));}catch{finish(Error('network_error'));}};
+   ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(!d||typeof d!=='object')throw Error('invalid_response');d.type==='error'?finish(Error(d.message)):finish(null,d);}catch{finish(Error('invalid_response'));}};
+   ws.onerror=()=>finish(Error('network_error'));
+   ws.onclose=()=>finish(Error('connection_closed'));
+  }catch{finish(Error('network_error'));}
+ });}
  setToken(token){if(!/^\w{64}$/.test(token))throw Error('invalid_token');const old=localStorage.getItem(KEY);if(old)localStorage.setItem(KEY+'-previous',old);localStorage.setItem(KEY,token);}
  constructor(onState,onStatus){this.onState=onState;this.onStatus=onStatus;this.socket=null;this.ready=false;this.sequence=0;this.lastSend=0;this.events=0;this.players=[];this.active=false;this.retries=0;}
  get hasAccount(){try{return !!localStorage.getItem(KEY);}catch{return false;}}
@@ -28,6 +38,7 @@ export class OnlineClient {
  move(p){const now=performance.now();if(now-this.lastSend<100)return;this.lastSend=now;this.send({type:'move',x:p.x,y:p.y,seq:++this.sequence});}
  disconnect(){this.active=false;this.ready=false;clearTimeout(this.timer);const socket=this.socket;this.socket=null;socket?.close();this.players=[];}
 }
+
 
 
 
