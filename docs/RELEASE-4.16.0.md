@@ -16,13 +16,13 @@
 
 ## Audio and art
 User-supplied audio copied unchanged: sergequadrado-cool-hip-hop-loop-275527.mp3 (quiet background loop); dragon-studio-massive-explosion-2-397983.mp3 (skill, rate-limited); pw23check-winning-218995.mp3 (successful enhancement/reward). Mutes with settings and pauses when document hidden.
-Existing detailed gemstone WebP icons retained. New generated image `web/items/equipment-atlas.png` is consumed through CSS background positions, never a placeholder. Built-in imagegen prompt: three equal square cells, navy background, cyan sci-fi sword, ruby gold ring, emerald gold pendant, premium rendered fantasy loot, no labels or watermark.
+Existing detailed gemstone WebP icons retained. New generated image `web/items/equipment-atlas.webp` is consumed through CSS background positions, never a placeholder. Built-in imagegen prompt: three equal square cells, navy background, cyan sci-fi sword, ruby gold ring, emerald gold pendant, premium rendered fantasy loot, no labels or watermark.
 
 ## Validation and status
-118 Node tests pass. Android Gradle release APK and AAB builds with internal test ads and original upload certificate. Native unit tests run; the existing external update-feed test is skipped without its explicit live flag. Two-client local WebSocket smoke passes movement visibility, gear appearance, purchases, save rejection and reconnect persistence.
-Visual browser validation is blocked: Chromium download returned an invalid archive; remote browser cannot access the local preview server. No physical Android-device test or real audio listening test was performed.
-NOT uploaded to Play Console and NOT deployed to live backend/patch feed. The 4.16 client requires a 4.16 server welcome; it deliberately refuses older servers rather than silently using old economy rules. Do not distribute this APK to players before deploying its backend.
-Referral verification/rewards, dungeon content and real-money gold billing are not included in this enhancement implementation. Existing live code100 remains unchanged.
+119 Node tests pass. Android Gradle release APK and AAB builds with internal test ads and original upload certificate. Native unit tests run; the existing external update-feed test is skipped without its explicit live flag. Two-client local WebSocket smoke passes movement visibility, gear appearance, purchases, save rejection and reconnect persistence.
+Live browser validation passed: new character receives 100,000 G and 50,000 test gold; alloy purchase costs 15 gold; +1 enhancement costs 20 gold and 500 G; confirmed celebration displays the equipment art and attack 9 -> 9.7. No physical Android-device test or real audio listening test was performed.
+Released as an automatic patch for installed Android code 100+ on 2026-10-30. Backend and production latest.json both verified 4.16.0. No new AAB was uploaded to Play Console. The installed Android PatchArchive extracted the exact published ZIP and verified all asset checksums, art and audio.
+Referral verification/rewards, dungeon content and real-money gold billing are not included in this enhancement implementation. Native code 100 remains installed and loads the 4.16.0 asset patch.
 
 ## Deployment order
 1. Back up authoritative account JSON data. Do not clear existing accounts or online device tokens.
@@ -31,3 +31,13 @@ Referral verification/rewards, dungeon content and real-money gold billing are n
 4. Validate one existing account gets +50,000 exactly once across reconnect/restart; validate successful and failed video-restore flows on Android. Verify old balances and compensated gems before broad rollout.
 5. Publish Android 101 to INTERNAL track only after validation. APK uses upload certificate, which may differ from Google Play app-signing certificate; do not uninstall a tester's installed app to replace it, as device-token access may be lost. Use Play internal AAB for existing Play-installed accounts.
 6. Rollback requires both old client and backend plus pre-migration backup; never blindly load migrated saves into older code.
+
+## Completed deployment evidence
+- Source commit: 6cd1bcf28939bf9423f25f31ae7c973ff838ee55 (cockro-4.16.0-forge).
+- Main release pin: dae154e893418e7e2c7f97e3a0f01dac6ad18d29.
+- VPS workflow: https://github.com/sunantongsan/Xian2/actions/runs/41011553410 — successful, 60 deployment tests, two-client smoke, unsigned SSV rejection.
+- Startup backup runs before listening, stores original account JSON once under release-backups/before-4.16.0 in the authoritative data directory, and fails closed on backup error.
+- Vercel production: dpl_BYjdMZTRb8FCGCUWq3JaWrd724j9, READY.
+- Feed: https://cockro-game-updates.vercel.app/latest.json
+- Patch: 18,960,635 bytes; SHA256 a5c2ecbb2f7d90904a2fb7dbfa34aafed221462203a2e1b4eca7ae7c484ad6d0.
+- Item artwork converted to WebP because the installed extractor rejects PNG.
