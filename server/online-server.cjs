@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes4, createHash: createHash2 } = require("crypto");
+    var { randomBytes: randomBytes4, createHash: createHash3 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2944,7 +2944,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash2("sha1").update(key + GUID).digest("base64");
+        const digest = createHash3("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3313,7 +3313,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http2 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash2 } = require("crypto");
+    var { createHash: createHash3 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3620,7 +3620,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash2("sha1").update(key + GUID).digest("base64");
+        const digest = createHash3("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -3707,6 +3707,63 @@ var require_websocket_server = __commonJS({
   }
 });
 
+// server/characters.js
+var import_node_crypto = require("node:crypto");
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+
+// web/daily-activities.js
+var dayKey = (now = Date.now()) => new Date(now + 7 * 36e5).toISOString().slice(0, 10);
+var DAILY_TASKS = [{ id: "hunt", name: "\u0E25\u0E48\u0E32\u0E21\u0E2D\u0E19\u0E2A\u0E40\u0E15\u0E2D\u0E23\u0E4C 100 \u0E15\u0E31\u0E27", target: 100, g: 5e3, alloy: 3 }, { id: "boss", name: "\u0E1B\u0E23\u0E32\u0E1A\u0E1A\u0E2D\u0E2A 3 \u0E15\u0E31\u0E27", target: 3, g: 1e4, alloy: 5 }, { id: "upgrade", name: "\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 1 \u0E04\u0E23\u0E31\u0E49\u0E07", target: 1, g: 2e3, alloy: 2 }];
+function dailyState(s, now = Date.now()) {
+  const day = dayKey(now);
+  if (s.dailyActivities?.day !== day) s.dailyActivities = { day, hunt: 0, boss: 0, upgrade: 0, claimed: [] };
+  return s.dailyActivities;
+}
+function countActivity(s, id, now = Date.now()) {
+  const d = dailyState(s, now);
+  if (DAILY_TASKS.some((t) => t.id === id)) d[id] = Math.min(1e5, (d[id] || 0) + 1);
+}
+function claimActivity(s, id, now = Date.now()) {
+  const t = DAILY_TASKS.find((t2) => t2.id === id), d = dailyState(s, now);
+  if (!t || d.claimed.includes(id) || (d[id] || 0) < t.target) return false;
+  s.gold += t.g;
+  s.upgradeItems.alloy = Math.min(99999, (s.upgradeItems.alloy || 0) + t.alloy);
+  d.claimed.push(id);
+  return true;
+}
+function normalizeActivities(s, v) {
+  const d = v.dailyActivities;
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.day)) return;
+  s.dailyActivities = { day: d.day, claimed: Array.isArray(d.claimed) ? d.claimed.filter((id) => DAILY_TASKS.some((t) => t.id === id)) : [] };
+  for (const t of DAILY_TASKS) s.dailyActivities[t.id] = Number.isFinite(d[t.id]) ? Math.max(0, Math.min(1e5, Math.floor(d[t.id]))) : 0;
+}
+
+// web/checkin.js
+var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
+var DAY = 864e5;
+var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
+function normalizeCheckin(s, v = s) {
+  const c = v.checkin || {};
+  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
+  return s;
+}
+function checkinStatus(s, now = Date.now()) {
+  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
+  const claimed = Number.isInteger(last) && last >= today;
+  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
+  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
+}
+function claimCheckin(s, now = Date.now()) {
+  if (!Number.isFinite(now)) return 0;
+  normalizeCheckin(s);
+  const status = checkinStatus(s, now);
+  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
+  s.stones += status.reward;
+  s.checkin = { lastDay: status.today, streak: status.day };
+  return status.reward;
+}
+
 // web/enhancement.js
 var ENHANCE_SLOTS = ["weapon", "ring", "amulet"];
 var MAX_PLUS = 9;
@@ -3785,9 +3842,6 @@ function exchangeGold(s, amount) {
   return true;
 }
 
-// server/server.js
-var import_node_http = __toESM(require("node:http"), 1);
-
 // web/upgrade-items.js
 var UPGRADE_ITEMS = {
   alloy: { name: "\u0E42\u0E25\u0E2B\u0E30\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1E\u0E25\u0E31\u0E07", price: 15, description: "\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E15\u0E35\u0E1A\u0E27\u0E01 +1 \u0E16\u0E36\u0E07 +9 \u2022 \u0E43\u0E0A\u0E49\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19", icon: "items/glowstone.webp" },
@@ -3831,188 +3885,6 @@ function socketGem(s, slot, id) {
   return true;
 }
 
-// server/reward-target.js
-function rewardTarget(s, item) {
-  if (typeof item === "string" && item.startsWith("restore:")) {
-    const target = restoreTarget(s, item.slice(8));
-    if (!target) throw Error("invalid_reward");
-    return target;
-  }
-  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
-  return null;
-}
-function deliverReward(s, t) {
-  if (t.item.startsWith("restore:")) {
-    if (!restoreSpecial(s, t.restore)) throw Error("restore_expired");
-    return;
-  }
-  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
-  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
-}
-
-// server/test-rewards.js
-var import_node_crypto = require("node:crypto");
-function issueTestTicket(s, item, now = Date.now()) {
-  const restore = rewardTarget(s, item);
-  s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
-  const recent = s.adTickets.filter((t2) => t2.kind === "demo");
-  const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
-  if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
-  if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto.randomBytes)(24).toString("hex"), item, restore, created: now };
-  s.adTickets.push(t);
-  return t;
-}
-function completeTestTicket(s, nonce, now = Date.now()) {
-  const t = s.adTickets?.find((t2) => t2.kind === "demo" && t2.nonce === nonce);
-  if (!t || now - t.created > 36e5) throw Error("invalid_test_ticket");
-  if (t.transaction) return { item: t.item, duplicate: true };
-  deliverReward(s, t);
-  t.transaction = "demo:" + nonce;
-  return { item: t.item, duplicate: false };
-}
-
-// server/rewarded-ads.js
-var import_node_crypto2 = require("node:crypto");
-var TTL = 36e5;
-var RETENTION = 864e5;
-function issueRewardTicket(s, item, now = Date.now()) {
-  const restore = rewardTarget(s, item);
-  const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
-  if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
-  if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, restore, created: now };
-  s.adTickets = [...tickets, ticket];
-  return ticket;
-}
-function applyVerifiedReward(s, params, now = Date.now()) {
-  const ticket = s.adTickets?.find((t) => t.nonce === params.custom_data);
-  if (!ticket || ticket.kind === "demo") throw Error("unknown_ticket");
-  if (ticket.transaction) {
-    if (ticket.transaction === params.transaction_id) return false;
-    throw Error("used_ticket");
-  }
-  const stamp = Number(params.timestamp);
-  if (!Number.isFinite(stamp) || stamp < ticket.created - 6e4 || stamp > ticket.created + TTL || stamp > now + 6e4 || now - stamp > RETENTION) throw Error("expired_reward");
-  if (!/^[\w.-]{1,200}$/.test(params.transaction_id || "") || s.adTickets.some((t) => t.transaction === params.transaction_id)) throw Error("duplicate_transaction");
-  deliverReward(s, ticket);
-  ticket.transaction = params.transaction_id;
-  return true;
-}
-function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/admob/reward/verifier-keys.json", { signal: AbortSignal.timeout(5e3) }), unit } = {}) {
-  let cache = /* @__PURE__ */ new Map(), fetched = 0, inflight;
-  async function refresh() {
-    if (!inflight) inflight = (async () => {
-      const r = await fetchKeys();
-      if (!r.ok) throw Error("keys_unavailable");
-      const json = await r.json();
-      const next = new Map(json.keys.map((k) => [String(k.keyId), k.pem]));
-      if (!next.size) throw Error("keys_unavailable");
-      cache = next;
-      fetched = Date.now();
-    })().finally(() => inflight = null);
-    return inflight;
-  }
-  return async (raw) => {
-    if (!unit || unit.includes("3940256099942544")) throw Error("ads_disabled");
-    if (raw.length > 4096) throw Error("invalid_callback");
-    const match = /^(.+)&signature=([A-Za-z0-9_%=-]+)&key_id=(\d+)$/.exec(raw);
-    if (!match) throw Error("invalid_signature");
-    const [, content, signature, keyId] = match, params = new URLSearchParams(content), seen = /* @__PURE__ */ new Set();
-    for (const [key2] of params) {
-      if (seen.has(key2) || ["signature", "key_id"].includes(key2)) throw Error("duplicate_parameter");
-      seen.add(key2);
-    }
-    if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
-    const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto2.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
-    const p = Object.fromEntries(params);
-    if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
-    if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
-    if (p.reward_amount !== "1" || p.reward_item !== "item") throw Error("wrong_reward");
-    if (!/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward_identity");
-    return p;
-  };
-}
-
-// node_modules/ws/wrapper.mjs
-var import_stream = __toESM(require_stream(), 1);
-var import_extension = __toESM(require_extension(), 1);
-var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
-var import_receiver = __toESM(require_receiver(), 1);
-var import_sender = __toESM(require_sender(), 1);
-var import_subprotocol = __toESM(require_subprotocol(), 1);
-var import_websocket = __toESM(require_websocket(), 1);
-var import_websocket_server = __toESM(require_websocket_server(), 1);
-
-// server/server.js
-var import_node_crypto3 = require("node:crypto");
-var import_node_fs = require("node:fs");
-var import_node_path = require("node:path");
-
-// web/daily-activities.js
-var dayKey = (now = Date.now()) => new Date(now + 7 * 36e5).toISOString().slice(0, 10);
-var DAILY_TASKS = [{ id: "hunt", name: "\u0E25\u0E48\u0E32\u0E21\u0E2D\u0E19\u0E2A\u0E40\u0E15\u0E2D\u0E23\u0E4C 100 \u0E15\u0E31\u0E27", target: 100, g: 5e3, alloy: 3 }, { id: "boss", name: "\u0E1B\u0E23\u0E32\u0E1A\u0E1A\u0E2D\u0E2A 3 \u0E15\u0E31\u0E27", target: 3, g: 1e4, alloy: 5 }, { id: "upgrade", name: "\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 1 \u0E04\u0E23\u0E31\u0E49\u0E07", target: 1, g: 2e3, alloy: 2 }];
-function dailyState(s, now = Date.now()) {
-  const day = dayKey(now);
-  if (s.dailyActivities?.day !== day) s.dailyActivities = { day, hunt: 0, boss: 0, upgrade: 0, claimed: [] };
-  return s.dailyActivities;
-}
-function countActivity(s, id, now = Date.now()) {
-  const d = dailyState(s, now);
-  if (DAILY_TASKS.some((t) => t.id === id)) d[id] = Math.min(1e5, (d[id] || 0) + 1);
-}
-function claimActivity(s, id, now = Date.now()) {
-  const t = DAILY_TASKS.find((t2) => t2.id === id), d = dailyState(s, now);
-  if (!t || d.claimed.includes(id) || (d[id] || 0) < t.target) return false;
-  s.gold += t.g;
-  s.upgradeItems.alloy = Math.min(99999, (s.upgradeItems.alloy || 0) + t.alloy);
-  d.claimed.push(id);
-  return true;
-}
-function normalizeActivities(s, v) {
-  const d = v.dailyActivities;
-  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.day)) return;
-  s.dailyActivities = { day: d.day, claimed: Array.isArray(d.claimed) ? d.claimed.filter((id) => DAILY_TASKS.some((t) => t.id === id)) : [] };
-  for (const t of DAILY_TASKS) s.dailyActivities[t.id] = Number.isFinite(d[t.id]) ? Math.max(0, Math.min(1e5, Math.floor(d[t.id]))) : 0;
-}
-
-// web/checkin.js
-var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
-var DAY = 864e5;
-var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
-function normalizeCheckin(s, v = s) {
-  const c = v.checkin || {};
-  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
-  return s;
-}
-function checkinStatus(s, now = Date.now()) {
-  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
-  const claimed = Number.isInteger(last) && last >= today;
-  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
-  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
-}
-function claimCheckin(s, now = Date.now()) {
-  if (!Number.isFinite(now)) return 0;
-  normalizeCheckin(s);
-  const status = checkinStatus(s, now);
-  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
-  s.stones += status.reward;
-  s.checkin = { lastDay: status.today, streak: status.day };
-  return status.reward;
-}
-
-// web/balance.js
-var BALANCE_VERSION = 2;
-var normalXP = (level) => 20 + level * 8;
-var killsPerLevel = (level) => Math.round(8 + 1.2 * level + 6e-3 * level * level);
-var levelXP = (level) => normalXP(level) * killsPerLevel(level);
-var manaRegen = (s) => 6.5 + Math.min(6, (s.attributes?.int || 0) * 0.02);
-function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}) {
-  const hp = (110 + level * 65 + level * level * 1.4) * (1 + 3 * (1 - Math.exp(-(level - 1) / 10)));
-  return { hp: Math.round(hp * toughness * (boss ? 7 : elite ? 2.6 : 1)), damage: Math.round((12 + level * 5 + level * level * 0.09) * (boss ? 1.65 : elite ? 1.2 : 1)), xp: normalXP(level) * (boss ? 10 : elite ? 3 : 1), gold: Math.round((10 + level * 3) * (boss ? 8 : elite ? 3 : 1)) };
-}
-
 // web/fashion.js
 var FASHION_SETS = [
   { id: "cowboy", name: "\u0E04\u0E32\u0E27\u0E1A\u0E2D\u0E22\u0E1E\u0E40\u0E19\u0E08\u0E23", color: "#d5a86e", file: "fashion/cowboy.webp" },
@@ -4052,6 +3924,17 @@ function removeFashion(s, slot) {
 }
 function appearance(s) {
   return { ...s.fashion?.equipped || { hat: null, outfit: null } };
+}
+
+// web/balance.js
+var BALANCE_VERSION = 2;
+var normalXP = (level) => 20 + level * 8;
+var killsPerLevel = (level) => Math.round(8 + 1.2 * level + 6e-3 * level * level);
+var levelXP = (level) => normalXP(level) * killsPerLevel(level);
+var manaRegen = (s) => 6.5 + Math.min(6, (s.attributes?.int || 0) * 0.02);
+function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}) {
+  const hp = (110 + level * 65 + level * level * 1.4) * (1 + 3 * (1 - Math.exp(-(level - 1) / 10)));
+  return { hp: Math.round(hp * toughness * (boss ? 7 : elite ? 2.6 : 1)), damage: Math.round((12 + level * 5 + level * level * 0.09) * (boss ? 1.65 : elite ? 1.2 : 1)), xp: normalXP(level) * (boss ? 10 : elite ? 3 : 1), gold: Math.round((10 + level * 3) * (boss ? 8 : elite ? 3 : 1)) };
 }
 
 // web/advanced-monsters.js
@@ -4498,6 +4381,148 @@ function combatStats(s) {
   const a = s.attributes || {}, g = gearTotals(s);
   return { mp: Math.round(80 + s.level * 3 + (a.int || 0) * 8 + g.mp), defense: s.level * 0.25 + (a.vit || 0) * 0.6 + g.def, crit: Math.min(0.5, 0.05 + (a.agi || 0) * 1e-3 + g.crit), speed: Math.min(60, (a.agi || 0) * 0.15 + g.speed), haste: Math.min(0.35, (a.agi || 0) * 1e-3), spell: 1 + (a.int || 0) * 8e-3 + g.spell };
 }
+
+// server/characters.js
+var CHARACTER_SLOTS = ["main", "slot2", "slot3", "slot4"];
+function characterId(account, slot = "main") {
+  if (!CHARACTER_SLOTS.includes(slot)) throw Error("character_missing");
+  return slot === "main" ? account : (0, import_node_crypto.createHash)("sha256").update(account + ":" + slot).digest("hex");
+}
+function readCharacter(directory, account, slot = "main") {
+  const path = (0, import_node_path.join)(directory, characterId(account, slot) + ".json");
+  if (!(0, import_node_fs.existsSync)(path)) return null;
+  const state = validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+  if (!state) throw Error("invalid_save");
+  return state;
+}
+function characterRoster(directory, account) {
+  return CHARACTER_SLOTS.flatMap((id) => {
+    const state = readCharacter(directory, account, id);
+    return state ? [{ id, hero: state.hero, level: state.level }] : [];
+  });
+}
+
+// server/server.js
+var import_node_http = __toESM(require("node:http"), 1);
+
+// server/reward-target.js
+function rewardTarget(s, item) {
+  if (typeof item === "string" && item.startsWith("restore:")) {
+    const target = restoreTarget(s, item.slice(8));
+    if (!target) throw Error("invalid_reward");
+    return target;
+  }
+  if (!Object.hasOwn(UPGRADE_ITEMS, item) || (s.upgradeItems?.[item] || 0) >= 99999) throw Error("invalid_reward");
+  return null;
+}
+function deliverReward(s, t) {
+  if (t.item.startsWith("restore:")) {
+    if (!restoreSpecial(s, t.restore)) throw Error("restore_expired");
+    return;
+  }
+  if (!Object.hasOwn(UPGRADE_ITEMS, t.item) || (s.upgradeItems[t.item] || 0) >= 99999) throw Error("inventory_full");
+  s.upgradeItems[t.item] = (s.upgradeItems[t.item] || 0) + 1;
+}
+
+// server/test-rewards.js
+var import_node_crypto2 = require("node:crypto");
+function issueTestTicket(s, item, now = Date.now()) {
+  const restore = rewardTarget(s, item);
+  s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
+  const recent = s.adTickets.filter((t2) => t2.kind === "demo");
+  const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
+  if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
+  if (recent.length >= 20) throw Error("test_limit");
+  const t = { kind: "demo", nonce: (0, import_node_crypto2.randomBytes)(24).toString("hex"), item, restore, created: now };
+  s.adTickets.push(t);
+  return t;
+}
+function completeTestTicket(s, nonce, now = Date.now()) {
+  const t = s.adTickets?.find((t2) => t2.kind === "demo" && t2.nonce === nonce);
+  if (!t || now - t.created > 36e5) throw Error("invalid_test_ticket");
+  if (t.transaction) return { item: t.item, duplicate: true };
+  deliverReward(s, t);
+  t.transaction = "demo:" + nonce;
+  return { item: t.item, duplicate: false };
+}
+
+// server/rewarded-ads.js
+var import_node_crypto3 = require("node:crypto");
+var TTL = 36e5;
+var RETENTION = 864e5;
+function issueRewardTicket(s, item, now = Date.now()) {
+  const restore = rewardTarget(s, item);
+  const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
+  if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
+  if (tickets.length >= 100) throw Error("ad_limit");
+  const ticket = { nonce: (0, import_node_crypto3.randomBytes)(24).toString("hex"), item, restore, created: now };
+  s.adTickets = [...tickets, ticket];
+  return ticket;
+}
+function applyVerifiedReward(s, params, now = Date.now()) {
+  const ticket = s.adTickets?.find((t) => t.nonce === params.custom_data);
+  if (!ticket || ticket.kind === "demo") throw Error("unknown_ticket");
+  if (ticket.transaction) {
+    if (ticket.transaction === params.transaction_id) return false;
+    throw Error("used_ticket");
+  }
+  const stamp = Number(params.timestamp);
+  if (!Number.isFinite(stamp) || stamp < ticket.created - 6e4 || stamp > ticket.created + TTL || stamp > now + 6e4 || now - stamp > RETENTION) throw Error("expired_reward");
+  if (!/^[\w.-]{1,200}$/.test(params.transaction_id || "") || s.adTickets.some((t) => t.transaction === params.transaction_id)) throw Error("duplicate_transaction");
+  deliverReward(s, ticket);
+  ticket.transaction = params.transaction_id;
+  return true;
+}
+function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/admob/reward/verifier-keys.json", { signal: AbortSignal.timeout(5e3) }), unit } = {}) {
+  let cache = /* @__PURE__ */ new Map(), fetched = 0, inflight;
+  async function refresh() {
+    if (!inflight) inflight = (async () => {
+      const r = await fetchKeys();
+      if (!r.ok) throw Error("keys_unavailable");
+      const json = await r.json();
+      const next = new Map(json.keys.map((k) => [String(k.keyId), k.pem]));
+      if (!next.size) throw Error("keys_unavailable");
+      cache = next;
+      fetched = Date.now();
+    })().finally(() => inflight = null);
+    return inflight;
+  }
+  return async (raw) => {
+    if (!unit || unit.includes("3940256099942544")) throw Error("ads_disabled");
+    if (raw.length > 4096) throw Error("invalid_callback");
+    const match = /^(.+)&signature=([A-Za-z0-9_%=-]+)&key_id=(\d+)$/.exec(raw);
+    if (!match) throw Error("invalid_signature");
+    const [, content, signature, keyId] = match, params = new URLSearchParams(content), seen = /* @__PURE__ */ new Set();
+    for (const [key2] of params) {
+      if (seen.has(key2) || ["signature", "key_id"].includes(key2)) throw Error("duplicate_parameter");
+      seen.add(key2);
+    }
+    if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
+    const key = cache.get(keyId);
+    if (!key || !(0, import_node_crypto3.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    const p = Object.fromEntries(params);
+    if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
+    if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
+    if (p.reward_amount !== "1" || p.reward_item !== "item") throw Error("wrong_reward");
+    if (!/^[a-f0-9]{64}$/.test(p.user_id || "") || !/^[a-f0-9]{48}$/.test(p.custom_data || "")) throw Error("invalid_reward_identity");
+    return p;
+  };
+}
+
+// node_modules/ws/wrapper.mjs
+var import_stream = __toESM(require_stream(), 1);
+var import_extension = __toESM(require_extension(), 1);
+var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
+var import_receiver = __toESM(require_receiver(), 1);
+var import_sender = __toESM(require_sender(), 1);
+var import_subprotocol = __toESM(require_subprotocol(), 1);
+var import_websocket = __toESM(require_websocket(), 1);
+var import_websocket_server = __toESM(require_websocket_server(), 1);
+
+// server/server.js
+var import_node_crypto4 = require("node:crypto");
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
 
 // web/star-data.js
 var STAR_ZONES = [
@@ -5015,8 +5040,8 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
-  (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map();
+  (0, import_node_fs2.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
   const ssvStatus = { verified: 0, rejected: 0, lastError: null };
   function allow(ip) {
@@ -5029,9 +5054,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   }
   const persist = (p) => {
     try {
-      const path = (0, import_node_path.join)(directory, p.id + ".json");
-      (0, import_node_fs.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path2.join)(directory, p.id + ".json");
+      (0, import_node_fs2.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs2.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -5063,9 +5088,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.players.get(data.user_id), path = (0, import_node_path.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
+        const live = world.players.get(data.user_id), path = (0, import_node_path2.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs2.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs2.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -5098,7 +5123,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.16.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.17.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5144,27 +5169,38 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.preview === true && !token) throw Error("invalid_token");
           if (d.create === true && !token) {
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto3.randomBytes)(32).toString("hex");
+            if ((0, import_node_fs2.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            token = (0, import_node_crypto4.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const id = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex");
-          const path = (0, import_node_path.join)(directory, id + ".json");
-          if (!created && !(0, import_node_fs.existsSync)(path)) throw Error("account_missing");
-          const state = created ? fresh(d.hero) : validSave(JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")));
-          if (!state) throw Error("invalid_save");
+          const account = (0, import_node_crypto4.createHash)("sha256").update(token).digest("hex");
+          const main = created ? fresh(d.hero) : readCharacter(directory, account);
+          if (!main) throw Error("account_missing");
           if (d.preview === true) {
-            send(ws, { type: "roster", characters: [{ id: "main", hero: state.hero, level: state.level }] });
+            send(ws, { type: "roster", characters: characterRoster(directory, account) });
             clearTimeout(timer);
             ws.close(1e3);
             return;
           }
-          grantTestGold(state, testRewards);
+          if (activeAccounts.has(account)) throw Error("already_online");
+          let character = d.character || "main", state;
+          if (d.newCharacter === true && !created) {
+            if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
+            character = CHARACTER_SLOTS.find((slot) => !readCharacter(directory, account, slot));
+            if (!character) throw Error("character_limit");
+            state = fresh(d.hero);
+          } else state = character === "main" ? main : readCharacter(directory, account, character);
+          if (!state) throw Error("character_missing");
+          const id = characterId(account, character);
+          if (character === "main") grantTestGold(state, testRewards);
           p = world.join(id, state);
+          p.account = account;
+          p.character = character;
+          activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.16.0", id, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.17.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5215,7 +5251,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           send(ws, { type: "opResult", op: d.op });
         }
       } catch (error) {
-        send(ws, { type: "error", message: ["already_online", "room_full", "account_missing", "save_unavailable"].includes(error.message) ? error.message : "invalid_request" });
+        send(ws, { type: "error", message: ["already_online", "room_full", "account_missing", "save_unavailable", "character_missing", "character_limit"].includes(error.message) ? error.message : "invalid_request" });
         if (!p || error.message === "save_unavailable") ws.close(1008);
       }
     });
@@ -5228,6 +5264,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
         } catch {
         }
         world.players.delete(p.id);
+        activeAccounts.delete(p.account);
       }
     });
     ws.player = () => p;
@@ -5278,25 +5315,25 @@ var admob_config_default = {
 };
 
 // server/release-backup.js
-var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
-function backupBefore416(directory) {
-  (0, import_node_fs2.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path2.join)(directory, "release-backups"), final = (0, import_node_path2.join)(root, "before-4.16.0");
-  if ((0, import_node_fs2.existsSync)((0, import_node_path2.join)(final, "complete.json"))) return false;
-  (0, import_node_fs2.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path2.join)(root, `before-4.16.0-${Date.now()}-${process.pid}`);
-  (0, import_node_fs2.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs2.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs2.copyFileSync)((0, import_node_path2.join)(directory, name), (0, import_node_path2.join)(stage, name), import_node_fs2.constants.COPYFILE_EXCL);
-  (0, import_node_fs2.writeFileSync)((0, import_node_path2.join)(stage, "complete.json"), JSON.stringify({ release: "4.16.0", accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs2.renameSync)(stage, final);
-  console.log(`Pre-4.16.0 backup complete: ${names.length} accounts`);
+var import_node_fs3 = require("node:fs");
+var import_node_path3 = require("node:path");
+function backupBefore416(directory, release = "4.16.0") {
+  (0, import_node_fs3.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path3.join)(directory, "release-backups"), final = (0, import_node_path3.join)(root, "before-" + release);
+  if ((0, import_node_fs3.existsSync)((0, import_node_path3.join)(final, "complete.json"))) return false;
+  (0, import_node_fs3.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path3.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs3.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs3.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs3.copyFileSync)((0, import_node_path3.join)(directory, name), (0, import_node_path3.join)(stage, name), import_node_fs3.constants.COPYFILE_EXCL);
+  (0, import_node_fs3.writeFileSync)((0, import_node_path3.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs3.renameSync)(stage, final);
+  console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.17.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
