@@ -4,7 +4,7 @@ const url=process.env.COCKRO_TEST_URL||'wss://game.guardscan.xyz/online/world';
 const origin='https://cockro-game-updates.vercel.app';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(fn,ms=10000){const until=Date.now()+ms;while(Date.now()<until){const v=fn();if(v)return v;await pause(80);}throw Error('Timed out waiting for game state');}
-async function connect(token){const c={state:null,token,seq:0};c.ws=new WebSocket(url,{origin});c.ws.on('error',()=>{});c.ws.on('message',raw=>{const m=JSON.parse(raw);if(m.type==='welcome'){c.token=m.token||token;c.id=m.id;c.save=m.save;}if(m.type==='state')c.state=m;if(m.type==='error')c.error=m.message;});await new Promise((ok,no)=>{c.ws.once('open',ok);c.ws.once('error',no);});c.send=d=>c.ws.send(JSON.stringify(d));c.send({type:'hello',version:'cockro-online-2',create:!token,token,hero:'sword-cockro'});await wait(()=>c.state||c.error);if(c.error)throw Error(c.error);return c;}
+async function connect(token){const c={state:null,token,seq:0};c.ws=new WebSocket(url,{origin});c.ws.on('error',()=>{});c.ws.on('message',raw=>{const m=JSON.parse(raw);if(m.type==='welcome'){c.token=m.token||token;c.id=m.id;c.save=m.save;}if(m.type==='state')c.state=m;if(m.type==='error')c.error=m.message;});await new Promise((ok,no)=>{c.ws.once('open',ok);c.ws.once('error',no);});c.send=d=>c.ws.send(JSON.stringify(d));c.send({type:'hello',version:'cockro-online-2',create:!token,name:'PatchTester',token,hero:'sword-cockro'});await wait(()=>c.state||c.error);if(c.error)throw Error(c.error);return c;}
 async function main(){
 let a,b,again;
 try{

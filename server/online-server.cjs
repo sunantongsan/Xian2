@@ -3712,6 +3712,14 @@ var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
+// web/character-name.js
+function characterName(value) {
+  if (typeof value !== "string") return null;
+  const name = value.normalize("NFC").trim().replace(/ +/g, " ");
+  if (name.length < 2 || name.length > 20 || !/[\p{L}\p{N}]/u.test(name) || !/^[\p{L}\p{M}\p{N} _-]+$/u.test(name)) return null;
+  return name;
+}
+
 // web/daily-activities.js
 var dayKey = (now = Date.now()) => new Date(now + 7 * 36e5).toISOString().slice(0, 10);
 var DAILY_TASKS = [{ id: "hunt", name: "\u0E25\u0E48\u0E32\u0E21\u0E2D\u0E19\u0E2A\u0E40\u0E15\u0E2D\u0E23\u0E4C 100 \u0E15\u0E31\u0E27", target: 100, g: 5e3, alloy: 3 }, { id: "boss", name: "\u0E1B\u0E23\u0E32\u0E1A\u0E1A\u0E2D\u0E2A 3 \u0E15\u0E31\u0E27", target: 3, g: 1e4, alloy: 5 }, { id: "upgrade", name: "\u0E15\u0E35\u0E1A\u0E27\u0E01\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 1 \u0E04\u0E23\u0E31\u0E49\u0E07", target: 1, g: 2e3, alloy: 2 }];
@@ -4261,7 +4269,7 @@ function grantTownBuff(p, enabled, near, now = Date.now()) {
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4318,6 +4326,7 @@ function unlocked(s, z) {
 function validSave(v) {
   if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
   const s = fresh(v.hero);
+  s.name = characterName(v.name) || "";
   normalizeTownBuff(s, v);
   normalizeActivities(s, v);
   if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
@@ -4389,6 +4398,17 @@ function normalizeProgress(s, v = s) {
   s.autoAttack = v.autoAttack === true;
   return s;
 }
+function allocateStats(s, values) {
+  if (!values || typeof values !== "object" || Array.isArray(values)) return false;
+  const keys = Object.keys(values);
+  if (!keys.length || keys.some((k) => !Object.hasOwn(s.attributes, k))) return false;
+  if (keys.some((k) => !Number.isSafeInteger(values[k]) || values[k] < 0)) return false;
+  const total = keys.reduce((n, k) => n + values[k], 0);
+  if (!Number.isSafeInteger(total) || total < 1 || total > s.statPoints) return false;
+  for (const k of keys) s.attributes[k] += values[k];
+  s.statPoints -= total;
+  return true;
+}
 function allocateStat(s, key) {
   if (!Object.hasOwn(s.attributes, key) || s.statPoints < 1) return false;
   s.attributes[key]++;
@@ -4422,7 +4442,7 @@ function readCharacter(directory, account, slot = "main") {
 function characterRoster(directory, account) {
   return CHARACTER_SLOTS.flatMap((id) => {
     const state = readCharacter(directory, account, id);
-    return state ? [{ id, hero: state.hero, level: state.level }] : [];
+    return state ? [{ id, hero: state.hero, name: state.name || "", level: state.level }] : [];
   });
 }
 
@@ -4755,7 +4775,7 @@ var World = class {
     normalizeFashion(s);
     if (this.players.has(id)) throw Error("already_online");
     if (this.players.size >= this.maxPlayers) throw Error("room_full");
-    const p = { id, s, name: "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
+    const p = { id, s, name: s.name || "\u0E2E\u0E35\u0E42\u0E23\u0E48 " + id.slice(0, 5), map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
     this.players.set(id, p);
     return p;
   }
@@ -4844,8 +4864,10 @@ var World = class {
       return;
     }
     if (d.type === "op") {
+      p.opResult = { ok: false, message: "\u0E04\u0E33\u0E02\u0E2D\u0E16\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E44\u0E1B \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48" };
       if (now < (p.cd.op || 0)) return;
       p.cd.op = now + 0.1;
+      p.opResult = { ok: false, message: "\u0E17\u0E33\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E07\u0E34\u0E19 \u0E27\u0E31\u0E2A\u0E14\u0E38 \u0E41\u0E25\u0E30\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E01\u0E23\u0E30\u0E40\u0E1B\u0E4B\u0E32" };
       const atHome = this.home(p);
       switch (d.op) {
         case "townBuff": {
@@ -4864,10 +4886,10 @@ var World = class {
           if (atHome) rerollSpecial(s, d.slot);
           break;
         case "exchangeGold":
-          exchangeGold(s, Number(d.amount));
+          p.opResult.ok = !!exchangeGold(s, Number(d.amount));
           break;
         case "buyShopGear":
-          buyShopGear(s, d.slot);
+          p.opResult.ok = !!buyShopGear(s, d.slot);
           break;
         case "fashionWear":
           wearFashion(s, d.id);
@@ -4879,15 +4901,19 @@ var World = class {
           claimCheckin(s, now * 1e3);
           break;
         case "buy":
-          buyPotion(s);
+          p.opResult.ok = !!buyPotion(s);
           break;
         case "buyMP":
-          buyMPPotion(s);
+          p.opResult.ok = !!buyMPPotion(s);
           break;
         case "upgrade":
           break;
         case "buyUpgradeItem":
-          if (typeof d.id === "string") buyUpgradeItem(s, d.id);
+          if (typeof d.id === "string") p.opResult.ok = buyUpgradeItem(s, d.id);
+          break;
+        case "allocateStats":
+          p.opResult.ok = allocateStats(s, d.values);
+          p.opResult.message = "\u0E41\u0E15\u0E49\u0E21\u0E44\u0E21\u0E48\u0E1E\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E08\u0E33\u0E19\u0E27\u0E19\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07";
           break;
         case "socketGem":
           if (atHome && typeof d.id === "string" && typeof d.slot === "string") socketGem(s, d.slot, d.id);
@@ -5163,7 +5189,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.18.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.19.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5232,6 +5258,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             state = fresh(d.hero);
           } else state = character === "main" ? main : readCharacter(directory, account, character);
           if (!state) throw Error("character_missing");
+          if (created || d.newCharacter === true) {
+            const name = characterName(d.name);
+            if (!name) throw Error("invalid_name");
+            state.name = name;
+          }
           const id = characterId(account, character);
           if (testRewards && (created || d.newCharacter === true)) state.gold = 1e6;
           grantTestGold(state, testRewards);
@@ -5242,7 +5273,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.18.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.19.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5290,10 +5321,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
         if (p.dirty && ["op", "potion", "mpPotion", "enter", "revive"].includes(d.type)) persist(p);
         if (d.type === "op") {
           send(ws, world.snapshot(p));
-          send(ws, { type: "opResult", op: d.op });
+          send(ws, { type: "opResult", op: d.op, requestId: d.requestId, ...p.opResult });
         }
       } catch (error) {
-        send(ws, { type: "error", message: ["already_online", "room_full", "account_missing", "save_unavailable", "character_missing", "character_limit"].includes(error.message) ? error.message : "invalid_request" });
+        send(ws, { type: "error", message: ["invalid_name", "already_online", "room_full", "account_missing", "save_unavailable", "character_missing", "character_limit"].includes(error.message) ? error.message : "invalid_request" });
         if (!p || error.message === "save_unavailable") ws.close(1008);
       }
     });
@@ -5375,7 +5406,7 @@ var admob_config_default = {
 };
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.18.0");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.19.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {

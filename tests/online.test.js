@@ -14,7 +14,7 @@ test('shared monster death rewarded once and respawns consistently',()=>{const w
 test('potion and skill cooldowns cannot be bypassed by duplicate requests',()=>{const w=new World(),p=w.join('p',fresh('sword-cockro'));p.hp=1;w.command(p,{type:'potion'},100);w.command(p,{type:'potion'},100);assert.equal(p.s.potions,9);w.enter(p,'forest');p.mp=80;w.command(p,{type:'skill',slot:0},200);const mp=p.mp;w.command(p,{type:'skill',slot:0},200);assert.equal(p.mp,mp);});
 function client(url,hello){return new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:'http://localhost:8080'}),messages=[];ws.on('error',reject);ws.on('open',()=>ws.send(JSON.stringify(hello)));ws.on('message',raw=>{const m=JSON.parse(raw);messages.push(m);if(m.type==='welcome')resolve({ws,messages,welcome:m});});});}
 async function until(fn){for(let i=0;i<60;i++){const v=fn();if(v)return v;await new Promise(ok=>setTimeout(ok,50));}throw Error('timed out');}
-test('two real sockets see movement, reject duplicate identity, persist and resume',async t=>{const directory=mkdtempSync(join(tmpdir(),'cockro-online-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,hello={type:'hello',version:PROTOCOL,create:true,hero:'sword-cockro'};const a=await client(url,hello),b=await client(url,hello);t.after(()=>{a.ws.terminate();b.ws.terminate();});await until(()=>a.messages.some(m=>m.type==='state'&&m.players.some(p=>p.id===b.welcome.id)));
+test('two real sockets see movement, reject duplicate identity, persist and resume',async t=>{const directory=mkdtempSync(join(tmpdir(),'cockro-online-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,hello={type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'};const a=await client(url,hello),b=await client(url,hello);t.after(()=>{a.ws.terminate();b.ws.terminate();});await until(()=>a.messages.some(m=>m.type==='state'&&m.players.some(p=>p.id===b.welcome.id)));
  const p=app.world.players.get(a.welcome.id),x=p.x;await new Promise(ok=>setTimeout(ok,150));a.ws.send(JSON.stringify({type:'move',x:p.x+20,y:p.y,seq:1}));await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.x>x+1)));
  a.ws.send(JSON.stringify({type:'op',op:'buy'}));await until(()=>p.s.potions===11);assert.equal(JSON.parse(readFileSync(join(directory,p.id+'.json'))).potions,11);
  const duplicate=new WebSocket(url,{origin:'http://localhost:8080'});duplicate.on('open',()=>duplicate.send(JSON.stringify({type:'hello',version:PROTOCOL,token:a.welcome.token})));const [raw]=await once(duplicate,'message');assert.equal(JSON.parse(raw).message,'already_online');duplicate.terminate();a.ws.close();await until(()=>!app.world.players.has(p.id));const again=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(again.welcome.save.potions,11);again.ws.close();
@@ -25,7 +25,7 @@ test('unapproved browser origins are rejected before websocket upgrade',async t=
 test('old online saves migrate once before welcome and persist both balances',async t=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-migrate-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
  const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
- const a=await client(url,{type:'hello',version:PROTOCOL,create:true,hero:'sword-cockro'}),id=a.welcome.id,token=a.welcome.token;
+ const a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'}),id=a.welcome.id,token=a.welcome.token;
  a.ws.close();await until(()=>!app.world.players.has(id));
  const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.balanceVersion;delete old.mpPotions;old.level=20;old.xp=822;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
  const b=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>b.ws.terminate());
@@ -38,7 +38,7 @@ test('old online saves migrate once before welcome and persist both balances',as
 test('internal demo ticket persists once, replies after snapshot, and is disabled by default',async t=>{
  for(const enabled of [false,true]){
  const directory=mkdtempSync(join(tmpdir(),'cockro-demo-')),app=startServer({port:0,directory,test:true,testRewards:enabled});await once(app.server,'listening');t.after(()=>app.close());
- const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,hero:'sword-cockro'});t.after(()=>a.ws.terminate());
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});t.after(()=>a.ws.terminate());
  a.ws.send(JSON.stringify({type:'testAdTicket',item:'ruby'}));
  if(!enabled){await until(()=>a.messages.find(m=>m.type==='adError'&&m.message==='test_rewards_disabled'));assert.equal(app.world.players.get(a.welcome.id).s.upgradeItems.ruby,0);continue;}
  const ticket=await until(()=>a.messages.find(m=>m.type==='adTicket'));assert.equal(ticket.test,true);
@@ -51,3 +51,4 @@ test('internal demo ticket persists once, replies after snapshot, and is disable
  const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.upgradeItems.ruby,1);
  }
 });
+

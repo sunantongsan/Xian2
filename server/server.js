@@ -5,6 +5,7 @@ import {issueTestTicket,completeTestTicket} from './test-rewards.js';
 import {issueRewardTicket,applyVerifiedReward,createSSVVerifier} from './rewarded-ads.js';
 import {WebSocketServer} from 'ws';
 import {createHash,randomBytes} from 'node:crypto';
+import {characterName} from '../web/character-name.js';
 import {mkdirSync,readFileSync,writeFileSync,renameSync,existsSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {World,HEROES,PROTOCOL} from './world.js';
@@ -37,7 +38,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.18.0',ssv:ssvStatus,advancedSpecies:20,players:world.players.size,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.19.0',ssv:ssvStatus,advancedSpecies:20,players:world.players.size,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144)ws.send(JSON.stringify(data));else ws.close(1013,'slow_connection');};
@@ -54,11 +55,12 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
   if(!character)throw Error('character_limit');state=fresh(d.hero);
  }else state=character==='main'?main:readCharacter(directory,account,character);
  if(!state)throw Error('character_missing');
+ if(created||d.newCharacter===true){const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;}
  const id=characterId(account,character);
  if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
  grantTestGold(state,testRewards);if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);clearTimeout(timer);
- send(ws,{type:'welcome',release:'4.18.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
+ send(ws,{type:'welcome',release:'4.19.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
     if(d.type==='testAdTicket'||d.type==='testAdComplete'){
      if(!testRewards){send(ws,{type:'adError',message:'test_rewards_disabled'});return;}
      try{const copy=structuredClone(p.s);
@@ -71,8 +73,8 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
      try{const copy=structuredClone(p.s),ticket=issueRewardTicket(copy,d.item);persist({id:p.id,s:copy});p.s=copy;p.dirty=false;send(ws,{type:'adTicket',user:p.id,nonce:ticket.nonce,item:ticket.item});}
      catch(error){send(ws,{type:'adError',message:error.message==='save_unavailable'?'save_unavailable':'ad_pending'});}return;
     }
-    world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op});}
-   }catch(error){send(ws,{type:'error',message:['already_online','room_full','account_missing','save_unavailable','character_missing','character_limit'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
+    world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});}
+   }catch(error){send(ws,{type:'error',message:['invalid_name','already_online','room_full','account_missing','save_unavailable','character_missing','character_limit'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
   });
   ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){try{persist(p);}catch{}world.players.delete(p.id);activeAccounts.delete(p.account);}});ws.player=()=>p;
  });

@@ -13,4 +13,5 @@ export function readCharacter(directory,account,slot='main'){
  const state=validSave(JSON.parse(readFileSync(path,'utf8')));
  if(!state)throw Error('invalid_save');return state;
 }
-export function characterRoster(directory,account){return CHARACTER_SLOTS.flatMap(id=>{const state=readCharacter(directory,account,id);return state?[{id,hero:state.hero,level:state.level}]:[];});}
+export function characterRoster(directory,account){return CHARACTER_SLOTS.flatMap(id=>{const state=readCharacter(directory,account,id);return state?[{id,hero:state.hero,name:state.name||'',level:state.level}]:[];});}
+

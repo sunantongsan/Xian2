@@ -7,7 +7,7 @@ import {once} from 'node:events';
 import WebSocket from 'ws';
 import {startServer} from '../server/server.js';
 import {PROTOCOL} from '../server/world.js';
-const hello={type:'hello',version:PROTOCOL,create:true,hero:'sword-cricket'};
+const hello={type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cricket'};
 async function setup(t,maxPlayers=64){const directory=mkdtempSync(join(tmpdir(),'cockro-roster-'));const app=startServer({port:0,directory,test:true,maxPlayers});await once(app.server,'listening');t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true});});return {...app,directory,url:`ws://127.0.0.1:${app.server.address().port}/online/world`};}
 async function client(url,message){const ws=new WebSocket(url,{origin:'http://localhost:8080'});ws.on('open',()=>ws.send(JSON.stringify(message)));const [raw]=await once(ws,'message');return {ws,data:JSON.parse(raw)};}
 async function until(fn){for(let i=0;i<60;i++){if(fn())return;await new Promise(r=>setTimeout(r,30));}throw Error('timed out');}
@@ -23,7 +23,7 @@ test('authenticated character preview does not enter world or overwrite saved pr
  const app=await setup(t),a=await client(app.url,hello);a.ws.close();await until(()=>app.world.players.size===0);
  const path=join(app.directory,a.data.id+'.json'),before=readFileSync(path,'utf8');
  const preview=await client(app.url,{type:'hello',version:PROTOCOL,token:a.data.token,preview:true});
- assert.deepEqual(preview.data,{type:'roster',characters:[{id:'main',hero:'sword-cricket',level:1}]});preview.ws.terminate();
+ assert.deepEqual(preview.data,{type:'roster',characters:[{id:'main',hero:'sword-cricket',name:'Tester',level:1}]});preview.ws.terminate();
  assert.equal(app.world.players.size,0);assert.equal(readFileSync(path,'utf8'),before);
  const bad=await client(app.url,{...hello,preview:true});assert.equal(bad.data.type,'error');bad.ws.terminate();assert.equal(app.world.players.size,0);
 });
@@ -40,3 +40,4 @@ test('ordinary progress batches disk writes but purchases persist and reply imme
  assert.equal(seen.self.save.potions,before+1);
  const disk=JSON.parse(readFileSync(path,'utf8'));assert.equal(disk.potions,before+1);assert.equal(disk.gold,950);
 });
+

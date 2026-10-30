@@ -62,7 +62,7 @@ test('console verification requires signed fresh probe and never writes accounts
   assert.equal(app.world.players.size,0);
  }finally{await app.close();rmSync(directory,{recursive:true,force:true});}
 });
-async function connect(port,token){const ws=new WebSocket('ws://127.0.0.1:'+port+'/online/world',{origin:'http://localhost'});await new Promise(ok=>ws.once('open',ok));const ready=next(ws,d=>d.type==='welcome');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:!token,hero:'sword-cockro',token}));return {ws,welcome:await ready};}
+async function connect(port,token){const ws=new WebSocket('ws://127.0.0.1:'+port+'/online/world',{origin:'http://localhost'});await new Promise(ok=>ws.once('open',ok));const ready=next(ws,d=>d.type==='welcome');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:!token,name:'PatchTester',hero:'sword-cockro',token}));return {ws,welcome:await ready};}
 test('HTTP SSV verifies, persists offline, and replay cannot double-grant after restart',async()=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-ads-'));let app;
  try{
