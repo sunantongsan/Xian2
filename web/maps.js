@@ -1,5 +1,6 @@
 // Ground geometry is authored against the actual alien map, not the retired village.
 // Tile maps (type 'tiles', e.g. ดาวฮีโร่) are handled by tilemap.js.
+import {BUFF_NPC_UV} from './town-buff.js';
 import {tileWalkable,tileRoute} from './tilemap.js';
 export const MAP_W=2000,MAP_H=1333;
 export const mapSize=scene=>({width:scene?.width||MAP_W,height:scene?.height||MAP_H});
@@ -24,7 +25,7 @@ export const REGIONS=[
  {id:5,name:'หัวใจป่าดาวไกล',min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
 ];
 export const MAPS={
- town:{id:'town',name:'หมู่บ้านฮีโร่ • สถานีออโรรา',image:'maps/aurora-outpost.webp',width:2000,height:1333,spawn:[.50,.59],walk:[rect(.31,.43,.69,.75),rect(.24,.48,.76,.59),rect(.45,.33,.55,.83)],pois:[{uv:[.27,.54],name:'คลังเสบียง',action:'shop'},{uv:[.73,.54],name:'โรงอัปเกรด',action:'forge'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.79],name:'ประตูป่าชีวะแสง • Lv.1–60',action:'forest'},{uv:[.64,.70],name:'ยานสู่ดาวฮีโร่ • Lv.61–120',action:'star'}]},
+ town:{id:'town',name:'หมู่บ้านฮีโร่ • สถานีออโรรา',image:'maps/aurora-outpost.webp',width:2000,height:1333,spawn:[.50,.59],walk:[rect(.31,.43,.69,.75),rect(.24,.48,.76,.59),rect(.45,.33,.55,.83)],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:[.27,.54],name:'คลังเสบียง',action:'shop'},{uv:[.73,.54],name:'โรงอัปเกรด',action:'forge'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.79],name:'ประตูป่าชีวะแสง • Lv.1–60',action:'forest'},{uv:[.64,.70],name:'ยานสู่ดาวฮีโร่ • Lv.61–120',action:'star'}]},
  forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.935],name:'กลับสถานีออโรรา',action:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
 
 };

@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import {World,HEROES,PROTOCOL} from './world.js';
 import {fresh,validSave} from '../web/core.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier}={}){
- mkdirSync(directory,{recursive:true,mode:0o700});const world=new World({maxPlayers}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
+ mkdirSync(directory,{recursive:true,mode:0o700});const world=new World({maxPlayers,testRewards}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
  const persist=p=>{try{const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
@@ -37,7 +37,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.17.0',ssv:ssvStatus,advancedSpecies:20,players:world.players.size,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.18.0',ssv:ssvStatus,advancedSpecies:20,players:world.players.size,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144)ws.send(JSON.stringify(data));else ws.close(1013,'slow_connection');};
@@ -55,9 +55,10 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  }else state=character==='main'?main:readCharacter(directory,account,character);
  if(!state)throw Error('character_missing');
  const id=characterId(account,character);
- if(character==='main')grantTestGold(state,testRewards);
+ if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
+ grantTestGold(state,testRewards);if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);clearTimeout(timer);
- send(ws,{type:'welcome',release:'4.17.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
+ send(ws,{type:'welcome',release:'4.18.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
     if(d.type==='testAdTicket'||d.type==='testAdComplete'){
      if(!testRewards){send(ws,{type:'adError',message:'test_rewards_disabled'});return;}
      try{const copy=structuredClone(p.s);
@@ -79,5 +80,6 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
  server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
+
 
 

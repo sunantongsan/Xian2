@@ -4235,10 +4235,33 @@ function buyShopGear(s, slot) {
   return true;
 }
 
+// web/town-buff.js
+var BUFF_DURATION = 36e5;
+var BUFF_NPC_UV = [0.57, 0.59];
+function buffActive(s, now = Date.now()) {
+  return Number.isFinite(s.townBuffUntil) && s.townBuffUntil > now;
+}
+function buffMultiplier(s, now = Date.now()) {
+  return buffActive(s, now) ? 3 : 1;
+}
+function movementMultiplier(s, now = Date.now()) {
+  return buffActive(s, now) ? 2 : 1;
+}
+function normalizeTownBuff(s, v, now = Date.now()) {
+  s.townBuffUntil = Number.isFinite(v.townBuffUntil) ? Math.max(0, Math.min(v.townBuffUntil, now + BUFF_DURATION)) : 0;
+}
+function grantTownBuff(p, enabled, near, now = Date.now()) {
+  if (!enabled || !near || p.hp <= 0 || now < (p.buffRequestAt || 0) + 2e3) return false;
+  p.buffRequestAt = now;
+  p.s.townBuffUntil = now + BUFF_DURATION;
+  p.dirty = true;
+  return true;
+}
+
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4250,10 +4273,10 @@ function xpNeed(level) {
   return levelXP(level);
 }
 function maxHP(s) {
-  return Math.round(120 + s.level * 20 + s.upgrade * 12 + (s.attributes?.vit || 0) * 12 + gearTotals(s).hp);
+  return buffMultiplier(s) * Math.round(120 + s.level * 20 + s.upgrade * 12 + (s.attributes?.vit || 0) * 12 + gearTotals(s).hp);
 }
 function damage(s) {
-  return Math.round(16 + s.level * 4 + s.upgrade * 8 + (s.attributes?.str || 0) * 2 + gearTotals(s).atk);
+  return buffMultiplier(s) * Math.round(16 + s.level * 4 + s.upgrade * 8 + (s.attributes?.str || 0) * 2 + gearTotals(s).atk);
 }
 function reward(s, m, rng = Math.random) {
   countActivity(s, "hunt");
@@ -4295,6 +4318,7 @@ function unlocked(s, z) {
 function validSave(v) {
   if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
   const s = fresh(v.hero);
+  normalizeTownBuff(s, v);
   normalizeActivities(s, v);
   if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
   for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
@@ -4378,8 +4402,8 @@ function trainSkill(s, id) {
   return true;
 }
 function combatStats(s) {
-  const a = s.attributes || {}, g = gearTotals(s);
-  return { mp: Math.round(80 + s.level * 3 + (a.int || 0) * 8 + g.mp), defense: s.level * 0.25 + (a.vit || 0) * 0.6 + g.def, crit: Math.min(0.5, 0.05 + (a.agi || 0) * 1e-3 + g.crit), speed: Math.min(60, (a.agi || 0) * 0.15 + g.speed), haste: Math.min(0.35, (a.agi || 0) * 1e-3), spell: 1 + (a.int || 0) * 8e-3 + g.spell };
+  const a = s.attributes || {}, g = gearTotals(s), b = buffMultiplier(s);
+  return { mp: b * Math.round(80 + s.level * 3 + (a.int || 0) * 8 + g.mp), defense: b * (s.level * 0.25 + (a.vit || 0) * 0.6 + g.def), crit: Math.min(1, b * Math.min(0.5, 0.05 + (a.agi || 0) * 1e-3 + g.crit)), speed: Math.min(60, (a.agi || 0) * 0.15 + g.speed), haste: Math.min(0.35, (a.agi || 0) * 1e-3), spell: 1 + (a.int || 0) * 8e-3 + g.spell };
 }
 
 // server/characters.js
@@ -4637,7 +4661,7 @@ var REGIONS = [
   { id: 5, name: "\u0E2B\u0E31\u0E27\u0E43\u0E08\u0E1B\u0E48\u0E32\u0E14\u0E32\u0E27\u0E44\u0E01\u0E25", min: 51, max: 60, center: [1 / 6, 0.25], entry: [1 / 6, 0.4] }
 ];
 var MAPS = {
-  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 2e3, height: 1333, spawn: [0.5, 0.59], walk: [rect(0.31, 0.43, 0.69, 0.75), rect(0.24, 0.48, 0.76, 0.59), rect(0.45, 0.33, 0.55, 0.83)], pois: [{ uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.79], name: "\u0E1B\u0E23\u0E30\u0E15\u0E39\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "forest" }, { uv: [0.64, 0.7], name: "\u0E22\u0E32\u0E19\u0E2A\u0E39\u0E48\u0E14\u0E32\u0E27\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "star" }] },
+  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 2e3, height: 1333, spawn: [0.5, 0.59], walk: [rect(0.31, 0.43, 0.69, 0.75), rect(0.24, 0.48, 0.76, 0.59), rect(0.45, 0.33, 0.55, 0.83)], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.79], name: "\u0E1B\u0E23\u0E30\u0E15\u0E39\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "forest" }, { uv: [0.64, 0.7], name: "\u0E22\u0E32\u0E19\u0E2A\u0E39\u0E48\u0E14\u0E32\u0E27\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "star" }] },
   forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.935], name: "\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
 };
 function inside(u, v, poly) {
@@ -4711,8 +4735,9 @@ var PROTOCOL = "cockro-online-2";
 var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 var finite = (...v) => v.every((x) => typeof x === "number" && Number.isFinite(x));
 var World = class {
-  constructor({ maxPlayers = 64 } = {}) {
+  constructor({ maxPlayers = 64, testRewards = false } = {}) {
     if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 256) throw Error("invalid_capacity");
+    this.testRewards = testRewards;
     this.maxPlayers = maxPlayers;
     this.players = /* @__PURE__ */ new Map();
     this.maps = { town: MAPS.town, forest: MAPS.forest, star: parseTiled(hero_star_default) };
@@ -4788,7 +4813,7 @@ var World = class {
       p.seq = d.seq;
       const elapsed = Math.min(0.3, Math.max(0, now - p.moveAt));
       p.moveAt = now;
-      const speed = (s.hero.startsWith("sword") ? 165 : 160) + combatStats(s).speed;
+      const speed = ((s.hero.startsWith("sword") ? 165 : 160) + combatStats(s).speed) * movementMultiplier(s, now * 1e3);
       const n2 = dist(p, d), allowed = speed * elapsed;
       const ratio = n2 ? Math.min(1, allowed / n2) : 0;
       const next = traceStep(this.maps[p.map], p, { x: p.x + (d.x - p.x) * ratio, y: p.y + (d.y - p.y) * ratio });
@@ -4823,6 +4848,15 @@ var World = class {
       p.cd.op = now + 0.1;
       const atHome = this.home(p);
       switch (d.op) {
+        case "townBuff": {
+          const near = p.map === "town" && dist(p, toWorld(BUFF_NPC_UV, MAPS.town)) <= 120;
+          if (grantTownBuff(p, this.testRewards, near, now * 1e3)) {
+            p.hp = maxHP(s);
+            p.mp = combatStats(s).mp;
+            this.event(p, { kind: "buff" });
+          }
+          break;
+        }
         case "claimActivity":
           claimActivity(s, d.id, now * 1e3);
           break;
@@ -4961,6 +4995,12 @@ var World = class {
   }
   tick(dt, now = Date.now() / 1e3) {
     for (const p of this.players.values()) {
+      if (p.s.townBuffUntil && (!this.testRewards || !buffActive(p.s, now * 1e3))) {
+        p.s.townBuffUntil = 0;
+        p.hp = Math.min(p.hp, maxHP(p.s));
+        p.mp = Math.min(p.mp, combatStats(p.s).mp);
+        p.dirty = true;
+      }
       p.animTime += dt;
       applyRegen(p, dt, maxHP(p.s), combatStats(p.s).mp);
       p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * manaRegen(p.s));
@@ -5031,7 +5071,7 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
@@ -5041,7 +5081,7 @@ var World = class {
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier } = {}) {
   (0, import_node_fs2.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const world = new World({ maxPlayers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
+  const world = new World({ maxPlayers, testRewards }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
   const ssvStatus = { verified: 0, rejected: 0, lastError: null };
   function allow(ip) {
@@ -5123,7 +5163,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.17.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.18.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5193,14 +5233,16 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           } else state = character === "main" ? main : readCharacter(directory, account, character);
           if (!state) throw Error("character_missing");
           const id = characterId(account, character);
-          if (character === "main") grantTestGold(state, testRewards);
+          if (testRewards && (created || d.newCharacter === true)) state.gold = 1e6;
+          grantTestGold(state, testRewards);
+          if (!testRewards) state.townBuffUntil = 0;
           p = world.join(id, state);
           p.account = account;
           p.character = character;
           activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.17.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.18.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5307,13 +5349,6 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   return { server, world, close };
 }
 
-// admob-config.json
-var admob_config_default = {
-  appId: "ca-app-pub-4585492700643566~3340769116",
-  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388",
-  internalTestRewards: true
-};
-
 // server/release-backup.js
 var import_node_fs3 = require("node:fs");
 var import_node_path3 = require("node:path");
@@ -5332,8 +5367,15 @@ function backupBefore416(directory, release = "4.16.0") {
   return true;
 }
 
+// admob-config.json
+var admob_config_default = {
+  appId: "ca-app-pub-4585492700643566~3340769116",
+  rewardedUnitId: "ca-app-pub-4585492700643566/6530873388",
+  internalTestRewards: true
+};
+
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.17.0");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.18.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {

@@ -15,7 +15,7 @@ test('four character slots preserve the original save, enforce ownership and gra
  const main=await client(url,{create:true,hero:'sword-cricket'});assert.equal(main.data.character,'main');assert(main.data.save.stones>=50000);await close(main,app);
  const token=main.data.token,path=join(directory,main.data.id+'.json');const old=JSON.parse(readFileSync(path));old.level=37;old.gold=123456;old.stones=41234;writeFileSync(path,JSON.stringify(old));const before=readFileSync(path,'utf8');
  for(let n=2;n<=4;n++){
-  const c=await client(url,{token,newCharacter:true,hero:'sword-cricket'});assert.equal(c.data.character,'slot'+n);assert.equal(c.data.save.level,1);assert(c.data.save.stones<50000);
+  const c=await client(url,{token,newCharacter:true,hero:'sword-cricket'});assert.equal(c.data.character,'slot'+n);assert.equal(c.data.save.level,1);assert.equal(c.data.save.stones,50000);assert.equal(c.data.save.gold,1000000);
   const concurrent=await client(url,{token,character:'main'});assert.equal(concurrent.data.message,'already_online');concurrent.ws.terminate();
   await close(c,app);
   const again=await client(url,{token,character:'slot'+n});assert.equal(again.data.id,c.data.id);assert.equal(again.data.save.stones,c.data.save.stones);await close(again,app);
@@ -26,3 +26,4 @@ test('four character slots preserve the original save, enforce ownership and gra
  const other=await client(url,{create:true,hero:'sword-cricket'});await close(other,app);const foreign=await client(url,{token:other.data.token,character:'slot2'});assert.equal(foreign.data.message,'character_missing');foreign.ws.terminate();
  const restored=await client(url,{token});assert.equal(restored.data.save.level,37);assert.equal(restored.data.save.gold,123456);assert.equal(restored.data.save.stones,41234);await close(restored,app);
 });
+
