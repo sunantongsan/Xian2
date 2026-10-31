@@ -13,10 +13,11 @@ test('painted maps have connected safe spawns, services, exits and monster place
  }
 });
 test('water, rooftops and outer scenery cannot be entered or dashed through',()=>{
- for(const [scene,uv]of [[MAPS.town,[.15,.16]],[MAPS.town,[.5,.13]],[MAPS.town,[.1,.8]],[MAPS.forest,[.35,.48]],[MAPS.forest,[.65,.94]]]){
+ for(const [scene,uv]of [[MAPS.town,[.15,.16]],[MAPS.town,[.5,.13]],[MAPS.town,[.1,.8]],[MAPS.forest,[.005,.48]],[MAPS.forest,[.65,.995]]]){
  const target=toWorld(uv,scene),start=toWorld(scene.spawn,scene);assert(!walkable(scene,target));const end=traceStep(scene,start,target);assert(walkable(scene,end));assert(Math.hypot(end.x-target.x,end.y-target.y)>10);
  }
 });
 test('painted-map projection round trips accurately',()=>{for(const uv of [[.1,.1],[.5,.6],[.9,.9]]){const actual=toUV(toWorld(uv));assert(Math.abs(actual[0]-uv[0])<1e-9);assert(Math.abs(actual[1]-uv[1])<1e-9)}});
+
 
 

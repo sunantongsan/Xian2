@@ -10,12 +10,9 @@ const rect=(l,t,r,b)=>[[l,t],[r,t],[r,b],[l,b]];
 // Each 1600x1600 world tile uses its own detailed texture instead of enlarging one small overview.
 export const FOREST_COLS=9,FOREST_ROWS=6;
 const localPoly=(col,row,poly)=>poly.map(([u,v])=>[(col+u)/FOREST_COLS,(row+v)/FOREST_ROWS]);
-const forestWalk=[];
-for(let row=0;row<FOREST_ROWS;row++)for(let col=0;col<FOREST_COLS;col++){
- forestWalk.push(localPoly(col,row,[[.22,.4],[.34,.27],[.64,.27],[.77,.40],[.78,.58],[.65,.73],[.35,.73],[.22,.59]]));
- forestWalk.push(localPoly(col,row,rect(.40,row===0?.045:0,.58,row===FOREST_ROWS-1?.96:1)));
- forestWalk.push(localPoly(col,row,rect(col===0?.045:0,.42,col===FOREST_COLS-1?.955:1,.54)));
-}
+// Roads remain visual landmarks; the whole forest interior is traversable.
+const forestWalk=[rect(.012,.012,.988,.988)];
+
 export const REGIONS=[
  {id:0,name:'ชายป่าแสงแรก',min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
  {id:1,name:'ทุ่งสปอร์อำพัน',min:11,max:20,center:[.50,.75],entry:[.50,.90]},
@@ -40,6 +37,7 @@ function nearest(scene,p){const [u,v]=toUV(p,scene),g=grid(scene);let best=-1,di
 export function routeTo(scene,from,to,limit){if(!scene)return[to];if(scene.type==='tiles')return tileRoute(scene,from,to,limit,traceStep);const direct=traceStep(scene,from,to);if(walkable(scene,to)&&Math.hypot(direct.x-to.x,direct.y-to.y)<.5)return[to];const g=grid(scene),start=nearest(scene,from),goal=nearest(scene,to);if(start<0||goal<0)return[];const open=[start],cost=new Map([[start,0]]),parent=new Map(),closed=new Set();const heuristic=id=>Math.hypot(id%COLS-goal%COLS,Math.floor(id/COLS)-Math.floor(goal/COLS));while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(cost.get(open[i])+heuristic(open[i])<cost.get(open[bi])+heuristic(open[bi]))bi=i;const cur=open.splice(bi,1)[0];if(cur===goal){const ids=[goal];while(ids[0]!==start)ids.unshift(parent.get(ids[0]));const route=ids.map(id=>cellWorld(id,scene));if(walkable(scene,to)&&Math.hypot(traceStep(scene,route.at(-1),to).x-to.x,traceStep(scene,route.at(-1),to).y-to.y)<1)route.push(to);return route;}
  closed.add(cur);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const x=cur%COLS+dx,y=Math.floor(cur/COLS)+dy,n=y*COLS+x;if(x<0||x>=COLS||y<0||y>=ROWS||!g[n]||closed.has(n))continue;if(dx&&dy&&(!g[cur+dx]||!g[cur+dy*COLS]))continue;const next=cellWorld(n,scene),end=traceStep(scene,cellWorld(cur,scene),next);if(Math.hypot(end.x-next.x,end.y-next.y)>.5)continue;const c=cost.get(cur)+Math.hypot(dx,dy);if(c<(cost.get(n)??Infinity)){cost.set(n,c);parent.set(n,cur);if(!open.includes(n))open.push(n);}}
  }return[];}
+
 
 
 

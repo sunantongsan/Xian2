@@ -3951,6 +3951,106 @@ function monsterStats(level, { boss = false, elite = false, toughness = 1 } = {}
   return { hp: Math.round(hp * toughness * (boss ? 7 : elite ? 2.6 : 1)), damage: Math.round((12 + level * 5 + level * level * 0.09) * (boss ? 1.65 : elite ? 1.2 : 1)), xp: normalXP(level) * (boss ? 10 : elite ? 3 : 1), gold: Math.round((10 + level * 3) * (boss ? 8 : elite ? 3 : 1)) };
 }
 
+// web/forest-species.js
+var DATA = [
+  ["\u0E14\u0E49\u0E27\u0E07\u0E40\u0E02\u0E32\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", "Plasma charge", "#55e9ff", "charge", 280, 32],
+  ["\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E40\u0E04\u0E35\u0E22\u0E27\u0E42\u0E1F\u0E15\u0E2D\u0E19", "Twin photon blades", "#ffd45e", "twin", 230, 32],
+  ["\u0E1C\u0E35\u0E40\u0E2A\u0E37\u0E49\u0E2D\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E40\u0E19\u0E1A\u0E34\u0E27\u0E25\u0E32", "Spore fan", "#d687ff", "fan", 280, 22],
+  ["\u0E41\u0E21\u0E07\u0E21\u0E38\u0E21\u0E02\u0E14\u0E25\u0E27\u0E14\u0E2D\u0E33\u0E1E\u0E31\u0E19", "Web detonation", "#ff965e", "web", 290, 100],
+  ["\u0E2B\u0E2D\u0E22\u0E40\u0E15\u0E32\u0E1B\u0E0F\u0E34\u0E01\u0E23\u0E13\u0E4C", "Reactor ring", "#7dff9b", "ring", 175, 70],
+  ["\u0E2B\u0E19\u0E2D\u0E19\u0E2A\u0E27\u0E48\u0E32\u0E19\u0E41\u0E21\u0E01\u0E21\u0E32", "Drill lance", "#ff794b", "drill", 420, 24],
+  ["\u0E41\u0E15\u0E19\u0E40\u0E02\u0E47\u0E21\u0E44\u0E17\u0E40\u0E17\u0E40\u0E19\u0E35\u0E22\u0E21", "Needle trident", "#ffe267", "needles", 340, 14],
+  ["\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E09\u0E35\u0E14\u0E01\u0E23\u0E14", "Acid spray", "#b6ff53", "spray", 230, 100],
+  ["\u0E1B\u0E39\u0E1B\u0E23\u0E34\u0E0B\u0E36\u0E21\u0E04\u0E23\u0E32\u0E21", "Prism cross", "#83a9ff", "cross", 190, 36],
+  ["\u0E41\u0E21\u0E25\u0E07\u0E1B\u0E2D\u0E44\u0E2D\u0E2D\u0E2D\u0E19", "Ion rail", "#65f1ff", "rail", 500, 19],
+  ["\u0E04\u0E32\u0E07\u0E04\u0E01\u0E41\u0E21\u0E48\u0E40\u0E2B\u0E25\u0E47\u0E01\u0E21\u0E48\u0E27\u0E07", "Magnetic pulse", "#c99eff", "magnet", 220, 125],
+  ["\u0E42\u0E01\u0E40\u0E25\u0E21\u0E40\u0E15\u0E32\u0E2B\u0E25\u0E2D\u0E21", "Furnace rupture", "#ff9d59", "rupture", 300, 62],
+  ["\u0E41\u0E21\u0E07\u0E01\u0E30\u0E1E\u0E23\u0E38\u0E19\u0E2D\u0E32\u0E23\u0E4C\u0E01\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", "Six arc discharge", "#ffa1f2", "arcs", 240, 20],
+  ["\u0E04\u0E49\u0E32\u0E07\u0E04\u0E32\u0E27\u0E40\u0E2A\u0E35\u0E22\u0E07\u0E2A\u0E30\u0E17\u0E49\u0E2D\u0E19", "Ultrasonic cone", "#c4e7ff", "sonic", 330, 160],
+  ["\u0E07\u0E39\u0E40\u0E2B\u0E48\u0E32\u0E40\u0E25\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E2B\u0E22\u0E01", "Twin laser", "#92ffab", "lasers", 390, 22],
+  ["\u0E40\u0E15\u0E48\u0E32\u0E1B\u0E37\u0E19\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E23\u0E34\u0E22\u0E30", "Triple artillery", "#ffe292", "artillery", 350, 65],
+  ["\u0E2B\u0E21\u0E49\u0E2D\u0E02\u0E49\u0E32\u0E27\u0E19\u0E32\u0E42\u0E19\u0E40\u0E02\u0E35\u0E49\u0E22\u0E27\u0E41\u0E14\u0E07", "Root ambush", "#ff8d98", "roots", 250, 95],
+  ["\u0E2D\u0E2A\u0E39\u0E23\u0E15\u0E32\u0E41\u0E01\u0E19\u0E41\u0E23\u0E07\u0E42\u0E19\u0E49\u0E21\u0E16\u0E48\u0E27\u0E07", "Gravity halo", "#b8a2ff", "gravity", 300, 150],
+  ["\u0E15\u0E30\u0E02\u0E32\u0E1A\u0E25\u0E32\u0E27\u0E32\u0E42\u0E25\u0E2B\u0E30", "Magma fault", "#ff7356", "fault", 350, 45],
+  ["\u0E27\u0E34\u0E2B\u0E04\u0E41\u0E2A\u0E07\u0E2A\u0E38\u0E23\u0E34\u0E22\u0E30", "Solar star", "#fff4ac", "solar", 290, 30]
+];
+var FOREST_SPECIES = DATA.map(([name, skillName, color, pattern, range, radius], species) => ({ name, skillName, color, pattern, range, radius, species, id: 1100 + species, min: species * 3 + 1, max: species * 3 + 3 }));
+function forestMonster(level) {
+  const sp = FOREST_SPECIES[Math.min(19, Math.floor((level - 1) / 3))];
+  return { ...sp, ...monsterStats(level), level, region: Math.floor((level - 1) / 10), zone: 0, art: "forest-v2", slot: sp.species, boss: false, speed: 65 + sp.species % 5 * 7, attack: "signature", cooldown: 2.8 + sp.species % 4 * 0.25, xp: 20 + level * 8, gold: 10 + level * 3, hp: monsterStats(level).hp };
+}
+function monsterZones(e) {
+  const d = e.def, a = e.angle || 0, ux = Math.cos(a), uy = Math.sin(a), o = { x: e.x, y: e.y }, r = d.range || 200, w = d.radius || 30;
+  const aim = { x: e.aimX ?? e.x + ux * r, y: e.aimY ?? e.y + uy * r };
+  const at = (along, side = 0) => ({ x: o.x + ux * along - uy * side, y: o.y + uy * along + ux * side });
+  const disk = (c, radius, inner = 0) => ({ type: "disk", ...c, radius, inner });
+  const lane = (angle, length, width, side = 0) => {
+    const c = at(0, side), x = Math.cos(angle), y = Math.sin(angle);
+    return { type: "poly", points: [[c.x - y * width, c.y + x * width], [c.x + x * length - y * width, c.y + y * length + x * width], [c.x + x * length + y * width, c.y + y * length - x * width], [c.x + y * width, c.y - x * width]] };
+  };
+  switch (d.pattern) {
+    case "charge":
+      return [lane(a, r, w)];
+    case "twin":
+      return [-0.48, 0.48].map((t) => lane(a + t, r, w));
+    case "fan":
+      return [-0.6, -0.3, 0, 0.3, 0.6].map((t) => lane(a + t, r, w));
+    case "web":
+      return [disk(aim, w)];
+    case "ring":
+      return [disk(o, r, w)];
+    case "drill":
+      return [lane(a, r, w), disk(at(r), 45)];
+    case "needles":
+      return [-0.16, 0, 0.16].map((t) => lane(a + t, r, w));
+    case "spray":
+    case "sonic":
+      return [{ type: "poly", points: [[o.x, o.y], ...[-1, 1].map((t) => {
+        const p = at(r, t * w);
+        return [p.x, p.y];
+      })] }];
+    case "cross":
+      return [lane(a, r, w), lane(a + Math.PI / 2, r, w), lane(a + Math.PI, r, w), lane(a - Math.PI / 2, r, w)];
+    case "rail":
+      return [lane(a, r, w)];
+    case "magnet":
+      return [disk(o, w), disk(o, r, r - 25)];
+    case "rupture":
+      return [1, 2, 3].map((i) => disk(at(i * r / 3), w));
+    case "arcs":
+      return Array.from({ length: 6 }, (_, i) => lane(a + i * Math.PI / 3, r, w));
+    case "lasers":
+      return [-65, 65].map((side) => lane(a, r, w, side));
+    case "artillery":
+      return [-1, 0, 1].map((i) => disk({ x: aim.x - uy * i * 135, y: aim.y + ux * i * 135 }, w));
+    case "roots":
+      return [disk(o, 75), disk(aim, w)];
+    case "gravity":
+      return [disk(aim, w, 70)];
+    case "fault":
+      return Array.from({ length: 5 }, (_, i) => disk(at((i + 1) * r / 5, (i % 2 ? 1 : -1) * 45), w));
+    case "solar":
+      return Array.from({ length: 8 }, (_, i) => lane(a + i * Math.PI / 4, r, w));
+    default:
+      return [];
+  }
+}
+function zoneContains(z, p) {
+  if (z.type === "disk") {
+    const d = Math.hypot(p.x - z.x, p.y - z.y);
+    return d <= z.radius && d >= (z.inner || 0);
+  }
+  let sign = 0;
+  for (let i = 0; i < z.points.length; i++) {
+    const a = z.points[i], b = z.points[(i + 1) % z.points.length], c = (b[0] - a[0]) * (p.y - a[1]) - (b[1] - a[1]) * (p.x - a[0]);
+    if (Math.abs(c) < 1e-7) continue;
+    const s = Math.sign(c);
+    if (sign && s !== sign) return false;
+    sign = s;
+  }
+  return true;
+}
+
 // web/advanced-monsters.js
 var ADVANCED_SPECIES = [
   ["\u0E14\u0E49\u0E27\u0E07\u0E40\u0E01\u0E23\u0E32\u0E30\u0E2B\u0E22\u0E01", "beetle", "melee", "#29866f", "#b4fcb8", 1.25, 0.85],
@@ -3997,27 +4097,27 @@ for (let region = 0; region < 6; region++) {
   MONSTERS.push({ ...base, id: 1060 + region, name: ["\u0E23\u0E32\u0E0A\u0E32\u0E2B\u0E22\u0E14\u0E1E\u0E25\u0E31\u0E07", "\u0E08\u0E48\u0E32\u0E1D\u0E39\u0E07\u0E40\u0E01\u0E23\u0E32\u0E30\u0E1C\u0E25\u0E36\u0E01", "\u0E23\u0E32\u0E0A\u0E34\u0E19\u0E35\u0E1A\u0E38\u0E1B\u0E1C\u0E32"][region % 3], slot: region % 3, boss: true, hp: base.hp * 9, damage: base.damage * 1.8, attack: ["burst", "cone", "projectile"][region % 3], xp: base.xp * 8, gold: base.gold * 6 });
 }
 for (const m of MONSTERS) Object.assign(m, monsterStats(m.level, { boss: m.boss }));
-MONSTERS.push(...ADVANCED_MONSTERS);
-var isKnownMonster = (id) => Number.isInteger(id) && (id >= 0 && id < 100 || id >= 1e3 && id <= 1065 || id >= 2e3 && id <= 2065);
+MONSTERS.push(...ADVANCED_MONSTERS, ...FOREST_SPECIES.map((sp) => forestMonster(sp.min)));
+var isKnownMonster = (id) => Number.isInteger(id) && (id >= 0 && id < 100 || id >= 1e3 && id <= 1065 || id >= 1100 && id <= 1119 || id >= 2e3 && id <= 2065);
 var isKnownBoss = (id) => Number.isInteger(id) && (id >= 0 && id < 100 && id % 10 === 9 || id >= 1060 && id <= 1065 || id >= 2060 && id <= 2065);
 var HEROES = [{ "id": "sword-male", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E0A\u0E32\u0E22", "sect": "sword", "gender": "male", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "sword-female", "name": "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "sword", "gender": "female", "skill": "\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E21\u0E06\u0E32" }, { "id": "demon-male", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E0A\u0E32\u0E22", "sect": "demon", "gender": "male", "skill": "\u0E01\u0E23\u0E07\u0E40\u0E25\u0E47\u0E1A\u0E42\u0E25\u0E2B\u0E34\u0E15" }, { "id": "demon-female", "name": "\u0E21\u0E32\u0E23 \u2022 \u0E2B\u0E0D\u0E34\u0E07", "sect": "demon", "gender": "female", "skill": "\u0E1A\u0E31\u0E27\u0E42\u0E25\u0E2B\u0E34\u0E15" }];
 HEROES.push({ id: "sword-cockro", name: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E41\u0E21\u0E19 \u2022 \u0E17\u0E14\u0E25\u0E2D\u0E07", sect: "sword", gender: "mascot", skill: "\u0E43\u0E0A\u0E49\u0E2A\u0E01\u0E34\u0E25\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2022 \u0E20\u0E32\u0E1E\u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27" });
 
 // web/skills.js
-var FORMS = { wave: { name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E1E\u0E25\u0E31\u0E07", range: 320, radius: 36, power: 1.8, mp: 18, cd: 5, desc: "\u0E41\u0E19\u0E27\u0E15\u0E23\u0E07\u0E15\u0E32\u0E21\u0E17\u0E34\u0E28\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22" }, circle: { name: "\u0E01\u0E27\u0E32\u0E14\u0E23\u0E2D\u0E1A\u0E15\u0E31\u0E27", range: 155, radius: 155, power: 1.4, mp: 22, cd: 7, desc: "\u0E42\u0E08\u0E21\u0E15\u0E35\u0E28\u0E31\u0E15\u0E23\u0E39\u0E23\u0E2D\u0E1A\u0E15\u0E31\u0E27" }, bolt: { name: "\u0E25\u0E39\u0E01\u0E1E\u0E25\u0E31\u0E07", range: 400, radius: 0, power: 2.3, mp: 16, cd: 4, desc: "\u0E42\u0E08\u0E21\u0E15\u0E35\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E14\u0E35\u0E22\u0E27\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25" }, dash: { name: "\u0E1E\u0E38\u0E48\u0E07\u0E41\u0E17\u0E07", range: 230, radius: 45, power: 1.7, mp: 24, cd: 8, desc: "\u0E1E\u0E38\u0E48\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E28\u0E31\u0E15\u0E23\u0E39\u0E43\u0E19\u0E41\u0E19\u0E27\u0E15\u0E23\u0E07" }, field: { name: "\u0E04\u0E48\u0E32\u0E22\u0E01\u0E25", range: 300, radius: 120, power: 0.65, mp: 32, cd: 12, desc: "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E42\u0E08\u0E21\u0E15\u0E35 4 \u0E04\u0E23\u0E31\u0E49\u0E07\u0E43\u0E19 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35" } };
+var FORMS = { wave: { name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E1E\u0E25\u0E31\u0E07", range: 320, radius: 36, power: 1.8, mp: 18, cd: 5, desc: "\u0E41\u0E19\u0E27\u0E15\u0E23\u0E07\u0E15\u0E32\u0E21\u0E17\u0E34\u0E28\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22" }, circle: { name: "\u0E01\u0E27\u0E32\u0E14\u0E23\u0E2D\u0E1A\u0E15\u0E31\u0E27", range: 155, radius: 155, power: 1.4, mp: 22, cd: 7, desc: "\u0E42\u0E08\u0E21\u0E15\u0E35\u0E28\u0E31\u0E15\u0E23\u0E39\u0E23\u0E2D\u0E1A\u0E15\u0E31\u0E27" }, bolt: { name: "\u0E01\u0E23\u0E30\u0E2A\u0E38\u0E19\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", range: 400, radius: 0, power: 2.3, mp: 16, cd: 4, desc: "\u0E42\u0E08\u0E21\u0E15\u0E35\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E14\u0E35\u0E22\u0E27\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25" }, dash: { name: "\u0E1E\u0E38\u0E48\u0E07\u0E41\u0E17\u0E07", range: 230, radius: 45, power: 1.7, mp: 24, cd: 8, desc: "\u0E1E\u0E38\u0E48\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E28\u0E31\u0E15\u0E23\u0E39\u0E43\u0E19\u0E41\u0E19\u0E27\u0E15\u0E23\u0E07" }, field: { name: "\u0E2A\u0E19\u0E32\u0E21\u0E1E\u0E25\u0E31\u0E07", range: 300, radius: 120, power: 0.65, mp: 32, cd: 12, desc: "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E42\u0E08\u0E21\u0E15\u0E35 4 \u0E04\u0E23\u0E31\u0E49\u0E07\u0E43\u0E19 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35" } };
 var ELEMENTS = { wind: { name: "\u0E25\u0E21", color: "#a6f3dd", desc: "\u0E1C\u0E25\u0E31\u0E01\u0E28\u0E31\u0E15\u0E23\u0E39\u0E2D\u0E2D\u0E01 45 \u0E2B\u0E19\u0E48\u0E27\u0E22" }, fire: { name: "\u0E44\u0E1F", color: "#ff9a50", desc: "\u0E40\u0E1C\u0E32\u0E44\u0E2B\u0E21\u0E49 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35 \u0E23\u0E27\u0E21 45% \u0E1E\u0E25\u0E31\u0E07\u0E42\u0E08\u0E21\u0E15\u0E35" }, ice: { name: "\u0E19\u0E49\u0E33\u0E41\u0E02\u0E47\u0E07", color: "#81ddff", desc: "\u0E25\u0E14\u0E04\u0E27\u0E32\u0E21\u0E40\u0E23\u0E47\u0E27 35% \u0E19\u0E32\u0E19 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35" }, lightning: { name: "\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32", color: "#d8b4ff", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E32\u0E22\u0E17\u0E31\u0E19\u0E17\u0E35 20%" }, poison: { name: "\u0E1E\u0E34\u0E29", color: "#a8dc64", desc: "\u0E1E\u0E34\u0E29 6 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35 \u0E23\u0E27\u0E21 60% \u0E1E\u0E25\u0E31\u0E07\u0E42\u0E08\u0E21\u0E15\u0E35" } };
-var MODS = { none: { name: "\u0E44\u0E21\u0E48\u0E21\u0E35", desc: "\u0E44\u0E21\u0E48\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E48\u0E32\u0E1B\u0E23\u0E32\u0E13" }, pierce: { name: "\u0E17\u0E30\u0E25\u0E27\u0E07", desc: "\u0E25\u0E39\u0E01\u0E1E\u0E25\u0E31\u0E07\u0E17\u0E30\u0E25\u0E38\u0E44\u0E14\u0E49\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 3 \u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22 / \u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E2D\u0E37\u0E48\u0E19\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E41\u0E23\u0E07 15%" }, drain: { name: "\u0E14\u0E39\u0E14\u0E40\u0E25\u0E37\u0E2D\u0E14", desc: "\u0E1F\u0E37\u0E49\u0E19 8% \u0E02\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E32\u0E22\u0E08\u0E23\u0E34\u0E07 \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 8% \u0E40\u0E25\u0E37\u0E2D\u0E14\u0E15\u0E48\u0E2D\u0E01\u0E32\u0E23\u0E23\u0E48\u0E32\u0E22" }, wide: { name: "\u0E02\u0E22\u0E32\u0E22", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E30\u0E22\u0E30\u0E41\u0E25\u0E30\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48 25%" }, force: { name: "\u0E2D\u0E31\u0E14\u0E1E\u0E25\u0E31\u0E07", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E41\u0E23\u0E07 25%" }, quick: { name: "\u0E09\u0E31\u0E1A\u0E44\u0E27", desc: "\u0E25\u0E14\u0E04\u0E39\u0E25\u0E14\u0E32\u0E27\u0E19\u0E4C 20% \u0E41\u0E15\u0E48\u0E25\u0E14\u0E41\u0E23\u0E07 15%" }, lasting: { name: "\u0E22\u0E37\u0E14\u0E1C\u0E25", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E27\u0E25\u0E32\u0E1C\u0E25\u0E18\u0E32\u0E15\u0E38 50%" } };
+var MODS = { none: { name: "\u0E44\u0E21\u0E48\u0E21\u0E35", desc: "\u0E44\u0E21\u0E48\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E48\u0E32\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19" }, pierce: { name: "\u0E17\u0E30\u0E25\u0E27\u0E07", desc: "\u0E01\u0E23\u0E30\u0E2A\u0E38\u0E19\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E17\u0E30\u0E25\u0E38\u0E44\u0E14\u0E49\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 3 \u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22 / \u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E2D\u0E37\u0E48\u0E19\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E41\u0E23\u0E07 15%" }, drain: { name: "\u0E14\u0E39\u0E14\u0E40\u0E25\u0E37\u0E2D\u0E14", desc: "\u0E1F\u0E37\u0E49\u0E19 8% \u0E02\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E32\u0E22\u0E08\u0E23\u0E34\u0E07 \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 8% \u0E40\u0E25\u0E37\u0E2D\u0E14\u0E15\u0E48\u0E2D\u0E01\u0E32\u0E23\u0E23\u0E48\u0E32\u0E22" }, wide: { name: "\u0E02\u0E22\u0E32\u0E22", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E30\u0E22\u0E30\u0E41\u0E25\u0E30\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48 25%" }, force: { name: "\u0E2D\u0E31\u0E14\u0E1E\u0E25\u0E31\u0E07", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E41\u0E23\u0E07 25%" }, quick: { name: "\u0E09\u0E31\u0E1A\u0E44\u0E27", desc: "\u0E25\u0E14\u0E04\u0E39\u0E25\u0E14\u0E32\u0E27\u0E19\u0E4C 20% \u0E41\u0E15\u0E48\u0E25\u0E14\u0E41\u0E23\u0E07 15%" }, lasting: { name: "\u0E22\u0E37\u0E14\u0E1C\u0E25", desc: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E27\u0E25\u0E32\u0E1C\u0E25\u0E18\u0E32\u0E15\u0E38 50%" } };
 var SCHOOL = [
-  { id: "s1", sect: "sword", name: "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E17\u0E30\u0E25\u0E27\u0E07\u0E40\u0E21\u0E06", level: 1, form: "wave", element: "wind", mods: [] },
-  { id: "s2", sect: "sword", name: "\u0E01\u0E49\u0E32\u0E27\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32", level: 20, form: "dash", element: "lightning", mods: [] },
-  { id: "s3", sect: "sword", name: "\u0E27\u0E07\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E2B\u0E21\u0E31\u0E19\u0E15\u0E4C", level: 40, form: "circle", element: "ice", mods: [] },
-  { id: "s4", sect: "sword", name: "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E1E\u0E25\u0E34\u0E07\u0E44\u0E25\u0E48\u0E14\u0E32\u0E27", level: 60, form: "bolt", element: "fire", mods: ["pierce"] },
-  { id: "s5", sect: "sword", name: "\u0E04\u0E48\u0E32\u0E22\u0E01\u0E25\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48", level: 120, form: "field", element: "lightning", mods: ["wide"] },
+  { id: "s1", sect: "sword", name: "\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E17\u0E30\u0E25\u0E27\u0E07\u0E40\u0E21\u0E06", level: 1, form: "wave", element: "wind", mods: [] },
+  { id: "s2", sect: "sword", name: "\u0E01\u0E49\u0E32\u0E27\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32", level: 20, form: "dash", element: "lightning", mods: [] },
+  { id: "s3", sect: "sword", name: "\u0E27\u0E07\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E40\u0E2B\u0E21\u0E31\u0E19\u0E15\u0E4C", level: 40, form: "circle", element: "ice", mods: [] },
+  { id: "s4", sect: "sword", name: "\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E40\u0E1E\u0E25\u0E34\u0E07\u0E44\u0E25\u0E48\u0E14\u0E32\u0E27", level: 60, form: "bolt", element: "fire", mods: ["pierce"] },
+  { id: "s5", sect: "sword", name: "\u0E2A\u0E19\u0E32\u0E21\u0E1E\u0E25\u0E31\u0E07\u0E2B\u0E21\u0E37\u0E48\u0E19\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", level: 120, form: "field", element: "lightning", mods: ["wide"] },
   { id: "d1", sect: "demon", name: "\u0E01\u0E23\u0E07\u0E40\u0E25\u0E47\u0E1A\u0E42\u0E25\u0E2B\u0E34\u0E15", level: 1, form: "circle", element: "poison", mods: ["drain"] },
   { id: "d2", sect: "demon", name: "\u0E40\u0E1E\u0E25\u0E34\u0E07\u0E21\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21", level: 20, form: "bolt", element: "fire", mods: [] },
   { id: "d3", sect: "demon", name: "\u0E40\u0E07\u0E32\u0E21\u0E32\u0E23\u0E40\u0E22\u0E37\u0E2D\u0E01\u0E41\u0E02\u0E47\u0E07", level: 40, form: "dash", element: "ice", mods: [] },
-  { id: "d4", sect: "demon", name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E1E\u0E34\u0E29\u0E01\u0E25\u0E37\u0E19\u0E1B\u0E23\u0E32\u0E13", level: 60, form: "wave", element: "poison", mods: ["wide"] },
-  { id: "d5", sect: "demon", name: "\u0E04\u0E48\u0E32\u0E22\u0E01\u0E25\u0E1A\u0E31\u0E27\u0E42\u0E25\u0E2B\u0E34\u0E15", level: 120, form: "field", element: "fire", mods: ["drain"] }
+  { id: "d4", sect: "demon", name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E1E\u0E34\u0E29\u0E01\u0E25\u0E37\u0E19\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", level: 60, form: "wave", element: "poison", mods: ["wide"] },
+  { id: "d5", sect: "demon", name: "\u0E2A\u0E19\u0E32\u0E21\u0E1E\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E19\u0E14\u0E42\u0E25\u0E2B\u0E34\u0E15", level: 120, form: "field", element: "fire", mods: ["drain"] }
 ];
 function compileSkill(r) {
   if (!r || !FORMS[r.form] || !ELEMENTS[r.element]) return null;
@@ -4027,35 +4127,35 @@ function compileSkill(r) {
 }
 var COCKRO_SKILLS = [
   { id: "s1", name: "\u0E04\u0E25\u0E37\u0E48\u0E19\u0E14\u0E32\u0E1A\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", level: 1, form: "wave", element: "wind", mods: ["wide"], combat: { range: 480, radius: 150, mp: 10, cd: 3.2, power: 1.9 } },
-  { id: "s2", name: "\u0E1E\u0E32\u0E22\u0E38\u0E2B\u0E21\u0E38\u0E19\u0E14\u0E32\u0E1A", level: 5, form: "circle", element: "fire", mods: ["wide"], combat: { range: 185, radius: 185, mp: 14, cd: 5, power: 1.8 } },
-  { id: "s3", name: "\u0E2A\u0E19\u0E32\u0E21\u0E14\u0E32\u0E1A\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32", level: 12, form: "field", element: "lightning", mods: ["wide"], combat: { range: 420, radius: 180, mp: 22, cd: 9, power: 0.7 } },
-  { id: "s4", name: "\u0E14\u0E32\u0E1A\u0E1E\u0E38\u0E48\u0E07\u0E17\u0E30\u0E25\u0E27\u0E07", level: 25, form: "dash", element: "wind", mods: ["wide"] },
-  { id: "s5", name: "\u0E1D\u0E19\u0E14\u0E32\u0E1A\u0E1E\u0E34\u0E17\u0E31\u0E01\u0E29\u0E4C\u0E14\u0E32\u0E27", level: 40, form: "field", element: "lightning", mods: ["wide", "force"] },
-  { id: "s6", name: "\u0E27\u0E07\u0E14\u0E32\u0E1A\u0E2A\u0E30\u0E40\u0E17\u0E37\u0E2D\u0E19\u0E1F\u0E49\u0E32", level: 55, form: "circle", element: "lightning", mods: ["wide", "force"] }
+  { id: "s2", name: "\u0E42\u0E23\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", level: 5, form: "circle", element: "fire", mods: ["wide"], combat: { range: 185, radius: 185, mp: 14, cd: 5, power: 1.8 } },
+  { id: "s3", name: "\u0E2A\u0E19\u0E32\u0E21\u0E44\u0E2D\u0E2D\u0E2D\u0E19", level: 12, form: "field", element: "lightning", mods: ["wide"], combat: { range: 420, radius: 180, mp: 22, cd: 9, power: 0.7 } },
+  { id: "s4", name: "\u0E1A\u0E39\u0E2A\u0E15\u0E4C\u0E14\u0E32\u0E1A\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", level: 25, form: "dash", element: "wind", mods: ["wide"] },
+  { id: "s5", name: "\u0E1B\u0E37\u0E19\u0E27\u0E07\u0E42\u0E04\u0E08\u0E23\u0E1E\u0E34\u0E17\u0E31\u0E01\u0E29\u0E4C\u0E14\u0E32\u0E27", level: 40, form: "field", element: "lightning", mods: ["wide", "force"] },
+  { id: "s6", name: "\u0E42\u0E2D\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32", level: 55, form: "circle", element: "lightning", mods: ["wide", "force"] }
 ];
 var SCORPION_SKILLS = [
-  { id: "d1", name: "\u0E21\u0E35\u0E14\u0E1E\u0E34\u0E29\u0E1E\u0E38\u0E48\u0E07\u0E17\u0E30\u0E22\u0E32\u0E19", level: 1, form: "wave", element: "poison", mods: ["wide"], combat: { range: 460, radius: 140, mp: 10, cd: 3.2, power: 1.8 } },
-  { id: "d2", name: "\u0E2B\u0E32\u0E07\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E01\u0E27\u0E32\u0E14\u0E27\u0E07", level: 5, form: "circle", element: "poison", mods: ["wide"], combat: { range: 185, radius: 185, mp: 14, cd: 5, power: 1.75 } },
-  { id: "d3", name: "\u0E2B\u0E21\u0E2D\u0E01\u0E1E\u0E34\u0E29\u0E21\u0E23\u0E13\u0E30", level: 12, form: "field", element: "poison", mods: ["wide"], combat: { range: 420, radius: 180, mp: 22, cd: 9, power: 0.7 } },
-  { id: "d4", name: "\u0E40\u0E07\u0E32\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E1E\u0E38\u0E48\u0E07\u0E41\u0E17\u0E07", level: 25, form: "dash", element: "poison", mods: ["wide"] },
-  { id: "d5", name: "\u0E25\u0E39\u0E01\u0E1E\u0E34\u0E29\u0E23\u0E30\u0E40\u0E1A\u0E34\u0E14\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32", level: 40, form: "bolt", element: "lightning", mods: ["force", "pierce"] },
-  { id: "d6", name: "\u0E2B\u0E32\u0E07\u0E22\u0E31\u0E01\u0E29\u0E4C\u0E1F\u0E32\u0E14\u0E1E\u0E2A\u0E38\u0E18\u0E32", level: 55, form: "field", element: "poison", mods: ["wide", "force"] }
+  { id: "d1", name: "\u0E43\u0E1A\u0E21\u0E35\u0E14\u0E19\u0E32\u0E42\u0E19\u0E1E\u0E38\u0E48\u0E07\u0E17\u0E30\u0E22\u0E32\u0E19", level: 1, form: "wave", element: "poison", mods: ["wide"], combat: { range: 460, radius: 140, mp: 10, cd: 3.2, power: 1.8 } },
+  { id: "d2", name: "\u0E42\u0E23\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E0A\u0E35\u0E27\u0E1E\u0E34\u0E29", level: 5, form: "circle", element: "poison", mods: ["wide"], combat: { range: 185, radius: 185, mp: 14, cd: 5, power: 1.75 } },
+  { id: "d3", name: "\u0E2A\u0E19\u0E32\u0E21\u0E19\u0E32\u0E42\u0E19\u0E0A\u0E35\u0E27\u0E1E\u0E34\u0E29", level: 12, form: "field", element: "poison", mods: ["wide"], combat: { range: 420, radius: 180, mp: 22, cd: 9, power: 0.7 } },
+  { id: "d4", name: "\u0E40\u0E08\u0E47\u0E15\u0E1A\u0E39\u0E2A\u0E15\u0E4C\u0E25\u0E2D\u0E1A\u0E2A\u0E31\u0E07\u0E2B\u0E32\u0E23", level: 25, form: "dash", element: "poison", mods: ["wide"] },
+  { id: "d5", name: "\u0E01\u0E23\u0E30\u0E2A\u0E38\u0E19\u0E0A\u0E35\u0E27\u0E1E\u0E34\u0E29 EMP", level: 40, form: "bolt", element: "lightning", mods: ["force", "pierce"] },
+  { id: "d6", name: "\u0E42\u0E14\u0E23\u0E19\u0E01\u0E23\u0E30\u0E08\u0E32\u0E22\u0E0A\u0E35\u0E27\u0E1E\u0E34\u0E29", level: 55, form: "field", element: "poison", mods: ["wide", "force"] }
 ];
 var DRAGONFLY_SKILLS = [
-  { id: "s1", name: "\u0E28\u0E23\u0E41\u0E2A\u0E07\u0E1E\u0E38\u0E48\u0E07\u0E17\u0E30\u0E25\u0E27\u0E07", level: 1, form: "bolt", element: "lightning", mods: ["pierce"], combat: { range: 520, radius: 0, mp: 9, cd: 2.6, power: 2.1 } },
-  { id: "s2", name: "\u0E28\u0E23\u0E1E\u0E31\u0E14\u0E2B\u0E49\u0E32\u0E14\u0E2D\u0E01", level: 5, form: "wave", element: "wind", mods: ["wide"], combat: { range: 420, radius: 170, mp: 14, cd: 4.5, power: 1.7 } },
-  { id: "s3", name: "\u0E1E\u0E32\u0E22\u0E38\u0E1B\u0E35\u0E01\u0E41\u0E21\u0E25\u0E07\u0E1B\u0E2D", level: 12, form: "circle", element: "wind", mods: ["wide"], combat: { range: 190, radius: 190, mp: 20, cd: 7, power: 1.6 } },
-  { id: "s4", name: "\u0E1D\u0E19\u0E28\u0E23\u0E14\u0E27\u0E07\u0E14\u0E32\u0E27", level: 25, form: "field", element: "lightning", mods: ["wide"], combat: { range: 460, radius: 190, mp: 26, cd: 10, power: 0.75 } },
-  { id: "s5", name: "\u0E28\u0E23\u0E2A\u0E32\u0E22\u0E1F\u0E49\u0E32\u0E40\u0E08\u0E32\u0E30\u0E1F\u0E49\u0E32", level: 40, form: "bolt", element: "lightning", mods: ["pierce", "force"] },
-  { id: "s6", name: "\u0E1B\u0E35\u0E01\u0E41\u0E2A\u0E07\u0E1E\u0E34\u0E1E\u0E32\u0E01\u0E29\u0E32", level: 55, form: "wave", element: "lightning", mods: ["wide", "force"] }
+  { id: "s1", name: "\u0E28\u0E23\u0E40\u0E23\u0E25\u0E01\u0E31\u0E19\u0E17\u0E30\u0E25\u0E27\u0E07", level: 1, form: "bolt", element: "lightning", mods: ["pierce"], combat: { range: 520, radius: 0, mp: 9, cd: 2.6, power: 2.1 } },
+  { id: "s2", name: "\u0E21\u0E31\u0E25\u0E15\u0E34\u0E0A\u0E47\u0E2D\u0E15\u0E40\u0E23\u0E25\u0E01\u0E31\u0E19", level: 5, form: "wave", element: "wind", mods: ["wide"], combat: { range: 420, radius: 170, mp: 14, cd: 4.5, power: 1.7 } },
+  { id: "s3", name: "\u0E27\u0E07\u0E41\u0E2B\u0E27\u0E19\u0E44\u0E2D\u0E2D\u0E2D\u0E19", level: 12, form: "circle", element: "wind", mods: ["wide"], combat: { range: 190, radius: 190, mp: 20, cd: 7, power: 1.6 } },
+  { id: "s4", name: "\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21\u0E22\u0E34\u0E07\u0E28\u0E23", level: 25, form: "field", element: "lightning", mods: ["wide"], combat: { range: 460, radius: 190, mp: 26, cd: 10, power: 0.75 } },
+  { id: "s5", name: "\u0E28\u0E23\u0E40\u0E23\u0E25\u0E01\u0E31\u0E19\u0E42\u0E2D\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E32\u0E23\u0E4C\u0E08", level: 40, form: "bolt", element: "lightning", mods: ["pierce", "force"] },
+  { id: "s6", name: "\u0E1D\u0E39\u0E07\u0E28\u0E23\u0E42\u0E1F\u0E15\u0E2D\u0E19", level: 55, form: "wave", element: "lightning", mods: ["wide", "force"] }
 ];
 var CRICKET_SKILLS = [
-  { id: "s1", name: "\u0E04\u0E49\u0E2D\u0E19\u0E17\u0E38\u0E1A\u0E41\u0E1C\u0E48\u0E19\u0E14\u0E34\u0E19\u0E41\u0E22\u0E01", level: 1, form: "wave", element: "wind", mods: ["wide"], combat: { range: 400, radius: 150, mp: 10, cd: 3.4, power: 2 } },
-  { id: "s2", name: "\u0E27\u0E07\u0E04\u0E25\u0E37\u0E48\u0E19\u0E40\u0E2A\u0E35\u0E22\u0E07\u0E08\u0E34\u0E49\u0E07\u0E2B\u0E23\u0E35\u0E14", level: 5, form: "circle", element: "lightning", mods: ["wide"], combat: { range: 190, radius: 190, mp: 14, cd: 5, power: 1.8 } },
-  { id: "s3", name: "\u0E01\u0E23\u0E30\u0E42\u0E14\u0E14\u0E01\u0E23\u0E30\u0E41\u0E17\u0E01\u0E1E\u0E2A\u0E38\u0E18\u0E32", level: 12, form: "dash", element: "wind", mods: ["wide", "force"], combat: { range: 260, radius: 70, mp: 18, cd: 7, power: 2 } },
-  { id: "s4", name: "\u0E2A\u0E19\u0E32\u0E21\u0E04\u0E25\u0E37\u0E48\u0E19\u0E2A\u0E31\u0E48\u0E19\u0E2A\u0E30\u0E40\u0E17\u0E37\u0E2D\u0E19", level: 25, form: "field", element: "lightning", mods: ["wide"], combat: { range: 380, radius: 190, mp: 26, cd: 10, power: 0.8 } },
-  { id: "s5", name: "\u0E04\u0E49\u0E2D\u0E19\u0E1E\u0E32\u0E22\u0E38\u0E2B\u0E21\u0E38\u0E19", level: 40, form: "circle", element: "wind", mods: ["wide", "force"] },
-  { id: "s6", name: "\u0E42\u0E14\u0E21\u0E04\u0E25\u0E37\u0E48\u0E19\u0E40\u0E2A\u0E35\u0E22\u0E07\u0E17\u0E2D\u0E07\u0E04\u0E33", level: 55, form: "field", element: "lightning", mods: ["wide", "force"], combat: { range: 200, radius: 230, mp: 40, cd: 14, power: 0.9 } }
+  { id: "s1", name: "\u0E04\u0E49\u0E2D\u0E19\u0E42\u0E0B\u0E19\u0E34\u0E01\u0E01\u0E23\u0E30\u0E41\u0E17\u0E01", level: 1, form: "wave", element: "wind", mods: ["wide"], combat: { range: 400, radius: 150, mp: 10, cd: 3.4, power: 2 } },
+  { id: "s2", name: "\u0E42\u0E0B\u0E19\u0E34\u0E01\u0E1E\u0E31\u0E25\u0E2A\u0E4C", level: 5, form: "circle", element: "lightning", mods: ["wide"], combat: { range: 190, radius: 190, mp: 14, cd: 5, power: 1.8 } },
+  { id: "s3", name: "\u0E40\u0E08\u0E47\u0E15\u0E1A\u0E39\u0E2A\u0E15\u0E4C\u0E01\u0E23\u0E30\u0E41\u0E17\u0E01", level: 12, form: "dash", element: "wind", mods: ["wide", "force"], combat: { range: 260, radius: 70, mp: 18, cd: 7, power: 2 } },
+  { id: "s4", name: "\u0E2A\u0E19\u0E32\u0E21\u0E40\u0E23\u0E42\u0E0B\u0E41\u0E19\u0E19\u0E0B\u0E4C", level: 25, form: "field", element: "lightning", mods: ["wide"], combat: { range: 380, radius: 190, mp: 26, cd: 10, power: 0.8 } },
+  { id: "s5", name: "\u0E42\u0E23\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E04\u0E49\u0E2D\u0E19\u0E42\u0E0B\u0E19\u0E34\u0E01", level: 40, form: "circle", element: "wind", mods: ["wide", "force"] },
+  { id: "s6", name: "\u0E42\u0E14\u0E21\u0E40\u0E23\u0E42\u0E0B\u0E41\u0E19\u0E19\u0E0B\u0E4C", level: 55, form: "field", element: "lightning", mods: ["wide", "force"], combat: { range: 200, radius: 230, mp: 40, cd: 14, power: 0.9 } }
 ];
 function classSkills(s) {
   if (s.hero === "sword-dragonfly") return [...DRAGONFLY_SKILLS, ...SCHOOL.filter((r) => r.sect === "sword" && Number(r.id.slice(1)) >= 7)];
@@ -4095,16 +4195,16 @@ function skillTargets(skill, origin, aim, enemies) {
   return skill.form === "bolt" ? line.slice(0, skill.mods.includes("pierce") ? 3 : 1) : line;
 }
 SCHOOL.push(
-  { id: "s6", sect: "sword", name: "\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E27\u0E32\u0E22\u0E38\u0E2B\u0E22\u0E01", level: 80, form: "circle", element: "wind", mods: ["wide"] },
-  { id: "s7", sect: "sword", name: "\u0E1A\u0E31\u0E27\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E40\u0E2B\u0E21\u0E31\u0E19\u0E15\u0E4C", level: 100, form: "field", element: "ice", mods: ["lasting"] },
-  { id: "s8", sect: "sword", name: "\u0E40\u0E08\u0E47\u0E14\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E1E\u0E34\u0E1E\u0E32\u0E01\u0E29\u0E32", level: 140, form: "wave", element: "lightning", mods: ["pierce", "force"] },
-  { id: "s9", sect: "sword", name: "\u0E21\u0E31\u0E07\u0E01\u0E23\u0E04\u0E23\u0E32\u0E21\u0E17\u0E30\u0E25\u0E27\u0E07\u0E1F\u0E49\u0E32", level: 160, form: "wave", element: "ice", mods: ["wide", "force"] },
-  { id: "s10", sect: "sword", name: "\u0E1D\u0E19\u0E01\u0E23\u0E30\u0E1A\u0E35\u0E48\u0E1B\u0E23\u0E30\u0E15\u0E39\u0E2A\u0E27\u0E23\u0E23\u0E04\u0E4C", level: 180, form: "field", element: "lightning", mods: ["wide", "force"] },
-  { id: "d6", sect: "demon", name: "\u0E42\u0E0B\u0E48\u0E27\u0E34\u0E0D\u0E0D\u0E32\u0E13\u0E27\u0E19\u0E2A\u0E39\u0E0D", level: 80, form: "circle", element: "ice", mods: ["drain"] },
-  { id: "d7", sect: "demon", name: "\u0E1B\u0E35\u0E01\u0E21\u0E32\u0E23\u0E2A\u0E30\u0E1A\u0E31\u0E49\u0E19\u0E08\u0E31\u0E19\u0E17\u0E23\u0E4C", level: 100, form: "wave", element: "fire", mods: ["force"] },
-  { id: "d8", sect: "demon", name: "\u0E2D\u0E2A\u0E23\u0E1E\u0E34\u0E29\u0E01\u0E25\u0E37\u0E19\u0E27\u0E34\u0E0D\u0E0D\u0E32\u0E13", level: 140, form: "bolt", element: "poison", mods: ["pierce", "lasting"] },
-  { id: "d9", sect: "demon", name: "\u0E04\u0E23\u0E32\u0E2A\u0E42\u0E25\u0E2B\u0E34\u0E15\u0E40\u0E01\u0E49\u0E32\u0E1C\u0E19\u0E36\u0E01", level: 160, form: "circle", element: "fire", mods: ["wide", "drain"] },
-  { id: "d10", sect: "demon", name: "\u0E1E\u0E32\u0E22\u0E38\u0E40\u0E01\u0E49\u0E32\u0E1A\u0E31\u0E27\u0E2D\u0E40\u0E27\u0E08\u0E35", level: 180, form: "field", element: "poison", mods: ["wide", "force"] }
+  { id: "s6", sect: "sword", name: "\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E27\u0E32\u0E22\u0E38\u0E2B\u0E22\u0E01", level: 80, form: "circle", element: "wind", mods: ["wide"] },
+  { id: "s7", sect: "sword", name: "\u0E42\u0E2B\u0E19\u0E14\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E40\u0E2B\u0E21\u0E31\u0E19\u0E15\u0E4C", level: 100, form: "field", element: "ice", mods: ["lasting"] },
+  { id: "s8", sect: "sword", name: "\u0E40\u0E08\u0E47\u0E14\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E1E\u0E34\u0E1E\u0E32\u0E01\u0E29\u0E32", level: 140, form: "wave", element: "lightning", mods: ["pierce", "force"] },
+  { id: "s9", sect: "sword", name: "\u0E1B\u0E37\u0E19\u0E44\u0E2D\u0E2D\u0E2D\u0E19\u0E17\u0E30\u0E25\u0E27\u0E07", level: 160, form: "wave", element: "ice", mods: ["wide", "force"] },
+  { id: "s10", sect: "sword", name: "\u0E1D\u0E19\u0E1E\u0E25\u0E32\u0E2A\u0E21\u0E32\u0E27\u0E07\u0E42\u0E04\u0E08\u0E23", level: 180, form: "field", element: "lightning", mods: ["wide", "force"] },
+  { id: "d6", sect: "demon", name: "\u0E42\u0E0B\u0E48\u0E19\u0E32\u0E42\u0E19\u0E27\u0E19\u0E2A\u0E39\u0E0D", level: 80, form: "circle", element: "ice", mods: ["drain"] },
+  { id: "d7", sect: "demon", name: "\u0E1B\u0E35\u0E01\u0E40\u0E08\u0E47\u0E15\u0E15\u0E31\u0E14\u0E27\u0E07\u0E42\u0E04\u0E08\u0E23", level: 100, form: "wave", element: "fire", mods: ["force"] },
+  { id: "d8", sect: "demon", name: "\u0E15\u0E2D\u0E23\u0E4C\u0E1B\u0E34\u0E42\u0E14\u0E0A\u0E35\u0E27\u0E1E\u0E34\u0E29", level: 140, form: "bolt", element: "poison", mods: ["pierce", "lasting"] },
+  { id: "d9", sect: "demon", name: "EMP \u0E40\u0E01\u0E49\u0E32\u0E42\u0E2B\u0E19\u0E14", level: 160, form: "circle", element: "fire", mods: ["wide", "drain"] },
+  { id: "d10", sect: "demon", name: "\u0E1D\u0E39\u0E07\u0E42\u0E14\u0E23\u0E19\u0E19\u0E32\u0E42\u0E19", level: 180, form: "field", element: "poison", mods: ["wide", "force"] }
 );
 
 // web/gear.js
@@ -4811,13 +4911,7 @@ var toUV = ({ x, y }, scene) => {
 var rect = (l, t, r, b) => [[l, t], [r, t], [r, b], [l, b]];
 var FOREST_COLS = 9;
 var FOREST_ROWS = 6;
-var localPoly = (col, row, poly) => poly.map(([u, v]) => [(col + u) / FOREST_COLS, (row + v) / FOREST_ROWS]);
-var forestWalk = [];
-for (let row = 0; row < FOREST_ROWS; row++) for (let col = 0; col < FOREST_COLS; col++) {
-  forestWalk.push(localPoly(col, row, [[0.22, 0.4], [0.34, 0.27], [0.64, 0.27], [0.77, 0.4], [0.78, 0.58], [0.65, 0.73], [0.35, 0.73], [0.22, 0.59]]));
-  forestWalk.push(localPoly(col, row, rect(0.4, row === 0 ? 0.045 : 0, 0.58, row === FOREST_ROWS - 1 ? 0.96 : 1)));
-  forestWalk.push(localPoly(col, row, rect(col === 0 ? 0.045 : 0, 0.42, col === FOREST_COLS - 1 ? 0.955 : 1, 0.54)));
-}
+var forestWalk = [rect(0.012, 0.012, 0.988, 0.988)];
 var REGIONS = [
   { id: 0, name: "\u0E0A\u0E32\u0E22\u0E1B\u0E48\u0E32\u0E41\u0E2A\u0E07\u0E41\u0E23\u0E01", min: 1, max: 10, center: [1 / 6, 0.75], entry: [1 / 6, 0.9] },
   { id: 1, name: "\u0E17\u0E38\u0E48\u0E07\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E2D\u0E33\u0E1E\u0E31\u0E19", min: 11, max: 20, center: [0.5, 0.75], entry: [0.5, 0.9] },
@@ -4853,6 +4947,42 @@ function traceStep(scene, from, to) {
     p = q;
   }
   return p;
+}
+
+// web/mob-motion.js
+var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function moveMonster(e, scene, goal, step) {
+  const n = dist(e, goal);
+  if (n < 0.01) return;
+  const next = traceStep(scene, e, { x: e.x + (goal.x - e.x) / n * Math.min(n, step), y: e.y + (goal.y - e.y) / n * Math.min(n, step) }), moved = dist(e, next);
+  if (moved > 0.01) {
+    e.walkDistance = (e.walkDistance || 0) + moved;
+    e.face = next.x - e.x - (next.y - e.y) >= 0 ? 1 : -1;
+    e.moving = true;
+    Object.assign(e, next);
+  }
+  return moved;
+}
+function wanderMonster(e, scene, dt, now) {
+  if (e.state === "windup") return;
+  e.state = "idle";
+  if (now < (e.restUntil || 0)) return;
+  if (!e.roamGoal) {
+    const seed = String(e.id || e.spawnId).split("").reduce((a2, c) => a2 * 31 + c.charCodeAt(0) >>> 0, 0), turn = e.roamTurn || 0;
+    e.roamTurn = turn + 1;
+    const a = seed % 628 / 100 + turn * 2.399, r = 70 + (seed + turn * 37) % 150;
+    const goal = { x: e.homeX + Math.cos(a) * r, y: e.homeY + Math.sin(a) * r };
+    if (!walkable(scene, goal)) {
+      e.restUntil = now + 1;
+      return;
+    }
+    e.roamGoal = goal;
+  }
+  const moved = moveMonster(e, scene, e.roamGoal, e.def.speed * 0.45 * dt);
+  if (dist(e, e.roamGoal) < 8 || !moved) {
+    e.roamGoal = null;
+    e.restUntil = now + 1 + e.roamTurn % 4 * 0.6;
+  }
 }
 
 // web/roads.js
@@ -4898,9 +5028,12 @@ function makePopulation() {
   for (const camp of CAMPS) {
     const center = toWorld(camp.uv, MAPS.forest);
     for (let i = 0; i < PACK_SIZE; i++) {
-      const a = i * Math.PI * 2 / PACK_SIZE;
-      const position = traceStep(MAPS.forest, center, { x: center.x + Math.cos(a) * 165, y: center.y + Math.sin(a) * 165 });
-      const def = MONSTERS[camp.region * 10 + camp.tier];
+      const tileCol = Math.floor(camp.uv[0] * FOREST_COLS), tileRow = Math.floor(camp.uv[1] * FOREST_ROWS), row = Number(camp.id.split("-").at(-1));
+      const jitter = Math.sin(tileCol * 31 + tileRow * 17 + i * 13 + row * 7) * 0.035;
+      const position = toWorld([Math.max(0.02, Math.min(0.98, (tileCol + (i + 0.5) / 6 + jitter) / FOREST_COLS)), Math.max(0.02, Math.min(0.98, (tileRow + (row + 0.5) / 3 + jitter) / FOREST_ROWS))], MAPS.forest);
+      const entry = toWorld(REGIONS[camp.region].entry, MAPS.forest);
+      const level = camp.region * 10 + 1 + (Math.hypot(position.x - entry.x, position.y - entry.y) < 700 ? i % 3 : camp.tier);
+      const def = i % 3 === 0 ? MONSTERS[level - 1] : forestMonster(level);
       units.push(makeUnit(def, position, `${camp.id}-${i}`));
     }
   }
@@ -4921,7 +5054,7 @@ var hero_star_default = { type: "map", version: "1.10", tiledversion: "1.10.2", 
 // server/world.js
 var HEROES2 = ["sword-cockro", "sword-dragonfly", "sword-cricket", "demon-scorpion"];
 var PROTOCOL = "cockro-online-2";
-var dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+var dist2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 var finite = (...v) => v.every((x) => typeof x === "number" && Number.isFinite(x));
 var World = class {
   constructor({ maxPlayers = 64, testRewards = false } = {}) {
@@ -4949,7 +5082,7 @@ var World = class {
     return p;
   }
   home(p) {
-    return p.map === "town" || p.map === "star" && dist(p, this.maps.star.spawn) < 430;
+    return p.map === "town" || p.map === "star" && dist2(p, this.maps.star.spawn) < 430;
   }
   enter(p, map, gate = 0) {
     if (!Object.hasOwn(this.maps, map)) return false;
@@ -5003,7 +5136,7 @@ var World = class {
       const elapsed = Math.min(0.3, Math.max(0, now - p.moveAt));
       p.moveAt = now;
       const speed = ((s.hero.startsWith("sword") ? 165 : 160) + combatStats(s).speed) * movementMultiplier(s, now * 1e3);
-      const n2 = dist(p, d), allowed = speed * elapsed;
+      const n2 = dist2(p, d), allowed = speed * elapsed;
       const ratio = n2 ? Math.min(1, allowed / n2) : 0;
       const next = traceStep(this.maps[p.map], p, { x: p.x + (d.x - p.x) * ratio, y: p.y + (d.y - p.y) * ratio });
       const dx = next.x - p.x, dy = next.y - p.y;
@@ -5046,7 +5179,7 @@ var World = class {
       const atHome = this.home(p);
       switch (d.op) {
         case "townBuff": {
-          const near = p.map === "town" && dist(p, toWorld(BUFF_NPC_UV, MAPS.town)) <= 120;
+          const near = p.map === "town" && dist2(p, toWorld(BUFF_NPC_UV, MAPS.town)) <= 120;
           if (grantTownBuff(p, this.testRewards, near, now * 1e3)) {
             p.hp = maxHP(s);
             p.mp = combatStats(s).mp;
@@ -5145,7 +5278,7 @@ var World = class {
     }
     if (d.type === "dash") {
       if (now < (p.cd.dash || 0) || !finite(d.x, d.y)) return;
-      const n2 = dist(p, d) || 1;
+      const n2 = dist2(p, d) || 1;
       Object.assign(p, traceStep(this.maps[p.map], p, { x: p.x + (d.x - p.x) / n2 * 150, y: p.y + (d.y - p.y) / n2 * 150 }));
       p.cd.dash = now + 2;
       p.inv = now + 0.6;
@@ -5153,19 +5286,19 @@ var World = class {
       return;
     }
     if (!["attack", "skill"].includes(d.type) || this.home(p) || now < p.actionUntil) return;
-    const targets = this.mobs[p.map].filter((e) => e.hp > 0).sort((a, b) => dist(p, a) - dist(p, b));
+    const targets = this.mobs[p.map].filter((e) => e.hp > 0).sort((a, b) => dist2(p, a) - dist2(p, b));
     const target = targets.find((e) => e.id === d.target) || targets[0];
     if (d.type === "attack") {
       const range = s.hero === "sword-dragonfly" ? 340 : 120;
-      if (now < (p.cd.attack || 0) || !target || dist(p, target) > range) return;
+      if (now < (p.cd.attack || 0) || !target || dist2(p, target) > range) return;
       const end = traceStep(this.maps[p.map], p, target);
-      if (dist(end, target) > 1) return;
+      if (dist2(end, target) > 1) return;
       p.cd.attack = now + 0.46 * (1 - combatStats(s).haste);
       p.actionUntil = now + 0.35;
       p.actionKind = "attack";
       p.anim = "attack";
       this.hit(p, target, damage(s) * (Math.random() < combatStats(s).crit ? 1.5 : 1), now);
-      this.event(p, { kind: "attack", hero: s.hero });
+      this.event(p, { kind: "attack", hero: s.hero, aim: { x: target.x, y: target.y }, range });
       return;
     }
     if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return;
@@ -5180,19 +5313,27 @@ var World = class {
     p.anim = "skill";
     p.castId = r.id;
     let aim = target ? { x: target.x, y: target.y } : { x: p.x + p.face * 150, y: p.y - p.face * 150 };
-    const n = dist(p, aim);
+    const n = dist2(p, aim);
     if (n > k.range) aim = { x: p.x + (aim.x - p.x) / n * k.range, y: p.y + (aim.y - p.y) / n * k.range };
-    const origin = { x: p.x, y: p.y };
-    for (const e of skillTargets(k, origin, aim, targets)) {
-      if (dist(traceStep(this.maps[p.map], p, e), e) > 1) continue;
+    const origin = { x: p.x, y: p.y }, length = dist2(origin, aim) || 1, direction = { x: (aim.x - origin.x) / length, y: (aim.y - origin.y) / length };
+    let endpoint = { x: origin.x + direction.x * k.range, y: origin.y + direction.y * k.range };
+    if (k.form === "dash") {
+      endpoint = traceStep(this.maps[p.map], origin, endpoint);
+      k.range = dist2(origin, endpoint);
+      aim = endpoint;
+    }
+    const victims = skillTargets(k, origin, aim, targets).filter((e) => dist2(traceStep(this.maps[p.map], origin, e), e) < 1);
+    if (k.form === "bolt" && victims.length) endpoint = { x: victims.at(-1).x, y: victims.at(-1).y };
+    for (const e of victims) {
+      if (dist2(traceStep(this.maps[p.map], p, e), e) > 1) continue;
       const amount = damage(s) * k.power * combatStats(s).spell * (1 + (s.skillRanks[r.id] || 0) * 0.06) * (k.element === "lightning" ? 1.2 : 1);
       this.hit(p, e, amount, now);
       if (k.mods.includes("drain")) p.hp = Math.min(maxHP(s), p.hp + Math.min(amount * 0.08, maxHP(s) * 0.08));
       if (e.hp > 0 && ["fire", "poison"].includes(k.element)) e.dot = { owner: p.id, left: k.element === "fire" ? 3 : 6, dps: damage(s) * (k.element === "fire" ? 0.15 : 0.1) };
       if (k.element === "ice") e.slow = now + 3;
     }
-    if (k.form === "dash") Object.assign(p, traceStep(this.maps[p.map], p, aim));
-    this.event(p, { kind: "skill", hero: s.hero, skillId: k.id, form: k.form, aim, color: k.color, radius: k.radius, range: k.range });
+    if (k.form === "dash") Object.assign(p, endpoint);
+    this.event(p, { kind: "skill", x: origin.x, y: origin.y, hero: s.hero, skillId: k.id, form: k.form, aim: ["field", "circle"].includes(k.form) ? aim : endpoint, color: k.color, radius: k.radius, range: k.range });
   }
   tick(dt, now = Date.now() / 1e3) {
     for (const p of this.players.values()) {
@@ -5215,7 +5356,7 @@ var World = class {
         e.flash = Math.max(0, (e.flash || 0) - dt);
         e.moving = false;
         if (e.hp <= 0) {
-          if (now >= e.respawnAt && players.every((p2) => dist(p2, { x: e.homeX, y: e.homeY }) > 220)) Object.assign(e, { x: e.homeX, y: e.homeY, hp: e.def.hp, state: "idle", dot: null, aggro: null });
+          if (now >= e.respawnAt && players.every((p2) => dist2(p2, { x: e.homeX, y: e.homeY }) > 220)) Object.assign(e, { x: e.homeX, y: e.homeY, hp: e.def.hp, state: "idle", dot: null, aggro: null });
           continue;
         }
         if (e.dot?.left > 0) {
@@ -5224,27 +5365,51 @@ var World = class {
           e.dot.left -= dt;
           if (e.hp <= 0) continue;
         }
-        let p = players.filter((p2) => dist(p2, e) < 700).sort((a, b) => dist(a, e) - dist(b, e))[0];
-        if (!p) continue;
-        const distance = dist(p, e);
-        if (distance > 230 && e.aggro !== p.id) continue;
-        if (dist(e, { x: e.homeX, y: e.homeY }) > 650) {
-          e.x = e.homeX;
-          e.y = e.homeY;
-          e.hp = e.def.hp;
-          e.aggro = null;
+        let p = players.filter((p2) => dist2(p2, e) < 700).sort((a, b) => dist2(a, e) - dist2(b, e))[0];
+        if (!p) {
+          wanderMonster(e, this.maps[map], dt, now);
           continue;
         }
-        const kind = e.def.attack, range = kind === "projectile" ? 280 : kind === "cone" ? 210 : kind === "burst" ? 150 : kind === "dash" ? 180 : 65;
+        const distance = dist2(p, e);
+        if (e.returning || dist2(e, { x: e.homeX, y: e.homeY }) > 650) {
+          e.returning = true;
+          e.state = "idle";
+          e.aggro = null;
+          moveMonster(e, this.maps[map], { x: e.homeX, y: e.homeY }, e.def.speed * dt);
+          if (dist2(e, { x: e.homeX, y: e.homeY }) < 12) {
+            e.returning = false;
+            e.hp = e.def.hp;
+          }
+          continue;
+        }
+        if (distance > 230 && e.aggro !== p.id && e.state !== "windup") {
+          wanderMonster(e, this.maps[map], dt, now);
+          continue;
+        }
+        const kind = e.def.attack, range = kind === "signature" ? Math.min(e.def.range, 350) : kind === "projectile" ? 280 : kind === "cone" ? 210 : kind === "burst" ? 150 : kind === "dash" ? 180 : 65;
+        if (kind === "signature" && e.state === "windup") {
+          if (e.clock <= 0) {
+            const zones = monsterZones(e);
+            this.event({ id: e.id, map, x: e.x, y: e.y }, { kind: "monsterSkill", zones, color: e.def.color, pattern: e.def.pattern });
+            for (const victim of players) if (zones.some((z) => zoneContains(z, victim)) && dist2(traceStep(this.maps[map], e, victim), victim) < 1 && now > (victim.inv || 0)) {
+              victim.hp = Math.max(0, victim.hp - e.def.damage * 100 / (100 + combatStats(victim.s).defense));
+              victim.inv = now + 0.35;
+            }
+            if (["charge", "drill"].includes(e.def.pattern)) Object.assign(e, traceStep(this.maps[map], e, { x: e.x + Math.cos(e.angle) * e.def.range, y: e.y + Math.sin(e.angle) * e.def.range }));
+            e.state = "idle";
+            e.clock = e.def.cooldown;
+          }
+          continue;
+        }
         if (e.state === "windup") {
           if (e.clock <= 0) {
             if (kind === "dash") {
               Object.assign(e, traceStep(this.maps[map], e, { x: e.x + Math.cos(e.angle) * 160, y: e.y + Math.sin(e.angle) * 160 }));
             }
             for (const victim of players) {
-              const d = dist(victim, e), dx = victim.x - e.x, dy = victim.y - e.y, along = dx * Math.cos(e.angle) + dy * Math.sin(e.angle), across = Math.abs(-dx * Math.sin(e.angle) + dy * Math.cos(e.angle));
+              const d = dist2(victim, e), dx = victim.x - e.x, dy = victim.y - e.y, along = dx * Math.cos(e.angle) + dy * Math.sin(e.angle), across = Math.abs(-dx * Math.sin(e.angle) + dy * Math.cos(e.angle));
               const hit = kind === "burst" ? d < 150 : kind === "cone" ? inCone(victim.x, victim.y, e.x, e.y, e.angle, 245, Math.PI * 0.7) : kind === "projectile" ? along > 0 && along < 315 && across < 28 : d < (kind === "dash" ? 85 : 100);
-              if (hit && dist(traceStep(this.maps[map], e, victim), victim) < 1 && now > (victim.inv || 0)) {
+              if (hit && dist2(traceStep(this.maps[map], e, victim), victim) < 1 && now > (victim.inv || 0)) {
                 victim.hp = Math.max(0, victim.hp - e.def.damage * 100 / (100 + combatStats(victim.s).defense));
                 victim.inv = now + 0.35;
               }
@@ -5256,15 +5421,15 @@ var World = class {
         }
         if (distance < range && e.clock <= 0) {
           e.state = "windup";
-          e.clock = e.def.boss ? 1.1 : 0.75;
+          e.clock = e.def.boss ? 1.1 : e.def.attack === "signature" ? 1 : 0.75;
           e.aimX = p.x;
           e.aimY = p.y;
           e.angle = Math.atan2(p.y - e.y, p.x - e.x);
         } else if (distance > range * 0.8) {
           const speed = e.def.speed * (now < (e.slow || 0) ? 0.65 : 1), step = Math.min(distance - range * 0.8, speed * dt);
           const next = traceStep(this.maps[map], e, { x: e.x + (p.x - e.x) / distance * step, y: e.y + (p.y - e.y) / distance * step });
-          e.walkDistance = (e.walkDistance || 0) + dist(e, next);
-          e.moving = dist(e, next) > 0.01;
+          e.walkDistance = (e.walkDistance || 0) + dist2(e, next);
+          e.moving = dist2(e, next) > 0.01;
           e.face = next.x - e.x - (next.y - e.y) >= 0 ? 1 : -1;
           Object.assign(e, next);
         }
@@ -5275,7 +5440,7 @@ var World = class {
     const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
-    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist(p, q) < 1800).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist(p, e) < 1800) };
+    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
   }
 };
 
@@ -5365,7 +5530,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.20.0", ssv: ssvStatus, advancedSpecies: 20, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.22.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5480,7 +5645,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.20.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.22.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
