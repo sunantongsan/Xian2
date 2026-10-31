@@ -54,7 +54,7 @@ export function drawPlasmaTexture(g,e,project,scale,quality,im){
  const reach=e.form==='bolt'?len:(e.range||len),r=e.radius||50,low=quality==='low';
  const row=e.textureRow??({'sword-cockro':0,'demon-scorpion':1,'sword-dragonfly':2,'sword-cricket':3})[e.hero]??0;
  const cw=im.width/4,ch=im.height/4,frame=Math.min(2.999,t*3),f=Math.floor(frame),mix=frame-f;
- const stamp=(world,width,height,angle=0,alpha=1)=>{const q=project(world.x,world.y);g.save();g.translate(q.x,q.y-18*scale);g.rotate(angle);const paint=(n,a)=>{g.globalAlpha=a*alpha*Math.min(1,(1-t)*6);g.drawImage(im,n*cw+cw*.025,row*ch+ch*.035,cw*.95,ch*.93,-width/2*scale,-height/2*scale,width*scale,height*scale);};if(low)paint(Math.round(frame),1);else{paint(f,1-mix);paint(Math.min(3,f+1),mix);}g.restore();};
+ const stamp=(world,width,height,angle=0,alpha=1)=>{const q=project(world.x,world.y);g.save();g.translate(q.x,q.y-18*scale);g.rotate(angle);const paint=(n,a)=>{g.globalAlpha=a*alpha*Math.min(1,(1-t)*6);g.drawImage(im,n*cw+cw*.035,row*ch+ch*.045,cw*.93,ch*(row===2?.80:.90),-width/2*scale,-height/2*scale,width*scale,height*scale);};if(low)paint(Math.round(frame),1);else{paint(f,1-mix);paint(Math.min(3,f+1),mix);}g.restore();};
  g.save();g.globalCompositeOperation='lighter';
  const start=project(e.x,e.y),end=project(e.x+ux*reach,e.y+uy*reach),angle=Math.atan2(end.y-start.y,end.x-start.x);
  if(e.form==='circle'||e.form==='field'){
