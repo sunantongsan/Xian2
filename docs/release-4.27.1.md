@@ -36,3 +36,5 @@ Still required before launch: create/activate the four consumable products with 
 ## Upload-key recovery (31 October 2026)
 Recovered the existing private backup at `/workspace/scratch/COCKRO-upload-key-backup.zip` after a targeted prior-work lookup. Archive contains `cockro-upload.p12`, alias `upload`, and separate password file; never commit this backup or its password. Public upload certificate SHA-256 is `44:3C:10:6C:A7:C2:48:98:F4:15:F2:B9:1F:C7:1C:66:65:13:F8:EA:68:60:98:07:7A:4F:94:DE:A2:3C:D9:DC`, matching the Play Console upload certificate. No reset is needed.
 Signed 4.27.1 versionCode 105 and verified with jarsigner. Signed AAB: 27,278,904 bytes; SHA-256 `85e6851b1b25fa578538c59c8c45767080dc7b53d6361f467f54a8d74d1fa628`. The earlier missing-key blocker is resolved.
+
+Google Play accepted signed versionCode 105 and published release 17 on internal track 4701506968907566093 at 11:55 Asia/Bangkok, 31 October 2026. Console status: available to internal testers. No lost device support; only optional missing deobfuscation-map warning (R8 is not enabled). Billing products/backend activation and license-testing remain outstanding.
