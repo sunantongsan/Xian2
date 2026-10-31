@@ -25,3 +25,13 @@ Goal: show one clear next milestone, award each milestone once per character ser
 Companion proposal: deploy one at a time; variants are an ion beetle (attack), nano moth (healing) and magnet mantis (loot collection). All grant a small assist attack so each helps leveling. Proposed initial assist power 10–15% of player damage, with shared player XP and kill ownership, no offline farming or separate population target. Define balance through playtests before activation. Training uses boss fragments, so the extra bosses have a longer-term purpose. Duplicate future companions become training fragments; do not erase progress or force repeated rerolls. Preview the exact next reward and XP progress in a compact optional screen, without covering gameplay. Existing characters receive pending milestone claims after server-side migration; repeated/replayed claims must be idempotent.
 
 This proposal needs companion art/animations, authoritative combat and ownership, persistent reward claims, UI and balance validation before it can be described as playable.
+
+## Published verification
+
+- Source commit: 849b2a8584347a23d03ac1980452e6e120cbe448.
+- Vercel production dpl_2CA7gViiMb44o1mm8Jg51agSk53Q READY; https://cockro-game-updates.vercel.app .
+- VPS workflow https://github.com/sunantongsan/Xian2/actions/runs/41156796015 succeeded, including two-player live world smoke.
+- Live health reports release 4.23.0, forestPopulation 1213, forestBosses 46.
+- Downloaded patch ZIP SHA-256 verified: 39df9cc2a428f6e5a80598c97c7d92096719a4f8067deda447adc2fd1d53ab15 (20,787,858 bytes); inspected published population and town spawn code.
+- 151 local tests pass; game and bundled server syntax pass.
+- Browser: existing QA4221 character re-entered from the 4.23.0 roster; world rendered online at the central landing circle. Screenshot: review/cockro-4.23-town.jpg.
