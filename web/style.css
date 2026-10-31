@@ -297,4 +297,7 @@ body.welcome-screen #modal:has(.welcome-roster){width:min(820px,94vw);max-width:
 
 .hero-sheet .attr{grid-template-columns:1fr auto 140px}.stat-control{display:grid;grid-template-columns:36px 60px 36px;gap:4px}.hero-sheet .stat-control button{font-size:18px;min-height:38px;padding:3px}.stat-number-pad{position:absolute;z-index:20;right:20px;top:70px;width:260px;max-width:85%;padding:14px;border:2px solid #bc9957;border-radius:10px;background:#101d29;box-shadow:0 10px 50px #000}.stat-number-pad output{display:block;padding:8px;font-size:25px;text-align:right;background:#050b12;margin:8px 0}.stat-pad-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.stat-pad-keys button{min-height:42px;font-size:20px}.stat-number-pad>button{width:48%;margin-top:8px}#deleteCharacter,#confirmDeleteCharacter{border-color:#ad4545;color:#ffc2b7}.roster-actions{flex-wrap:wrap}#googleLogin{background:#eef3f8;color:#183047;border-color:#d3dae1}
 
-.class-weapon-art{display:inline-block;width:100%;height:100%;min-width:0;min-height:0;aspect-ratio:1;background-image:url("items/class-weapons.webp");background-size:200% 200%;background-repeat:no-repeat;border-radius:8px;}
+.class-weapon-art{display:inline-block;width:100%;height:100%;min-width:0;min-height:0;aspect-ratio:1;background-image:url("items/loot-atlas.webp");background-size:400% 300%;background-repeat:no-repeat;border-radius:8px;}
+
+
+.weapon-stock{max-height:45vh;overflow:auto;padding:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}.weapon-stock .class-weapon-art{width:80px;height:80px;display:block;margin:0 auto 8px}.weapon-stock .card{background:linear-gradient(145deg,#193443,#101c2c);border-color:#8e7545}.weapon-stock b{display:block}.weapon-stock p{font-size:12px;color:#b9dbe5}

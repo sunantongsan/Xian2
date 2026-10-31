@@ -10,7 +10,8 @@ export const SLOTS={
 export const SLOT_ORDER=['helm','armor','gloves','boots','weapon','wings','ring','amulet'];
 export const TIERS=[
  {name:'ฝึกหัด',level:1},{name:'เหล็กดาว',level:10},{name:'ไคตินอำพัน',level:20},
- {name:'คริสตัลไซเบอร์',level:30},{name:'นีออนโคร',level:40},{name:'แกนดาวเพลิง',level:50}
+ {name:'คริสตัลไซเบอร์',level:30},{name:'นีออนโคร',level:40},{name:'แกนดาวเพลิง',level:50},
+ ...Array.from({length:16},(_,i)=>({name:'ควอนตัม Mk.'+(i+6),level:(i+6)*10}))
 ];
 export const RARITY=[
  {name:'ธรรมดา',color:'#e9e4d6',mult:1},{name:'ดีเยี่ยม',color:'#5aa8ff',mult:1.25},
@@ -69,4 +70,5 @@ export function upgradeGear(s,slot){
  s.stones-=cost;s.gold-=g;s.upgradeItems.alloy-=n;it.plus=n;countActivity(s,'upgrade');return true;
 }
 export function gearShopPrice(slot,tier){return 150+100*tier+(slot==='weapon'?100:0);}
-export function buyShopGear(s,slot){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE)return false;const tier=tierForLevel(s.level),cost=gearShopPrice(slot,tier);if(s.stones<cost)return false;s.stones-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
+export function buyShopGear(s,slot,tier=tierForLevel(s.level)){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;const cost=gearShopPrice(slot,tier);if(s.stones<cost)return false;s.stones-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
+

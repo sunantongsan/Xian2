@@ -3707,6 +3707,12 @@ var require_websocket_server = __commonJS({
   }
 });
 
+// server/state-wire.js
+function stateForWire(data, cursor = 0) {
+  if (data.type !== "state") return data;
+  return { ...data, events: data.events.filter((e) => e.id > cursor) };
+}
+
 // web/world-save.js
 function normalizeWorldSave(s, v) {
   const w = v.worldState;
@@ -4223,7 +4229,8 @@ var TIERS = [
   { name: "\u0E44\u0E04\u0E15\u0E34\u0E19\u0E2D\u0E33\u0E1E\u0E31\u0E19", level: 20 },
   { name: "\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25\u0E44\u0E0B\u0E40\u0E1A\u0E2D\u0E23\u0E4C", level: 30 },
   { name: "\u0E19\u0E35\u0E2D\u0E2D\u0E19\u0E42\u0E04\u0E23", level: 40 },
-  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", level: 50 }
+  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", level: 50 },
+  ...Array.from({ length: 16 }, (_, i) => ({ name: "\u0E04\u0E27\u0E2D\u0E19\u0E15\u0E31\u0E21 Mk." + (i + 6), level: (i + 6) * 10 }))
 ];
 var RARITY = [
   { name: "\u0E18\u0E23\u0E23\u0E21\u0E14\u0E32", color: "#e9e4d6", mult: 1 },
@@ -4330,9 +4337,9 @@ function upgradeGear(s, slot) {
 function gearShopPrice(slot, tier) {
   return 150 + 100 * tier + (slot === "weapon" ? 100 : 0);
 }
-function buyShopGear(s, slot) {
-  if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE) return false;
-  const tier = tierForLevel(s.level), cost = gearShopPrice(slot, tier);
+function buyShopGear(s, slot, tier = tierForLevel(s.level)) {
+  if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE || !Number.isInteger(tier) || !TIERS[tier] || s.level < TIERS[tier].level) return false;
+  const cost = gearShopPrice(slot, tier);
   if (s.stones < cost) return false;
   s.stones -= cost;
   s.bag.push(makeItem(slot, tier, 2));
@@ -4523,6 +4530,11 @@ function combatStats(s) {
   return { mp: b * Math.round(80 + s.level * 3 + (a.int || 0) * 8 + g.mp), defense: b * (s.level * 0.25 + (a.vit || 0) * 0.6 + g.def), crit: Math.min(1, b * Math.min(0.5, 0.05 + (a.agi || 0) * 1e-3 + g.crit)), speed: Math.min(60, (a.agi || 0) * 0.15 + g.speed), haste: Math.min(0.35, (a.agi || 0) * 1e-3), spell: 1 + (a.int || 0) * 8e-3 + g.spell };
 }
 
+// web/merchant.js
+var MERCHANT_UV = [0.46, 0.46];
+var MERCHANT_RANGE = 150;
+var MERCHANT_OPS = /* @__PURE__ */ new Set(["buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
+
 // web/star-data.js
 var STAR_ZONES = [
   { name: "\u0E25\u0E32\u0E19\u0E08\u0E2D\u0E14\u0E22\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48", en: "Hero Landing Fields", min: 61, max: 65, ground: ["#6f9e5c", "#86b468"], liquid: { kind: "water", color: "#4f9fc0" }, props: { bulbtree: 4, meteor: 2, pylon: 1 }, density: 0.07, lakes: 0.66 },
@@ -4645,7 +4657,7 @@ var MAPS = {
     rect(0.7, 0.17, 0.75, 0.34),
     rect(0.88, 0.195, 0.96, 0.255),
     rect(0.73, 0.245, 0.92, 0.29)
-  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
+  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: MERCHANT_UV, name: "MERC-01 \u2022 \u0E2B\u0E38\u0E48\u0E19\u0E1E\u0E48\u0E2D\u0E04\u0E49\u0E32", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
   forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
 };
 function inside(u, v, poly) {
@@ -4836,7 +4848,8 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
     if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
     const session = read("session", token);
     if (session) {
-      if (session.expires < Date.now()) throw Error("login_required");
+      if (session.revoked || !session.persistent && session.expires < Date.now()) throw Error("login_required");
+      if (!session.persistent) write("session", token, { ...session, persistent: true });
       return session.account;
     }
     const account = hash(token);
@@ -4863,6 +4876,10 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
   }
   async function manageUnlocked(token, d) {
     const account = resolve(token);
+    if (d.action === "logout") {
+      write("session", token, { account, revoked: true });
+      return { loggedOut: true };
+    }
     if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid };
     if (d.action === "rename") {
       const state = readCharacter(directory, account, d.character);
@@ -4936,7 +4953,7 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
       write("google", user.id, { account });
     }
     const token = (0, import_node_crypto2.randomBytes)(32).toString("hex");
-    write("session", token, { account, expires: Date.now() + 30 * 864e5 });
+    write("session", token, { account, persistent: true, createdAt: Date.now() });
     return { token, google: true, characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
   async function manage(token, d) {
@@ -5411,6 +5428,10 @@ var World = class {
       p.cd.op = now + 0.1;
       p.opResult = { ok: false, message: "\u0E17\u0E33\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E07\u0E34\u0E19 \u0E27\u0E31\u0E2A\u0E14\u0E38 \u0E41\u0E25\u0E30\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E01\u0E23\u0E30\u0E40\u0E1B\u0E4B\u0E32" };
       const atHome = this.home(p);
+      if (MERCHANT_OPS.has(d.op) && (p.map !== "town" || dist2(p, toWorld(MERCHANT_UV, MAPS.town)) > MERCHANT_RANGE)) {
+        p.opResult.message = "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E04\u0E38\u0E22\u0E01\u0E31\u0E1A\u0E2B\u0E38\u0E48\u0E19\u0E1E\u0E48\u0E2D\u0E04\u0E49\u0E32 MERC-01 \u0E43\u0E19\u0E22\u0E32\u0E19";
+        return;
+      }
       switch (d.op) {
         case "readPvpReports": {
           for (const r2 of s.pvpReports || []) r2.unread = false;
@@ -5437,7 +5458,7 @@ var World = class {
           p.opResult.ok = !!exchangeGold(s, Number(d.amount));
           break;
         case "buyShopGear":
-          p.opResult.ok = !!buyShopGear(s, d.slot);
+          p.opResult.ok = !!buyShopGear(s, d.slot, d.tier);
           break;
         case "fashionWear":
           wearFashion(s, d.id);
@@ -5788,7 +5809,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.24.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.25.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5806,8 +5827,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws));
   });
   const send = (ws, data) => {
-    if (ws.readyState === 1 && ws.bufferedAmount < 262144) ws.send(JSON.stringify(data));
-    else ws.close(1013, "slow_connection");
+    if (ws.readyState === 1 && ws.bufferedAmount < 262144) {
+      const packet = stateForWire(data, ws.eventCursor || 0);
+      ws.send(JSON.stringify(packet));
+      if (packet.type === "state") for (const e of packet.events) ws.eventCursor = Math.max(ws.eventCursor || 0, e.id);
+    } else ws.close(1013, "slow_connection");
   };
   wss.on("connection", (ws) => {
     connections.add(ws);
@@ -5865,6 +5889,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           let created = false;
           if (d.preview === true && !token) throw Error("invalid_token");
           if (d.create === true && !token) {
+            if (!test) throw Error("login_required");
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs3.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
             token = (0, import_node_crypto5.randomBytes)(32).toString("hex");
@@ -5910,7 +5935,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.24.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.25.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }

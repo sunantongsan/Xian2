@@ -1,3 +1,4 @@
+import {MERCHANT_UV} from '../web/merchant.js';import {MAPS as SHOP_MAPS,toWorld as shopWorld} from '../web/maps.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,readFileSync,writeFileSync} from 'node:fs';
@@ -16,7 +17,7 @@ function client(url,hello){return new Promise((resolve,reject)=>{const ws=new We
 async function until(fn){for(let i=0;i<60;i++){const v=fn();if(v)return v;await new Promise(ok=>setTimeout(ok,50));}throw Error('timed out');}
 test('two real sockets see movement, reject duplicate identity, persist and resume',async t=>{const directory=mkdtempSync(join(tmpdir(),'cockro-online-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,hello={type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'};const a=await client(url,hello),b=await client(url,hello);t.after(()=>{a.ws.terminate();b.ws.terminate();});await until(()=>a.messages.some(m=>m.type==='state'&&m.players.some(p=>p.id===b.welcome.id)));
  const p=app.world.players.get(a.welcome.id),x=p.x;await new Promise(ok=>setTimeout(ok,150));a.ws.send(JSON.stringify({type:'move',x:p.x+20,y:p.y,seq:1}));await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.x>x+1)));
- a.ws.send(JSON.stringify({type:'op',op:'buy'}));await until(()=>p.s.potions===11);assert.equal(JSON.parse(readFileSync(join(directory,p.id+'.json'))).potions,11);
+ Object.assign(p,shopWorld(MERCHANT_UV,SHOP_MAPS.town));a.ws.send(JSON.stringify({type:'op',op:'buy'}));await until(()=>p.s.potions===11);assert.equal(JSON.parse(readFileSync(join(directory,p.id+'.json'))).potions,11);
  const duplicate=new WebSocket(url,{origin:'http://localhost:8080'});duplicate.on('open',()=>duplicate.send(JSON.stringify({type:'hello',version:PROTOCOL,token:a.welcome.token})));const [raw]=await once(duplicate,'message');assert.equal(JSON.parse(raw).message,'already_online');duplicate.terminate();a.ws.close();await until(()=>!app.world.players.has(p.id));const again=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(again.welcome.save.potions,11);again.ws.close();
 });
 test('unapproved browser origins are rejected before websocket upgrade',async t=>{const app=startServer({port:0,directory:mkdtempSync(join(tmpdir(),'cockro-origin-')),test:true});await once(app.server,'listening');t.after(()=>app.close());const ws=new WebSocket(`ws://127.0.0.1:${app.server.address().port}/online/world`,{origin:'https://untrusted.example'});const [err]=await once(ws,'error');assert.match(err.message,/403/);});
@@ -51,4 +52,5 @@ test('internal demo ticket persists once, replies after snapshot, and is disable
  const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.upgradeItems.ruby,1);
  }
 });
+
 

@@ -1,3 +1,4 @@
+import {MERCHANT_UV} from '../web/merchant.js';import {MAPS as SHOP_MAPS,toWorld as shopWorld} from '../web/maps.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
@@ -25,8 +26,9 @@ test('real socket rejects unnamed creation and confirms gold purchases after sav
  async function connect(name){const ws=new WebSocket(url,{origin:'http://localhost'});await once(ws,'open');const result=once(ws,'message');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:true,hero:'sword-cockro',name}));return {ws,result:JSON.parse((await result)[0])};}
  const bad=await connect('');assert.equal(bad.result.message,'invalid_name');bad.ws.terminate();
  const c=await connect('ทดสอบทอง');t.after(()=>c.ws.terminate());assert.equal(c.result.save.name,'ทดสอบทอง');const p=app.world.players.get(c.result.id),gold=p.s.stones;
- const receipt=new Promise(resolve=>c.ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='opResult')resolve(d);}));
+ Object.assign(p,shopWorld(MERCHANT_UV,SHOP_MAPS.town));const receipt=new Promise(resolve=>c.ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='opResult')resolve(d);}));
  c.ws.send(JSON.stringify({type:'op',op:'buyShopGear',slot:'weapon',requestId:'purchase-test'}));const result=await receipt;assert.equal(result.ok,true);assert.equal(result.requestId,'purchase-test');
  const saved=JSON.parse(readFileSync(join(directory,p.id+'.json')));assert.equal(saved.stones,gold-250);assert.equal(saved.bag.length,c.result.save.bag.length+1);assert.equal(saved.name,'ทดสอบทอง');
  const before=structuredClone(p.s);p.s.stones=0;app.world.command(p,{type:'op',op:'buyShopGear',slot:'weapon'},Date.now()/1000+1);assert.equal(p.opResult.ok,false);assert.deepEqual(p.s.bag,before.bag);
 });
+

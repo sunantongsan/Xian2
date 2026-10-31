@@ -28,7 +28,7 @@ test('dead caster never releases queued melee damage',()=>{const v=fixture();pro
 
 test('welcome loads owned hero and enters online only when Play is pressed',async()=>{
  const originalRoster=probe.net.roster,originalConnect=probe.net.connect;let connected;
- probe.net.roster=async()=>[{id:'main',hero:'sword-cricket',name:'Tester',level:37}];probe.net.connect=hero=>{connected=hero;return new Promise(()=>{});};
+ Object.defineProperty(probe.net,'hasAccount',{configurable:true,value:true});probe.net.roster=async()=>[{id:'main',hero:'sword-cricket',name:'Tester',level:37}];probe.net.connect=hero=>{connected=hero;return new Promise(()=>{});};
  try{await probe.title();const html=element('modalContent').innerHTML;assert.match(html,/เลือกตัวละคร/);assert.match(html,/Lv. 37/);assert.match(html,/จิ้งหรีดแมน/);assert.doesNotMatch(html,/เริ่มออฟไลน์|เล่นออนไลน์ • เซิร์ฟเวอร์ไทย/);assert.equal(connected,undefined);element('choose').onclick();assert.equal(connected,'sword-cricket');assert.equal(probe.isOnline(),true);}finally{probe.net.roster=originalRoster;probe.net.connect=originalConnect;}
 });
 
@@ -67,4 +67,5 @@ test('closing a video early never displays a success dialog',()=>{
  probe.ads.onChange({status:'loading'});probe.ads.onChange({status:'dismissed'});
  assert.equal(element('modalContent').innerHTML,'no earned reward');
 });
+
 
