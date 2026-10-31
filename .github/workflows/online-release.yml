@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: e1131d6ed83633793fe9037a6a8cb5e35a2f535c
+          ref: c0e7676ada0c1b7dfb333b88e20fe23e45f247d1
           persist-credentials: false
       - name: Stage reviewed release
         run: |
@@ -41,7 +41,7 @@ jobs:
           done
       - name: Verify advanced world data and combat
         run: |
-          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js tests/checkin.test.js tests/enhancement.test.js tests/release-backup.test.js tests/account-roads.test.js tests/living-forest.test.js tests/alien-world.test.js tests/maps.test.js tests/expedition.test.js tests/pvp-loot.test.js
+          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js tests/checkin.test.js tests/enhancement.test.js tests/release-backup.test.js tests/account-roads.test.js tests/living-forest.test.js tests/alien-world.test.js tests/maps.test.js tests/expedition.test.js tests/pvp-loot.test.js tests/merchant-session.test.js
       - name: Validate server bundle syntax
         run: '"$ONLINE_NODE" --check server/online-server.cjs'
       - name: Deploy fixed online service
@@ -50,12 +50,12 @@ jobs:
           set -euo pipefail
           digest="$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)"
           sudo -n /usr/local/sbin/cockro-deploy-online "$digest"
-      - name: Test live world using two players
+      - name: Verify production registration gate
         if: github.event_name == 'push' || inputs.operation != 'stage'
         run: |
           set -euo pipefail
           curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
-          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.24.0")process.exit(1);console.log("Verified backend 4.24.0 and pre-migration backup completed");});'
+          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.25.0")process.exit(1);console.log("Verified backend 4.25.0 and pre-migration backup completed");});'
           "$ONLINE_NODE" server/smoke.cjs
       - name: Verify SSV route rejects unsigned callbacks
         if: github.event_name == 'push' || inputs.operation != 'stage'
