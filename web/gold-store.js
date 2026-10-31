@@ -1,6 +1,6 @@
 import {GOLD_PRODUCTS} from './gold-products.js';
 export function createGoldStore({net,show,escape,onSuccess}){
- let products=[],busy=false,queue=[];
+ let products=[],busy=false,verifying=false,queue=[];
  const supported=()=>typeof globalThis.CockroBilling?.refresh==='function';
  const message=text=>{const el=document.getElementById('goldStoreStatus');if(el)el.textContent=text;};
  function render(){
@@ -8,8 +8,8 @@ export function createGoldStore({net,show,escape,onSuccess}){
  document.querySelectorAll('[data-gold-pack]').forEach(b=>b.onclick=()=>{if(busy||!net.ready||!net.billingEnabled)return;busy=true;message('กำลังเปิด Google Play…');globalThis.CockroBilling.buy(b.dataset.goldPack,net.billingOwner,net.billingProfile);});
  document.getElementById('restoreGold').onclick=()=>{message('กำลังตรวจรายการ…');globalThis.CockroBilling.refresh();};
  }
- function flush(){if(!net.ready||busy||!queue.length)return;busy=true;const d=queue[0];if(!net.send({type:'billingPurchase',productId:d.productId,token:d.token})){busy=false;return;}message('กำลังตรวจสอบการชำระเงิน…');}
- globalThis.addEventListener?.('cockro-billing',e=>{const d=e.detail;if(!d)return;if(d.kind==='products'){products=Array.isArray(d.products)?d.products:[];if(document.querySelector('.gold-store'))render();}else if(d.kind==='status'){busy=false;message(d.message);}else if(d.kind==='purchase'){busy=false;if(!queue.some(x=>x.token===d.token))queue.push(d);flush();}});
- net.onBillingResult=d=>{busy=false;queue.shift();if(d.ok){message(d.duplicate?'รายการนี้รับทองเรียบร้อยแล้ว':`เติมสำเร็จ! ได้รับ ${d.gold.toLocaleString()} ทอง`);if(!d.duplicate)onSuccess(d.gold);}else{const msgs={wrong_account:'รายการนี้เป็นของตัวละครอื่น กรุณาเข้าตัวละครที่ใช้ซื้อ',payment_pending:'กำลังรอชำระเงิน',wallet_full:'ทองเต็ม กรุณาใช้ทองก่อนแล้วตรวจรายการค้างอีกครั้ง',billing_unavailable:'บริการเติมทองยังไม่พร้อม กรุณาลองใหม่ภายหลัง'};message(msgs[d.message]||'ยังตรวจสอบรายการไม่ได้ กดตรวจรายการค้างเพื่อลองอีกครั้ง');}if(queue.length)flush();};
- return {open(){busy=false;render();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();},resume(){busy=false;flush();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();}};
+ function flush(){if(!net.ready||verifying||!queue.length)return;busy=true;verifying=true;const d=queue[0];if(!net.send({type:'billingPurchase',productId:d.productId,token:d.token})){busy=false;verifying=false;return;}message('กำลังตรวจสอบการชำระเงิน…');}
+ globalThis.addEventListener?.('cockro-billing',e=>{const d=e.detail;if(!d)return;if(d.kind==='products'){products=Array.isArray(d.products)?d.products:[];if(document.querySelector('.gold-store'))render();}else if(d.kind==='status'){busy=verifying;message(d.message);}else if(d.kind==='purchase'){busy=verifying;if(!queue.some(x=>x.token===d.token))queue.push(d);flush();}});
+ net.onBillingResult=d=>{busy=false;verifying=false;queue.shift();if(d.ok){message(d.duplicate?'รายการนี้รับทองเรียบร้อยแล้ว':`เติมสำเร็จ! ได้รับ ${d.gold.toLocaleString()} ทอง`);if(!d.duplicate)onSuccess(d.gold);}else{const msgs={wrong_account:'รายการนี้เป็นของตัวละครอื่น กรุณาเข้าตัวละครที่ใช้ซื้อ',payment_pending:'กำลังรอชำระเงิน',wallet_full:'ทองเต็ม กรุณาใช้ทองก่อนแล้วตรวจรายการค้างอีกครั้ง',billing_unavailable:'บริการเติมทองยังไม่พร้อม กรุณาลองใหม่ภายหลัง'};message(msgs[d.message]||'ยังตรวจสอบรายการไม่ได้ กดตรวจรายการค้างเพื่อลองอีกครั้ง');}if(queue.length)flush();};
+ return {open(){busy=verifying;render();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();},resume(){busy=false;verifying=false;flush();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();}};
 }
