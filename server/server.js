@@ -1,3 +1,4 @@
+import {capturePresence,finishFight} from './pvp.js';
 import {createAccounts} from './accounts.js';
 import {CHARACTER_SLOTS,characterId,characterRoster,readCharacter} from './characters.js';
 import {grantTestGold} from '../web/enhancement.js';
@@ -14,7 +15,9 @@ import {fresh,validSave} from '../web/core.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier}={}){
  mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new World({maxPlayers,testRewards}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
- const persist=p=>{try{const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
+ const persist=p=>{try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
+ // Restore only characters that have logged out since persistent presence was introduced.
+ for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state)world.restore(file.slice(0,-5),state);}catch{diskFailure=true;}}
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
  const verifySSV=ssvVerifier||createSSVVerifier({unit:adUnit});let verifying=0;
  const server=http.createServer(async(req,res)=>{
@@ -30,7 +33,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
     if(!Number.isFinite(stamp)||Math.abs(Date.now()-stamp)>300000)throw Error('expired_probe');
     res.writeHead(200);return res.end('Verified configuration; no reward granted');
    }
-   const live=world.players.get(data.user_id),path=join(directory,data.user_id+'.json');
+   const live=world.getActor(data.user_id),path=join(directory,data.user_id+'.json');
    if(!live&&!existsSync(path))throw Error('unknown_account');
    const state=structuredClone(live?live.s:JSON.parse(readFileSync(path,'utf8')));
    const changed=applyVerifiedReward(state,data);
@@ -39,12 +42,13 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.23.0',ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,players:world.players.size,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'4.24.0',ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,players:world.players.size,offlinePlayers:world.sleepers.size,persistentPvp:true,groundLoot:true,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144)ws.send(JSON.stringify(data));else ws.close(1013,'slow_connection');};
  wss.on('connection',ws=>{connections.add(ws);let p=null,count=0,since=Date.now();const timer=setTimeout(()=>ws.close(1008,'handshake_timeout'),6000);ws.alive=true;ws.on('pong',()=>ws.alive=true);ws.on('error',()=>{});
-  let managing=false;ws.on('message',async raw=>{if(managing)return;try{const now=Date.now();if(now-since>=1000){count=0;since=now;}if(++count>35)throw Error('rate_limit');const d=JSON.parse(raw);if(!d||Array.isArray(d)||typeof d!=='object')throw Error('invalid_message');if(!p&&['manage','authStart','authFinish'].includes(d.type)){managing=true;clearTimeout(timer);try{let result;if(d.type==='authStart'){if(d.token){try{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');}catch(e){if(e.message!=='login_required')throw e;}}result=await accounts.authStart(d.token);}else if(d.type==='authFinish'){result=await accounts.authFinish(d.flow,d.code);}else{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');result=await accounts.manage(d.token,d);}send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!HEROES.includes(d.hero))throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
+  let managing=false;ws.on('message',async raw=>{if(managing)return;try{const now=Date.now();if(now-since>=1000){count=0;since=now;}if(++count>35)throw Error('rate_limit');const d=JSON.parse(raw);if(!d||Array.isArray(d)||typeof d!=='object')throw Error('invalid_message');if(!p&&['manage','authStart','authFinish'].includes(d.type)){managing=true;clearTimeout(timer);try{let result;if(d.type==='authStart'){if(d.token){try{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');}catch(e){if(e.message!=='login_required')throw e;}}result=await accounts.authStart(d.token);}else if(d.type==='authFinish'){result=await accounts.authFinish(d.flow,d.code);}else{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');const owner=accounts.resolve(d.token);result=await accounts.manage(d.token,d);if(d.action==='delete')world.sleepers.delete(characterId(owner,d.character));}send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!HEROES.includes(d.hero))throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
+ for(const slot of CHARACTER_SLOTS){const body=world.sleepers.get(characterId(account,slot));if(body?.dirty)persist(body);}
  const main=created?fresh(d.hero):readCharacter(directory,account);
  if(!main&&!accounts.exists(account))throw Error('account_missing');
  if(d.preview===true){send(ws,{type:'roster',characters:characterRoster(directory,account)});clearTimeout(timer);ws.close(1000);return;}
@@ -60,8 +64,8 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const id=characterId(account,character);
  if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
  grantTestGold(state,testRewards);if(!testRewards)state.townBuffUntil=0;
- p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);clearTimeout(timer);
- send(ws,{type:'welcome',release:'4.23.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
+ p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
+ send(ws,{type:'welcome',release:'4.24.0',id,character,token:created?token:undefined,save:state,adsEnabled,testRewards});send(ws,world.snapshot(p));return;}
     if(d.type==='testAdTicket'||d.type==='testAdComplete'){
      if(!testRewards){send(ws,{type:'adError',message:'test_rewards_disabled'});return;}
      try{const copy=structuredClone(p.s);
@@ -77,11 +81,11 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
     world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});}
    }catch(error){send(ws,{type:'error',message:['login_required','name_required','invalid_name','already_online','room_full','account_missing','save_unavailable','character_missing','character_limit'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
   });
-  ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){try{persist(p);}catch{}world.players.delete(p.id);activeAccounts.delete(p.account);}});ws.player=()=>p;
+  ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){world.disconnect(p);try{persist(p);}catch{}activeAccounts.delete(p.account);}});ws.player=()=>p;
  });
- let previous=Date.now();const ticker=setInterval(()=>{const now=Date.now();world.tick(Math.min(.2,(now-previous)/1000),now/1000);previous=now;for(const ws of connections){const p=ws.player();if(!p)continue;try{if(p.dirty&&now-(p.lastSaved||0)>=5000)persist(p);send(ws,world.snapshot(p));}catch{send(ws,{type:'error',message:'save_unavailable'});ws.close(1011);}}},100);
+ let previous=Date.now();const ticker=setInterval(()=>{const now=Date.now();world.tick(Math.min(.2,(now-previous)/1000),now/1000);previous=now;for(const p of world.sleepers.values()){if(p.dirty&&now-(p.lastSaved||0)>=1000){try{persist(p);}catch{}}}for(const ws of connections){const p=ws.player();if(!p)continue;try{if(p.dirty&&now-(p.lastSaved||0)>=5000)persist(p);send(ws,world.snapshot(p));}catch{send(ws,{type:'error',message:'save_unavailable'});ws.close(1011);}}},100);
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
- server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
+ server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);for(const key of [...world.fights.keys()])finishFight(world,key,'interrupted','interrupted',Date.now()/1000);for(const p of world.actors()){try{persist(p);}catch{}}for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
 
 

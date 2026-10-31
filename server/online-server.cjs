@@ -3707,16 +3707,14 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// server/accounts.js
-var import_node_crypto2 = require("node:crypto");
-var import_node_util = require("node:util");
-var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
-
-// server/characters.js
-var import_node_crypto = require("node:crypto");
-var import_node_fs = require("node:fs");
-var import_node_path = require("node:path");
+// web/world-save.js
+function normalizeWorldSave(s, v) {
+  const w = v.worldState;
+  if (w && ["town", "forest", "star"].includes(w.map) && ["x", "y", "hp", "mp"].every((k) => Number.isFinite(w[k])) && Math.abs(w.x) < 1e6 && Math.abs(w.y) < 1e6) {
+    s.worldState = { map: w.map, x: w.x, y: w.y, hp: Math.max(0, w.hp), mp: Math.max(0, w.mp), cd: Object.fromEntries(Object.entries(w.cd || {}).filter(([k, n]) => /^[a-zA-Z0-9_-]{1,40}$/.test(k) && Number.isFinite(n) && n >= 0)), offlineSince: Number.isFinite(w.offlineSince) ? w.offlineSince : 0 };
+  }
+  s.pvpReports = (Array.isArray(v.pvpReports) ? v.pvpReports : []).filter((r) => r && typeof r.id === "string" && Number.isFinite(r.at)).slice(-30).map((r) => ({ id: r.id.slice(0, 80), at: r.at, opponent: String(r.opponent || "\u0E1C\u0E39\u0E49\u0E40\u0E25\u0E48\u0E19").slice(0, 40), result: ["won", "lost", "escaped", "interrupted"].includes(r.result) ? r.result : "interrupted", damageTaken: Math.max(0, Number(r.damageTaken) || 0), damageDealt: Math.max(0, Number(r.damageDealt) || 0), potions: Math.max(0, Number(r.potions) || 0), mpPotions: Math.max(0, Number(r.mpPotions) || 0), unread: r.unread !== false, pending: r.pending === true }));
+}
 
 // web/character-name.js
 function characterName(value) {
@@ -4268,14 +4266,6 @@ function rollDrop(m, rng = Math.random) {
   else if (m.elite) rarity = Math.max(1, rarity);
   return makeItem(slot, tier, rarity, rng);
 }
-function addToBag(s, it) {
-  if (s.bag.length >= BAG_SIZE) {
-    s.gold += sellPrice(it);
-    return false;
-  }
-  s.bag.push(it);
-  return true;
-}
 function canEquip(s, it) {
   return s.level >= TIERS[it.tier].level;
 }
@@ -4375,7 +4365,7 @@ function grantTownBuff(p, enabled, near, now = Date.now()) {
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], pvpReports: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4434,6 +4424,7 @@ function validSave(v) {
   const s = fresh(v.hero);
   s.name = characterName(v.name) || "";
   normalizeTownBuff(s, v);
+  normalizeWorldSave(s, v);
   normalizeActivities(s, v);
   if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
   for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
@@ -4532,7 +4523,276 @@ function combatStats(s) {
   return { mp: b * Math.round(80 + s.level * 3 + (a.int || 0) * 8 + g.mp), defense: b * (s.level * 0.25 + (a.vit || 0) * 0.6 + g.def), crit: Math.min(1, b * Math.min(0.5, 0.05 + (a.agi || 0) * 1e-3 + g.crit)), speed: Math.min(60, (a.agi || 0) * 0.15 + g.speed), haste: Math.min(0.35, (a.agi || 0) * 1e-3), spell: 1 + (a.int || 0) * 8e-3 + g.spell };
 }
 
+// web/star-data.js
+var STAR_ZONES = [
+  { name: "\u0E25\u0E32\u0E19\u0E08\u0E2D\u0E14\u0E22\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48", en: "Hero Landing Fields", min: 61, max: 65, ground: ["#6f9e5c", "#86b468"], liquid: { kind: "water", color: "#4f9fc0" }, props: { bulbtree: 4, meteor: 2, pylon: 1 }, density: 0.07, lakes: 0.66 },
+  { name: "\u0E1B\u0E48\u0E32\u0E40\u0E2B\u0E47\u0E14\u0E40\u0E23\u0E37\u0E2D\u0E07\u0E41\u0E2A\u0E07", en: "Glowcap Grove", min: 66, max: 70, ground: ["#3f7a6c", "#4d8b74"], liquid: { kind: "water", color: "#3f8fb0" }, props: { mushroom: 5, bulbtree: 2, rock: 1 }, density: 0.09, lakes: 0.68 },
+  { name: "\u0E17\u0E38\u0E48\u0E07\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E2D\u0E33\u0E1E\u0E31\u0E19", en: "Amber Spore Fields", min: 71, max: 75, ground: ["#9c9a4e", "#b0aa5c"], liquid: { kind: "acid", color: "#f0b43a" }, props: { mushroom: 3, bulbtree: 2, rock: 1 }, density: 0.08, lakes: 0.68 },
+  { name: "\u0E40\u0E19\u0E34\u0E19\u0E23\u0E31\u0E07\u0E1B\u0E25\u0E27\u0E01\u0E22\u0E31\u0E01\u0E29\u0E4C", en: "Termite Mound Hills", min: 76, max: 80, ground: ["#a87652", "#b98762"], liquid: { kind: "water", color: "#4f9fbd" }, props: { mound: 5, rock: 2, deadtree: 1 }, density: 0.08, lakes: 0.7 },
+  { name: "\u0E2B\u0E19\u0E2D\u0E07\u0E19\u0E49\u0E33\u0E01\u0E23\u0E14", en: "Acid Swamp", min: 81, max: 85, ground: ["#4f6e4a", "#5b7c52"], liquid: { kind: "acid", color: "#8fdc4e" }, props: { reed: 4, deadtree: 2, mushroom: 1 }, density: 0.08, lakes: 0.6 },
+  { name: "\u0E1B\u0E48\u0E32\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25\u0E44\u0E0B\u0E40\u0E1A\u0E2D\u0E23\u0E4C", en: "Cyber Crystal Woods", min: 86, max: 90, ground: ["#3f5f7a", "#4b6d88"], liquid: { kind: "water", color: "#39b6d6" }, props: { crystaltree: 4, crystal: 3, pylon: 1 }, density: 0.09, lakes: 0.67, crystal: "#7ff5ff" },
+  { name: "\u0E2A\u0E38\u0E2A\u0E32\u0E19\u0E2B\u0E38\u0E48\u0E19\u0E23\u0E1A", en: "Mech Graveyard", min: 91, max: 95, ground: ["#7d8288", "#8b9096"], liquid: { kind: "chasm", color: "#0b1430" }, props: { wreck: 4, rock: 2, pylon: 1 }, density: 0.08, lakes: 0.67 },
+  { name: "\u0E2B\u0E38\u0E1A\u0E23\u0E31\u0E07\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07", en: "Scorpion Canyon", min: 96, max: 100, ground: ["#b9714a", "#c7805a"], liquid: { kind: "chasm", color: "#0b1430" }, props: { rock: 4, meteor: 2, deadtree: 1 }, density: 0.08, lakes: 0.68 },
+  { name: "\u0E19\u0E04\u0E23\u0E19\u0E35\u0E2D\u0E2D\u0E19\u0E23\u0E49\u0E32\u0E07", en: "Neon Ruins", min: 101, max: 105, ground: ["#4a4f66", "#565b74"], liquid: { kind: "water", color: "#2fc8f0" }, props: { pillar: 3, obelisk: 2, lantern: 2 }, density: 0.08, lakes: 0.69, crystal: "#ff5fd2" },
+  { name: "\u0E23\u0E31\u0E07\u0E1C\u0E36\u0E49\u0E07\u0E40\u0E2B\u0E25\u0E47\u0E01", en: "Iron Hive", min: 106, max: 110, ground: ["#8a6f3c", "#9a7d46"], liquid: { kind: "acid", color: "#f2b230" }, props: { hive: 4, pylon: 2, rock: 1 }, density: 0.08, lakes: 0.69 },
+  { name: "\u0E23\u0E2D\u0E22\u0E41\u0E22\u0E01\u0E1E\u0E25\u0E31\u0E07\u0E21\u0E37\u0E14", en: "Void Rift", min: 111, max: 115, ground: ["#5a4b6e", "#665579"], liquid: { kind: "acid", color: "#b58cff" }, props: { crystal: 3, obelisk: 2, deadtree: 2 }, density: 0.09, lakes: 0.67, crystal: "#c79bff" },
+  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", en: "Planet Core", min: 116, max: 120, ground: ["#4a3a3c", "#574446"], liquid: { kind: "lava", color: "#ff7a2e" }, props: { spire: 4, crystal: 2, meteor: 1 }, density: 0.09, lakes: 0.65, crystal: "#ff8a5c" }
+];
+var starMonster = advancedMonster;
+
+// web/tilemap.js
+var props = (o) => Object.fromEntries((o?.properties || []).map((p) => [p.name, p.value]));
+function parseTiled(json) {
+  const N = json.width, rows = json.height, mp = props(json), T = mp.tileWorld || 48;
+  if (json.orientation !== "isometric" || !N || !rows) throw new Error("\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48 Tiled \u0E41\u0E1A\u0E1A isometric");
+  const layer = (name) => json.layers.find((l) => l.name === name);
+  const sets = [...json.tilesets].sort((a, b) => b.firstgid - a.firstgid);
+  const tileOf = (gid) => {
+    if (!gid) return null;
+    const ts = sets.find((t) => gid >= t.firstgid);
+    if (!ts) return null;
+    const id = gid - ts.firstgid, meta = ts.tiles?.find((t) => t.id === id);
+    return { set: ts.name, id, ...props(meta) };
+  };
+  const cache = /* @__PURE__ */ new Map(), info = (gid) => {
+    if (!cache.has(gid)) cache.set(gid, tileOf(gid));
+    return cache.get(gid);
+  };
+  const count = N * rows, kind = new Array(count), color = new Array(count), walk = new Uint8Array(count), prop = new Array(count).fill(null), zone = new Int8Array(count).fill(-1), variant = new Uint8Array(count);
+  const ground = layer("ground").data, pl = layer("props")?.data || [], zl = layer("zones")?.data || [];
+  for (let i = 0; i < count; i++) {
+    const g = info(ground[i]) || { kind: "void", walkable: false };
+    kind[i] = g.kind;
+    color[i] = g.color || null;
+    walk[i] = g.walkable ? 1 : 0;
+    variant[i] = g.kind === "ground" && (g.id - 5) % 3 === 1 ? 1 : 0;
+    const pr = info(pl[i]);
+    if (pr) {
+      prop[i] = pr.kind;
+      walk[i] = 0;
+    }
+    const z = info(zl[i]);
+    if (z) zone[i] = z.id;
+    if (g.zone >= 0 && zone[i] < 0) zone[i] = g.zone;
+  }
+  const zoneSet = json.tilesets.find((t) => t.name === "hero-star-zones");
+  const zones = (zoneSet?.tiles || []).sort((a, b) => a.id - b.id).map((t) => {
+    const p = props(t);
+    return { ...STAR_ZONES[t.id], name: p.name, en: p.en, min: p.minLevel, max: p.maxLevel };
+  });
+  const toW = (o) => ({ x: o.x / json.tileheight * T, y: o.y / json.tileheight * T });
+  const spawns = (layer("spawns")?.objects || []).map((o) => {
+    const p = props(o);
+    return { id: o.id, name: o.name, ...toW(o), zone: p.zone, level: p.level, species: p.species, count: p.count || 1, elite: o.type === "elite" || o.type === "boss", boss: o.type === "boss" };
+  });
+  const pois = (layer("pois")?.objects || []).map((o) => {
+    const p = props(o);
+    return { id: o.id, name: o.name, action: o.type, zone: p.zone, world: toW(o) };
+  });
+  const gate = pois.find((p) => p.action === "warp" && p.zone === 0) || pois[0];
+  return { type: "tiles", name: mp.title || "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48", N, rows, T, kind, color, walk, prop, zone, variant, zones, spawns, pois, spawn: gate.world };
+}
+var tileIndex = (scene, x, y) => {
+  const c = Math.floor(x / scene.T), r = Math.floor(y / scene.T);
+  return c < 0 || r < 0 || c >= scene.N || r >= scene.rows ? -1 : r * scene.N + c;
+};
+var open = (scene, x, y) => {
+  const i = tileIndex(scene, x, y);
+  return i >= 0 && scene.walk[i] === 1;
+};
+function tileWalkable(scene, { x, y }) {
+  const r = 7;
+  return open(scene, x, y) && open(scene, x + r, y) && open(scene, x - r, y) && open(scene, x, y + r) && open(scene, x, y - r);
+}
+
+// web/maps.js
+var MAP_W = 2e3;
+var MAP_H = 1333;
+var mapSize = (scene) => ({ width: scene?.width || MAP_W, height: scene?.height || MAP_H });
+var toWorld = ([u, v], scene) => {
+  const { width, height } = mapSize(scene), a = (u - 0.5) * width / 0.8, b = (v - 0.6) * height / 0.4;
+  return { x: (a + b) / 2, y: (b - a) / 2 };
+};
+var toUV = ({ x, y }, scene) => {
+  const { width, height } = mapSize(scene);
+  return [0.5 + 0.8 * (x - y) / width, 0.6 + 0.4 * (x + y) / height];
+};
+var rect = (l, t, r, b) => [[l, t], [r, t], [r, b], [l, b]];
+var FOREST_COLS = 9;
+var FOREST_ROWS = 6;
+var forestWalk = [rect(0.012, 0.012, 0.988, 0.988)];
+var REGIONS = [
+  { id: 0, name: "\u0E0A\u0E32\u0E22\u0E1B\u0E48\u0E32\u0E41\u0E2A\u0E07\u0E41\u0E23\u0E01", min: 1, max: 10, center: [1 / 6, 0.75], entry: [1 / 6, 0.9] },
+  { id: 1, name: "\u0E17\u0E38\u0E48\u0E07\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E2D\u0E33\u0E1E\u0E31\u0E19", min: 11, max: 20, center: [0.5, 0.75], entry: [0.5, 0.9] },
+  { id: 2, name: "\u0E2A\u0E27\u0E19\u0E23\u0E32\u0E01\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25", min: 21, max: 30, center: [5 / 6, 0.75], entry: [5 / 6, 0.9] },
+  { id: 3, name: "\u0E14\u0E07\u0E1A\u0E38\u0E1B\u0E1C\u0E32\u0E01\u0E34\u0E19\u0E1E\u0E25\u0E31\u0E07", min: 31, max: 40, center: [5 / 6, 0.25], entry: [5 / 6, 0.4] },
+  { id: 4, name: "\u0E41\u0E2D\u0E48\u0E07\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07", min: 41, max: 50, center: [0.5, 0.25], entry: [0.5, 0.4] },
+  { id: 5, name: "\u0E2B\u0E31\u0E27\u0E43\u0E08\u0E1B\u0E48\u0E32\u0E14\u0E32\u0E27\u0E44\u0E01\u0E25", min: 51, max: 60, center: [1 / 6, 0.25], entry: [1 / 6, 0.4] }
+];
+var MAPS = {
+  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 4e3, height: 2666, spawn: [0.5, 0.445], walk: [
+    // Main plaza follows its painted perimeter, with broad side promenades.
+    [[0.29, 0.28], [0.71, 0.28], [0.77, 0.32], [0.73, 0.43], [0.76, 0.53], [0.7, 0.64], [0.61, 0.71], [0.39, 0.71], [0.25, 0.66], [0.23, 0.54], [0.27, 0.43], [0.23, 0.31]],
+    rect(0.46, 0.23, 0.54, 0.97),
+    rect(0.68, 0.51, 0.97, 0.58),
+    rect(0.15, 0.49, 0.32, 0.59),
+    // Walk around the two landing pads without crossing parked craft or building roofs.
+    rect(0.12, 0.225, 0.31, 0.275),
+    rect(0.25, 0.17, 0.3, 0.34),
+    rect(0.04, 0.195, 0.12, 0.255),
+    rect(0.08, 0.245, 0.27, 0.29),
+    rect(0.69, 0.225, 0.88, 0.275),
+    rect(0.7, 0.17, 0.75, 0.34),
+    rect(0.88, 0.195, 0.96, 0.255),
+    rect(0.73, 0.245, 0.92, 0.29)
+  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
+  forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
+};
+function inside(u, v, poly) {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if (a[1] > v !== b[1] > v && u < (b[0] - a[0]) * (v - a[1]) / (b[1] - a[1]) + a[0]) hit = !hit;
+  }
+  return hit;
+}
+function walkable(scene, point) {
+  if (scene?.type === "tiles") return tileWalkable(scene, point);
+  if (!scene) return Math.abs(point.x) <= 850 && Math.abs(point.y) <= 850;
+  const [u, v] = toUV(point, scene);
+  return [[0, 0], [15e-4, 0], [-15e-4, 0], [0, 15e-4], [0, -15e-4]].every(([du, dv]) => scene.walk.some((poly) => inside(u + du, v + dv, poly)));
+}
+function traceStep(scene, from, to) {
+  const d = Math.hypot(to.x - from.x, to.y - from.y), steps = Math.max(1, Math.ceil(d / 10));
+  let p = { x: from.x, y: from.y };
+  for (let i = 1; i <= steps; i++) {
+    const q = { x: from.x + (to.x - from.x) * i / steps, y: from.y + (to.y - from.y) * i / steps };
+    if (!walkable(scene, q)) break;
+    p = q;
+  }
+  return p;
+}
+
+// server/pvp.js
+function checkpointFight(world, key, f, now) {
+  for (const id of [f.a, f.b]) {
+    const p = world.getActor(id);
+    if (!p) continue;
+    const other = id === f.a ? f.b : f.a, rid = `${key}-${Math.round(f.started * 1e3)}`;
+    p.s.pvpReports ??= [];
+    const report = { id: rid, at: now * 1e3, opponent: f.names[other], result: "interrupted", ...f.stats[id], unread: false, pending: true };
+    const i = p.s.pvpReports.findIndex((r) => r.id === rid);
+    if (i < 0) p.s.pvpReports.push(report);
+    else p.s.pvpReports[i] = report;
+    p.s.pvpReports = p.s.pvpReports.slice(-30);
+    p.dirty = true;
+  }
+}
+var distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function capturePresence(p) {
+  p.s.worldState = { map: p.map, x: p.x, y: p.y, hp: p.hp, mp: p.mp, cd: { ...p.cd }, offlineSince: p.offlineSince || 0 };
+}
+function finishFight(world, key, resultA, resultB, now) {
+  const f = world.fights.get(key);
+  if (!f) return;
+  world.fights.delete(key);
+  for (const [id, other, result] of [[f.a, f.b, resultA], [f.b, f.a, resultB]]) {
+    const p = world.getActor(id);
+    if (!p) continue;
+    const record = f.stats[id];
+    p.s.pvpReports ??= [];
+    p.s.pvpReports = p.s.pvpReports.filter((r) => r.id !== `${key}-${Math.round(f.started * 1e3)}`);
+    p.s.pvpReports.push({ id: `${key}-${Math.round(f.started * 1e3)}`, at: now * 1e3, opponent: f.names[other], result, ...record, unread: true });
+    p.s.pvpReports = p.s.pvpReports.slice(-30);
+    p.dirty = true;
+    world.event(p, { kind: "pvpResult", result, opponent: f.names[other] });
+  }
+}
+function pvpAttack(world, p, d, now) {
+  const target = world.getActor(d.target);
+  if (!target || target === p || target.hp <= 0 || p.hp <= 0 || target.map !== p.map || now < p.actionUntil || now < (target.pvpShield || 0)) return false;
+  let range = p.s.hero === "sword-dragonfly" ? 340 : 120, power = 1, k;
+  if (d.type === "skillPlayer") {
+    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return false;
+    const r = knownSkills(p.s).find((r2) => r2.id === p.s.equipped[d.slot] && r2.level <= p.s.level);
+    if (!r) return false;
+    k = compileSkill(r);
+    if (now < (p.cd[r.id] || 0) || p.mp < k.mp) return false;
+    range = k.range;
+    power = k.power * combatStats(p.s).spell * (1 + (p.s.skillRanks[r.id] || 0) * 0.06);
+  } else if (now < (p.cd.attack || 0)) return false;
+  if (distance(p, target) > range || distance(traceStep(world.maps[p.map], p, target), target) > 1) return false;
+  const key = [p.id, target.id].sort().join(":");
+  let f = world.fights.get(key);
+  if (!f) {
+    const blank = () => ({ damageTaken: 0, damageDealt: 0, potions: 0, mpPotions: 0 });
+    f = { a: p.id, b: target.id, started: now, last: now, names: { [p.id]: p.name, [target.id]: target.name }, stats: { [p.id]: blank(), [target.id]: blank() } };
+    world.fights.set(key, f);
+  }
+  f.last = now;
+  p.lastPvp = target.lastPvp = now;
+  target.defender = p.id;
+  if (k) {
+    p.mp -= k.mp;
+    p.cd[k.id] = now + k.cd;
+    p.castId = k.id;
+  } else p.cd.attack = now + 0.46 * (1 - combatStats(p.s).haste);
+  p.actionUntil = now + (k ? 0.5 : 0.35);
+  p.actionKind = k ? "skill" : "attack";
+  p.anim = p.actionKind;
+  p.animTime = 0;
+  const hit = Math.min(target.hp, Math.max(1, damage(p.s) * power * 0.45 * 100 / (100 + combatStats(target.s).defense)));
+  target.hp -= hit;
+  f.stats[p.id].damageDealt += Math.round(hit);
+  f.stats[target.id].damageTaken += Math.round(hit);
+  p.dirty = target.dirty = true;
+  world.event(p, { kind: "hit", target: target.id, x: target.x, y: target.y, amount: Math.round(hit) });
+  world.event(p, { kind: k ? "skill" : "attack", hero: p.s.hero, skillId: k?.id, form: k?.form, aim: { x: target.x, y: target.y }, range, color: k?.color, radius: k?.radius });
+  checkpointFight(world, key, f, now);
+  if (target.hp <= 0) {
+    target.anim = "dead";
+    target.defender = null;
+    for (const [id, fight] of [...world.fights]) if (fight.a === target.id || fight.b === target.id) finishFight(world, id, fight.a === target.id ? "lost" : "won", fight.b === target.id ? "lost" : "won", now);
+  }
+  return true;
+}
+function tickPvp(world, dt, now) {
+  for (const p of world.sleepers.values()) {
+    if (p.hp <= 0) continue;
+    const enemy = world.getActor(p.defender);
+    if (!enemy || enemy.hp <= 0 || enemy.map !== p.map || now - (p.lastPvp || 0) > 10 || distance(p, enemy) > 650) continue;
+    const use = (type, key, condition) => {
+      if (!condition) return;
+      const before = p.s[key];
+      world.command(p, { type }, now);
+      if (p.s[key] < before) {
+        for (const f of world.fights.values()) if (f.stats[p.id]) f.stats[p.id][key === "potions" ? "potions" : "mpPotions"]++;
+      }
+    };
+    use("potion", "potions", p.hp < maxHP(p.s) * 0.5);
+    use("mpPotion", "mpPotions", p.mp < combatStats(p.s).mp * 0.25);
+    let cast = false;
+    for (let slot = 0; slot < 5 && !cast; slot++) cast = pvpAttack(world, p, { type: "skillPlayer", target: enemy.id, slot }, now);
+    if (!cast) pvpAttack(world, p, { type: "attackPlayer", target: enemy.id }, now);
+  }
+  for (const [key, f] of [...world.fights]) {
+    checkpointFight(world, key, f, now);
+    const a = world.getActor(f.a), b = world.getActor(f.b);
+    if (!a || !b) finishFight(world, key, "interrupted", "interrupted", now);
+    else if (a.map !== b.map || distance(a, b) > 650 || now - f.last > 10) finishFight(world, key, "escaped", "escaped", now);
+  }
+}
+
+// server/accounts.js
+var import_node_crypto2 = require("node:crypto");
+var import_node_util = require("node:util");
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
+
 // server/characters.js
+var import_node_crypto = require("node:crypto");
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
 var CHARACTER_SLOTS = ["main", "slot2", "slot3", "slot4"];
 function characterId(account, slot = "main") {
   if (!CHARACTER_SLOTS.includes(slot)) throw Error("character_missing");
@@ -4814,154 +5074,35 @@ var import_node_crypto5 = require("node:crypto");
 var import_node_fs3 = require("node:fs");
 var import_node_path3 = require("node:path");
 
-// web/star-data.js
-var STAR_ZONES = [
-  { name: "\u0E25\u0E32\u0E19\u0E08\u0E2D\u0E14\u0E22\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48", en: "Hero Landing Fields", min: 61, max: 65, ground: ["#6f9e5c", "#86b468"], liquid: { kind: "water", color: "#4f9fc0" }, props: { bulbtree: 4, meteor: 2, pylon: 1 }, density: 0.07, lakes: 0.66 },
-  { name: "\u0E1B\u0E48\u0E32\u0E40\u0E2B\u0E47\u0E14\u0E40\u0E23\u0E37\u0E2D\u0E07\u0E41\u0E2A\u0E07", en: "Glowcap Grove", min: 66, max: 70, ground: ["#3f7a6c", "#4d8b74"], liquid: { kind: "water", color: "#3f8fb0" }, props: { mushroom: 5, bulbtree: 2, rock: 1 }, density: 0.09, lakes: 0.68 },
-  { name: "\u0E17\u0E38\u0E48\u0E07\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E2D\u0E33\u0E1E\u0E31\u0E19", en: "Amber Spore Fields", min: 71, max: 75, ground: ["#9c9a4e", "#b0aa5c"], liquid: { kind: "acid", color: "#f0b43a" }, props: { mushroom: 3, bulbtree: 2, rock: 1 }, density: 0.08, lakes: 0.68 },
-  { name: "\u0E40\u0E19\u0E34\u0E19\u0E23\u0E31\u0E07\u0E1B\u0E25\u0E27\u0E01\u0E22\u0E31\u0E01\u0E29\u0E4C", en: "Termite Mound Hills", min: 76, max: 80, ground: ["#a87652", "#b98762"], liquid: { kind: "water", color: "#4f9fbd" }, props: { mound: 5, rock: 2, deadtree: 1 }, density: 0.08, lakes: 0.7 },
-  { name: "\u0E2B\u0E19\u0E2D\u0E07\u0E19\u0E49\u0E33\u0E01\u0E23\u0E14", en: "Acid Swamp", min: 81, max: 85, ground: ["#4f6e4a", "#5b7c52"], liquid: { kind: "acid", color: "#8fdc4e" }, props: { reed: 4, deadtree: 2, mushroom: 1 }, density: 0.08, lakes: 0.6 },
-  { name: "\u0E1B\u0E48\u0E32\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25\u0E44\u0E0B\u0E40\u0E1A\u0E2D\u0E23\u0E4C", en: "Cyber Crystal Woods", min: 86, max: 90, ground: ["#3f5f7a", "#4b6d88"], liquid: { kind: "water", color: "#39b6d6" }, props: { crystaltree: 4, crystal: 3, pylon: 1 }, density: 0.09, lakes: 0.67, crystal: "#7ff5ff" },
-  { name: "\u0E2A\u0E38\u0E2A\u0E32\u0E19\u0E2B\u0E38\u0E48\u0E19\u0E23\u0E1A", en: "Mech Graveyard", min: 91, max: 95, ground: ["#7d8288", "#8b9096"], liquid: { kind: "chasm", color: "#0b1430" }, props: { wreck: 4, rock: 2, pylon: 1 }, density: 0.08, lakes: 0.67 },
-  { name: "\u0E2B\u0E38\u0E1A\u0E23\u0E31\u0E07\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07", en: "Scorpion Canyon", min: 96, max: 100, ground: ["#b9714a", "#c7805a"], liquid: { kind: "chasm", color: "#0b1430" }, props: { rock: 4, meteor: 2, deadtree: 1 }, density: 0.08, lakes: 0.68 },
-  { name: "\u0E19\u0E04\u0E23\u0E19\u0E35\u0E2D\u0E2D\u0E19\u0E23\u0E49\u0E32\u0E07", en: "Neon Ruins", min: 101, max: 105, ground: ["#4a4f66", "#565b74"], liquid: { kind: "water", color: "#2fc8f0" }, props: { pillar: 3, obelisk: 2, lantern: 2 }, density: 0.08, lakes: 0.69, crystal: "#ff5fd2" },
-  { name: "\u0E23\u0E31\u0E07\u0E1C\u0E36\u0E49\u0E07\u0E40\u0E2B\u0E25\u0E47\u0E01", en: "Iron Hive", min: 106, max: 110, ground: ["#8a6f3c", "#9a7d46"], liquid: { kind: "acid", color: "#f2b230" }, props: { hive: 4, pylon: 2, rock: 1 }, density: 0.08, lakes: 0.69 },
-  { name: "\u0E23\u0E2D\u0E22\u0E41\u0E22\u0E01\u0E1E\u0E25\u0E31\u0E07\u0E21\u0E37\u0E14", en: "Void Rift", min: 111, max: 115, ground: ["#5a4b6e", "#665579"], liquid: { kind: "acid", color: "#b58cff" }, props: { crystal: 3, obelisk: 2, deadtree: 2 }, density: 0.09, lakes: 0.67, crystal: "#c79bff" },
-  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", en: "Planet Core", min: 116, max: 120, ground: ["#4a3a3c", "#574446"], liquid: { kind: "lava", color: "#ff7a2e" }, props: { spire: 4, crystal: 2, meteor: 1 }, density: 0.09, lakes: 0.65, crystal: "#ff8a5c" }
-];
-var starMonster = advancedMonster;
+// web/monster-behavior.js
+var aggressiveMonster = (def) => def.aggressive ?? (!!def.boss || def.id % 3 === 0);
 
-// web/tilemap.js
-var props = (o) => Object.fromEntries((o?.properties || []).map((p) => [p.name, p.value]));
-function parseTiled(json) {
-  const N = json.width, rows = json.height, mp = props(json), T = mp.tileWorld || 48;
-  if (json.orientation !== "isometric" || !N || !rows) throw new Error("\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48 Tiled \u0E41\u0E1A\u0E1A isometric");
-  const layer = (name) => json.layers.find((l) => l.name === name);
-  const sets = [...json.tilesets].sort((a, b) => b.firstgid - a.firstgid);
-  const tileOf = (gid) => {
-    if (!gid) return null;
-    const ts = sets.find((t) => gid >= t.firstgid);
-    if (!ts) return null;
-    const id = gid - ts.firstgid, meta = ts.tiles?.find((t) => t.id === id);
-    return { set: ts.name, id, ...props(meta) };
-  };
-  const cache = /* @__PURE__ */ new Map(), info = (gid) => {
-    if (!cache.has(gid)) cache.set(gid, tileOf(gid));
-    return cache.get(gid);
-  };
-  const count = N * rows, kind = new Array(count), color = new Array(count), walk = new Uint8Array(count), prop = new Array(count).fill(null), zone = new Int8Array(count).fill(-1), variant = new Uint8Array(count);
-  const ground = layer("ground").data, pl = layer("props")?.data || [], zl = layer("zones")?.data || [];
-  for (let i = 0; i < count; i++) {
-    const g = info(ground[i]) || { kind: "void", walkable: false };
-    kind[i] = g.kind;
-    color[i] = g.color || null;
-    walk[i] = g.walkable ? 1 : 0;
-    variant[i] = g.kind === "ground" && (g.id - 5) % 3 === 1 ? 1 : 0;
-    const pr = info(pl[i]);
-    if (pr) {
-      prop[i] = pr.kind;
-      walk[i] = 0;
-    }
-    const z = info(zl[i]);
-    if (z) zone[i] = z.id;
-    if (g.zone >= 0 && zone[i] < 0) zone[i] = g.zone;
-  }
-  const zoneSet = json.tilesets.find((t) => t.name === "hero-star-zones");
-  const zones = (zoneSet?.tiles || []).sort((a, b) => a.id - b.id).map((t) => {
-    const p = props(t);
-    return { ...STAR_ZONES[t.id], name: p.name, en: p.en, min: p.minLevel, max: p.maxLevel };
-  });
-  const toW = (o) => ({ x: o.x / json.tileheight * T, y: o.y / json.tileheight * T });
-  const spawns = (layer("spawns")?.objects || []).map((o) => {
-    const p = props(o);
-    return { id: o.id, name: o.name, ...toW(o), zone: p.zone, level: p.level, species: p.species, count: p.count || 1, elite: o.type === "elite" || o.type === "boss", boss: o.type === "boss" };
-  });
-  const pois = (layer("pois")?.objects || []).map((o) => {
-    const p = props(o);
-    return { id: o.id, name: o.name, action: o.type, zone: p.zone, world: toW(o) };
-  });
-  const gate = pois.find((p) => p.action === "warp" && p.zone === 0) || pois[0];
-  return { type: "tiles", name: mp.title || "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48", N, rows, T, kind, color, walk, prop, zone, variant, zones, spawns, pois, spawn: gate.world };
+// web/ground-loot.js
+var LOOT_SECONDS = 8;
+var LOOT_RADIUS = 65;
+function monsterRewards(s, m, rng = Math.random) {
+  const gold = s.gold, alloy = s.upgradeItems?.alloy || 0;
+  reward(s, m, rng);
+  const rewards = [];
+  if (s.gold > gold) rewards.push({ kind: "gold", count: s.gold - gold });
+  if (s.upgradeItems.alloy > alloy) rewards.push({ kind: "material", itemId: "alloy", count: s.upgradeItems.alloy - alloy });
+  s.gold = gold;
+  s.upgradeItems.alloy = alloy;
+  const item = rollDrop(m, rng);
+  if (item) rewards.push({ kind: "gear", item, count: 1 });
+  return rewards;
 }
-var tileIndex = (scene, x, y) => {
-  const c = Math.floor(x / scene.T), r = Math.floor(y / scene.T);
-  return c < 0 || r < 0 || c >= scene.N || r >= scene.rows ? -1 : r * scene.N + c;
-};
-var open = (scene, x, y) => {
-  const i = tileIndex(scene, x, y);
-  return i >= 0 && scene.walk[i] === 1;
-};
-function tileWalkable(scene, { x, y }) {
-  const r = 7;
-  return open(scene, x, y) && open(scene, x + r, y) && open(scene, x - r, y) && open(scene, x, y + r) && open(scene, x, y - r);
-}
-
-// web/maps.js
-var MAP_W = 2e3;
-var MAP_H = 1333;
-var mapSize = (scene) => ({ width: scene?.width || MAP_W, height: scene?.height || MAP_H });
-var toWorld = ([u, v], scene) => {
-  const { width, height } = mapSize(scene), a = (u - 0.5) * width / 0.8, b = (v - 0.6) * height / 0.4;
-  return { x: (a + b) / 2, y: (b - a) / 2 };
-};
-var toUV = ({ x, y }, scene) => {
-  const { width, height } = mapSize(scene);
-  return [0.5 + 0.8 * (x - y) / width, 0.6 + 0.4 * (x + y) / height];
-};
-var rect = (l, t, r, b) => [[l, t], [r, t], [r, b], [l, b]];
-var FOREST_COLS = 9;
-var FOREST_ROWS = 6;
-var forestWalk = [rect(0.012, 0.012, 0.988, 0.988)];
-var REGIONS = [
-  { id: 0, name: "\u0E0A\u0E32\u0E22\u0E1B\u0E48\u0E32\u0E41\u0E2A\u0E07\u0E41\u0E23\u0E01", min: 1, max: 10, center: [1 / 6, 0.75], entry: [1 / 6, 0.9] },
-  { id: 1, name: "\u0E17\u0E38\u0E48\u0E07\u0E2A\u0E1B\u0E2D\u0E23\u0E4C\u0E2D\u0E33\u0E1E\u0E31\u0E19", min: 11, max: 20, center: [0.5, 0.75], entry: [0.5, 0.9] },
-  { id: 2, name: "\u0E2A\u0E27\u0E19\u0E23\u0E32\u0E01\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25", min: 21, max: 30, center: [5 / 6, 0.75], entry: [5 / 6, 0.9] },
-  { id: 3, name: "\u0E14\u0E07\u0E1A\u0E38\u0E1B\u0E1C\u0E32\u0E01\u0E34\u0E19\u0E1E\u0E25\u0E31\u0E07", min: 31, max: 40, center: [5 / 6, 0.25], entry: [5 / 6, 0.4] },
-  { id: 4, name: "\u0E41\u0E2D\u0E48\u0E07\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07", min: 41, max: 50, center: [0.5, 0.25], entry: [0.5, 0.4] },
-  { id: 5, name: "\u0E2B\u0E31\u0E27\u0E43\u0E08\u0E1B\u0E48\u0E32\u0E14\u0E32\u0E27\u0E44\u0E01\u0E25", min: 51, max: 60, center: [1 / 6, 0.25], entry: [1 / 6, 0.4] }
-];
-var MAPS = {
-  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 4e3, height: 2666, spawn: [0.5, 0.445], walk: [
-    // Main plaza follows its painted perimeter, with broad side promenades.
-    [[0.29, 0.28], [0.71, 0.28], [0.77, 0.32], [0.73, 0.43], [0.76, 0.53], [0.7, 0.64], [0.61, 0.71], [0.39, 0.71], [0.25, 0.66], [0.23, 0.54], [0.27, 0.43], [0.23, 0.31]],
-    rect(0.46, 0.23, 0.54, 0.97),
-    rect(0.68, 0.51, 0.97, 0.58),
-    rect(0.15, 0.49, 0.32, 0.59),
-    // Walk around the two landing pads without crossing parked craft or building roofs.
-    rect(0.12, 0.225, 0.31, 0.275),
-    rect(0.25, 0.17, 0.3, 0.34),
-    rect(0.04, 0.195, 0.12, 0.255),
-    rect(0.08, 0.245, 0.27, 0.29),
-    rect(0.69, 0.225, 0.88, 0.275),
-    rect(0.7, 0.17, 0.75, 0.34),
-    rect(0.88, 0.195, 0.96, 0.255),
-    rect(0.73, 0.245, 0.92, 0.29)
-  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
-  forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
-};
-function inside(u, v, poly) {
-  let hit = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const a = poly[i], b = poly[j];
-    if (a[1] > v !== b[1] > v && u < (b[0] - a[0]) * (v - a[1]) / (b[1] - a[1]) + a[0]) hit = !hit;
-  }
-  return hit;
-}
-function walkable(scene, point) {
-  if (scene?.type === "tiles") return tileWalkable(scene, point);
-  if (!scene) return Math.abs(point.x) <= 850 && Math.abs(point.y) <= 850;
-  const [u, v] = toUV(point, scene);
-  return [[0, 0], [15e-4, 0], [-15e-4, 0], [0, 15e-4], [0, -15e-4]].every(([du, dv]) => scene.walk.some((poly) => inside(u + du, v + dv, poly)));
-}
-function traceStep(scene, from, to) {
-  const d = Math.hypot(to.x - from.x, to.y - from.y), steps = Math.max(1, Math.ceil(d / 10));
-  let p = { x: from.x, y: from.y };
-  for (let i = 1; i <= steps; i++) {
-    const q = { x: from.x + (to.x - from.x) * i / steps, y: from.y + (to.y - from.y) * i / steps };
-    if (!walkable(scene, q)) break;
-    p = q;
-  }
-  return p;
+function collectLoot(s, d) {
+  if (d.kind === "gear") {
+    if (s.bag.length >= BAG_SIZE) return false;
+    s.bag.push(d.item);
+  } else if (d.kind === "gold") s.gold = Math.min(1e10, s.gold + d.count);
+  else if (d.kind === "material") {
+    const n = s.upgradeItems[d.itemId] || 0;
+    if (n + d.count > 99999) return false;
+    s.upgradeItems[d.itemId] = n + d.count;
+  } else return false;
+  return true;
 }
 
 // web/mob-motion.js
@@ -5093,6 +5234,10 @@ var World = class {
     this.testRewards = testRewards;
     this.maxPlayers = maxPlayers;
     this.players = /* @__PURE__ */ new Map();
+    this.sleepers = /* @__PURE__ */ new Map();
+    this.fights = /* @__PURE__ */ new Map();
+    this.loot = [];
+    this.lootSequence = 0;
     this.maps = { town: MAPS.town, forest: MAPS.forest, star: parseTiled(hero_star_default) };
     this.mobs = { town: [], forest: makePopulation().map((e) => ({ ...e, id: e.spawnId })), star: [] };
     this.events = [];
@@ -5104,13 +5249,69 @@ var World = class {
       this.mobs.star.push({ id: `${c.id}-${k}`, def, ...pos, homeX: pos.x, homeY: pos.y, hp: def.hp, state: "idle", clock: 1, face: 1 });
     }
   }
-  join(id, s) {
+  getActor(id) {
+    return this.players.get(id) || this.sleepers.get(id);
+  }
+  actors() {
+    return [...this.players.values(), ...this.sleepers.values()];
+  }
+  makeActor(id, s) {
     normalizeFashion(s);
+    const p = { id, s, name: s.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D", map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
+    const w = s.worldState;
+    if (w && this.maps[w.map] && walkable(this.maps[w.map], w)) {
+      Object.assign(p, { map: w.map, x: w.x, y: w.y, hp: Math.min(maxHP(s), w.hp), mp: Math.min(combatStats(s).mp, w.mp), cd: { ...w.cd }, offlineSince: w.offlineSince || 0 });
+    }
+    return p;
+  }
+  restore(id, s) {
+    if (!s.worldState || this.getActor(id)) return;
+    const p = this.makeActor(id, s);
+    p.offline = true;
+    for (const r of p.s.pvpReports || []) if (r.pending) {
+      r.pending = false;
+      r.unread = true;
+    }
+    this.sleepers.set(id, p);
+    return p;
+  }
+  join(id, s) {
     if (this.players.has(id)) throw Error("already_online");
     if (this.players.size >= this.maxPlayers) throw Error("room_full");
-    const p = { id, s, name: s.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D", map: "town", ...toWorld(MAPS.town.spawn, MAPS.town), hp: maxHP(s), mp: combatStats(s).mp, face: 1, anim: "idle", walkDX: 0.707, walkDY: 0.707, walkDistance: 0, animTime: 0, cd: {}, moveAt: Date.now() / 1e3, actionUntil: 0, seq: 0 };
+    const p = this.sleepers.get(id) || this.makeActor(id, s);
+    this.sleepers.delete(id);
+    p.s = s;
+    p.name = s.name || p.name;
+    Object.assign(p, { offline: false, seq: 0, moveAt: Date.now() / 1e3, entered: true });
     this.players.set(id, p);
     return p;
+  }
+  disconnect(p) {
+    if (this.players.get(p.id) !== p) return;
+    this.players.delete(p.id);
+    p.offline = true;
+    p.offlineSince = Date.now();
+    p.anim = "idle";
+    this.sleepers.set(p.id, p);
+    capturePresence(p);
+    p.dirty = true;
+  }
+  spawnLoot(p, e, now) {
+    const rewards = monsterRewards(p.s, e.def);
+    rewards.forEach((item, i) => this.loot.push({ ...item, id: `loot-${++this.lootSequence}`, owner: p.id, hero: p.s.hero, map: p.map, x: e.x + (i - 1) * 35, y: e.y + (i - 1) * -35, created: now, expires: now + LOOT_SECONDS }));
+  }
+  collectGround(now) {
+    this.loot = this.loot.filter((d) => {
+      if (now >= d.expires) return false;
+      if (now - d.created < 0.35) return true;
+      const p = this.players.get(d.owner);
+      if (p && p.hp > 0 && p.map === d.map && dist2(p, d) <= LOOT_RADIUS && dist2(traceStep(this.maps[p.map], p, d), d) < 1 && collectLoot(p.s, d)) {
+        p.dirty = true;
+        this.event(p, { kind: "lootPickup", loot: d });
+        return false;
+      }
+      return true;
+    });
   }
   home(p) {
     return p.map === "town" || p.map === "star" && dist2(p, this.maps.star.spawn) < 430;
@@ -5145,9 +5346,7 @@ var World = class {
       e.state = "dead";
       e.clock = 1;
       const before = p.s.level;
-      reward(p.s, e.def);
-      const loot = rollDrop(e.def);
-      if (loot) addToBag(p.s, loot);
+      this.spawnLoot(p, e, now);
       if (p.s.level > before) {
         p.hp = maxHP(p.s);
         for (const r of knownSkills(p.s).filter((r2) => r2.level > before && r2.level <= p.s.level)) {
@@ -5175,6 +5374,7 @@ var World = class {
       p.anim = Math.hypot(dx, dy) > 0.1 ? "walk" : "idle";
       if (now < p.actionUntil) p.anim = p.actionKind;
       Object.assign(p, next);
+      if (Math.hypot(dx, dy) > 0.1) p.dirty = true;
       if (Math.hypot(dx, dy) > 0.1) {
         p.face = dx - dy >= 0 ? 1 : -1;
         p.walkDX = dx;
@@ -5190,6 +5390,8 @@ var World = class {
       return;
     }
     if (d.type === "enter") {
+      if (p.hp <= 0) return;
+      if (now - (p.lastPvp || -Infinity) < 10) return;
       if (now < (p.cd.enter || 0)) return;
       p.cd.enter = now + 1;
       if (this.enter(p, d.map, d.gate)) p.entered = true;
@@ -5198,6 +5400,7 @@ var World = class {
     if (d.type === "revive") {
       if (p.hp <= 0) {
         this.enter(p, "town");
+        p.pvpShield = now + 10;
         p.entered = true;
       }
       return;
@@ -5209,7 +5412,13 @@ var World = class {
       p.opResult = { ok: false, message: "\u0E17\u0E33\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E07\u0E34\u0E19 \u0E27\u0E31\u0E2A\u0E14\u0E38 \u0E41\u0E25\u0E30\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E01\u0E23\u0E30\u0E40\u0E1B\u0E4B\u0E32" };
       const atHome = this.home(p);
       switch (d.op) {
+        case "readPvpReports": {
+          for (const r2 of s.pvpReports || []) r2.unread = false;
+          p.opResult.ok = true;
+          break;
+        }
         case "townBuff": {
+          if (now - (p.lastPvp || -Infinity) < 10) break;
           const near = p.map === "town" && dist2(p, toWorld(BUFF_NPC_UV, MAPS.town)) <= 120;
           if (grantTownBuff(p, this.testRewards, near, now * 1e3)) {
             p.hp = maxHP(s);
@@ -5291,6 +5500,10 @@ var World = class {
       return;
     }
     if (p.hp <= 0) return;
+    if (["attackPlayer", "skillPlayer"].includes(d.type)) {
+      pvpAttack(this, p, d, now);
+      return;
+    }
     if (d.type === "mpPotion") {
       if (now < (p.cd.mpPotion || 0) || (s.mpPotions || 0) < 1 || p.mp >= combatStats(s).mp) return;
       p.cd.mpPotion = now + 6;
@@ -5367,7 +5580,10 @@ var World = class {
     this.event(p, { kind: "skill", x: origin.x, y: origin.y, hero: s.hero, skillId: k.id, form: k.form, aim: ["field", "circle"].includes(k.form) ? aim : endpoint, color: k.color, radius: k.radius, range: k.range });
   }
   tick(dt, now = Date.now() / 1e3) {
-    for (const p of this.players.values()) {
+    tickPvp(this, dt, now);
+    this.collectGround(now);
+    for (const p of this.actors()) {
+      if (p.offline && (!p.defender || now - (p.lastPvp || 0) > 10)) continue;
       if (p.s.townBuffUntil && (!this.testRewards || !buffActive(p.s, now * 1e3))) {
         p.s.townBuffUntil = 0;
         p.hp = Math.min(p.hp, maxHP(p.s));
@@ -5377,7 +5593,7 @@ var World = class {
       p.animTime += dt;
       applyRegen(p, dt, maxHP(p.s), combatStats(p.s).mp);
       p.mp = Math.min(combatStats(p.s).mp, p.mp + dt * manaRegen(p.s));
-      if (this.home(p) && p.hp > 0) p.hp = Math.min(maxHP(p.s), p.hp + dt * maxHP(p.s) * 0.1);
+      if (this.home(p) && p.hp > 0 && now - (p.lastPvp || -Infinity) > 10) p.hp = Math.min(maxHP(p.s), p.hp + dt * maxHP(p.s) * 0.1);
       if (now - p.moveAt > 0.25 && now >= p.actionUntil) p.anim = "idle";
     }
     for (const map of ["forest", "star"]) {
@@ -5396,12 +5612,12 @@ var World = class {
           e.dot.left -= dt;
           if (e.hp <= 0) continue;
         }
-        let p = players.filter((p2) => dist2(p2, e) < 700).sort((a, b) => dist2(a, e) - dist2(b, e))[0];
+        let p = players.find((p2) => p2.id === e.aggro && dist2(p2, e) < 700) || players.filter((p2) => aggressiveMonster(e.def) && dist2(p2, e) < 230).sort((a, b) => dist2(a, e) - dist2(b, e))[0];
         if (!p) {
           wanderMonster(e, this.maps[map], dt, now);
           continue;
         }
-        const distance = dist2(p, e);
+        const distance2 = dist2(p, e);
         if (e.returning || dist2(e, { x: e.homeX, y: e.homeY }) > 650) {
           e.returning = true;
           e.state = "idle";
@@ -5413,7 +5629,7 @@ var World = class {
           }
           continue;
         }
-        if (distance > 230 && e.aggro !== p.id && e.state !== "windup") {
+        if (distance2 > 230 && e.aggro !== p.id && e.state !== "windup") {
           wanderMonster(e, this.maps[map], dt, now);
           continue;
         }
@@ -5434,6 +5650,8 @@ var World = class {
         }
         if (e.state === "windup") {
           if (e.clock <= 0) {
+            const end = { x: e.x + Math.cos(e.angle) * range, y: e.y + Math.sin(e.angle) * range };
+            this.event({ id: e.id, map, x: e.x, y: e.y }, { kind: "monsterSkill", color: "#ffad65", pattern: kind === "projectile" ? "rail" : "rupture", zones: kind === "projectile" ? [{ type: "poly", points: [[e.x - 12 * Math.sin(e.angle), e.y + 12 * Math.cos(e.angle)], [end.x - 12 * Math.sin(e.angle), end.y + 12 * Math.cos(e.angle)], [end.x + 12 * Math.sin(e.angle), end.y - 12 * Math.cos(e.angle)], [e.x + 12 * Math.sin(e.angle), e.y - 12 * Math.cos(e.angle)]] }] : [{ type: "disk", x: e.x, y: e.y, radius: kind === "burst" ? 150 : kind === "cone" ? 200 : 85 }] });
             if (kind === "dash") {
               Object.assign(e, traceStep(this.maps[map], e, { x: e.x + Math.cos(e.angle) * 160, y: e.y + Math.sin(e.angle) * 160 }));
             }
@@ -5450,15 +5668,15 @@ var World = class {
           }
           continue;
         }
-        if (distance < range && e.clock <= 0) {
+        if (distance2 < range && e.clock <= 0) {
           e.state = "windup";
           e.clock = e.def.boss ? 1.1 : e.def.attack === "signature" ? 1 : 0.75;
           e.aimX = p.x;
           e.aimY = p.y;
           e.angle = Math.atan2(p.y - e.y, p.x - e.x);
-        } else if (distance > range * 0.8) {
-          const speed = e.def.speed * (now < (e.slow || 0) ? 0.65 : 1), step = Math.min(distance - range * 0.8, speed * dt);
-          const next = traceStep(this.maps[map], e, { x: e.x + (p.x - e.x) / distance * step, y: e.y + (p.y - e.y) / distance * step });
+        } else if (distance2 > range * 0.8) {
+          const speed = e.def.speed * (now < (e.slow || 0) ? 0.65 : 1), step = Math.min(distance2 - range * 0.8, speed * dt);
+          const next = traceStep(this.maps[map], e, { x: e.x + (p.x - e.x) / distance2 * step, y: e.y + (p.y - e.y) / distance2 * step });
           e.walkDistance = (e.walkDistance || 0) + dist2(e, next);
           e.moving = dist2(e, next) > 0.01;
           e.face = next.x - e.x - (next.y - e.y) >= 0 ? 1 : -1;
@@ -5468,10 +5686,10 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, offline: !!q.offline, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
-    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, players: [...this.players.values()].filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
+    return { type: "state", serverTime: now * 1e3, self, online: this.players.size, loot: this.loot.filter((d) => d.map === p.map && dist2(p, d) < 1700).map((d) => ({ ...d, owner: void 0 })), players: this.actors().filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
   }
 };
 
@@ -5492,6 +5710,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   }
   const persist = (p) => {
     try {
+      if (p.map) capturePresence(p);
       const path = (0, import_node_path3.join)(directory, p.id + ".json");
       (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
       (0, import_node_fs3.renameSync)(path + ".tmp", path);
@@ -5502,6 +5721,14 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       throw Error("save_unavailable");
     }
   };
+  for (const file of (0, import_node_fs3.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+    try {
+      const state = validSave(JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(directory, file), "utf8")));
+      if (state) world.restore(file.slice(0, -5), state);
+    } catch {
+      diskFailure = true;
+    }
+  }
   const adsEnabled = /^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit) && !adUnit.includes("3940256099942544");
   const verifySSV = ssvVerifier || createSSVVerifier({ unit: adUnit });
   let verifying = 0;
@@ -5526,7 +5753,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.players.get(data.user_id), path = (0, import_node_path3.join)(directory, data.user_id + ".json");
+        const live = world.getActor(data.user_id), path = (0, import_node_path3.join)(directory, data.user_id + ".json");
         if (!live && !(0, import_node_fs3.existsSync)(path)) throw Error("unknown_account");
         const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
@@ -5561,7 +5788,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.23.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.24.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5620,7 +5847,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
               result = await accounts.authFinish(d.flow, d.code);
             } else {
               if (activeAccounts.has(accounts.resolve(d.token))) throw Error("already_online");
+              const owner = accounts.resolve(d.token);
               result = await accounts.manage(d.token, d);
+              if (d.action === "delete") world.sleepers.delete(characterId(owner, d.character));
             }
             send(ws, { type: "accountResult", ...result });
           } catch (e) {
@@ -5643,6 +5872,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
           const account = created ? (0, import_node_crypto5.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
+          for (const slot of CHARACTER_SLOTS) {
+            const body = world.sleepers.get(characterId(account, slot));
+            if (body?.dirty) persist(body);
+          }
           const main = created ? fresh(d.hero) : readCharacter(directory, account);
           if (!main && !accounts.exists(account)) throw Error("account_missing");
           if (d.preview === true) {
@@ -5675,8 +5908,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           p.character = character;
           activeAccounts.add(account);
           persist(p);
+          state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.23.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.24.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }
@@ -5735,11 +5969,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       clearTimeout(timer);
       connections.delete(ws);
       if (p) {
+        world.disconnect(p);
         try {
           persist(p);
         } catch {
         }
-        world.players.delete(p.id);
         activeAccounts.delete(p.account);
       }
     });
@@ -5750,6 +5984,14 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     const now = Date.now();
     world.tick(Math.min(0.2, (now - previous) / 1e3), now / 1e3);
     previous = now;
+    for (const p of world.sleepers.values()) {
+      if (p.dirty && now - (p.lastSaved || 0) >= 1e3) {
+        try {
+          persist(p);
+        } catch {
+        }
+      }
+    }
     for (const ws of connections) {
       const p = ws.player();
       if (!p) continue;
@@ -5777,6 +6019,13 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   const close = async () => {
     clearInterval(ticker);
     clearInterval(heartbeat);
+    for (const key of [...world.fights.keys()]) finishFight(world, key, "interrupted", "interrupted", Date.now() / 1e3);
+    for (const p of world.actors()) {
+      try {
+        persist(p);
+      } catch {
+      }
+    }
     for (const ws of connections) ws.terminate();
     await new Promise((ok) => server.close(ok));
   };

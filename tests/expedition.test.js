@@ -23,8 +23,8 @@ test('town spawn is the painted center and all promenades and exits are reachabl
  }
  w.enter(p,'forest');w.enter(p,'town');assert.deepEqual(toUV(p,MAPS.town),uv);
 });
-test('monster effects preserve footprints with zero texture or particle draws',()=>{
- let images=0,paths=0;const g=new Proxy({},{get:(o,k)=>k==='drawImage'?()=>images++:k==='beginPath'?()=>paths++:()=>{},set:()=>true});
- for(let i=0;i<20;i++){const e={x:0,y:0,def:forestMonster(i*3+1),angle:0};const zones=monsterZones(e);drawMonsterAttack(g,{zones,color:'#fff',life:.2,max:.3},(x,y)=>({x,y}),1);}
- assert.equal(images,0);assert(paths>=20);
+test('monster effects draw restored textures without advance aim indicators',()=>{
+ let images=0;const g=new Proxy({},{get:(o,k)=>k==='drawImage'?()=>images++:()=>{},set:()=>true});
+ for(let i=0;i<20;i++){const e={x:0,y:0,def:forestMonster(i*3+1),angle:0};const zones=monsterZones(e);drawMonsterAttack(g,{zones,color:'#fff',life:.2,max:.65},(x,y)=>({x,y}),1,'low',{width:1024,height:1024});}
+ assert(images>0);
 });
