@@ -4531,7 +4531,7 @@ function combatStats(s) {
 }
 
 // web/merchant.js
-var MERCHANT_UV = [0.46, 0.46];
+var MERCHANT_UV = [0.27, 0.54];
 var MERCHANT_RANGE = 150;
 var MERCHANT_OPS = /* @__PURE__ */ new Set(["buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
 
@@ -5809,7 +5809,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.25.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.26.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5935,7 +5935,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.25.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.26.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }

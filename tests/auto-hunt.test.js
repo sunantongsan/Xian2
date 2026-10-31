@@ -6,3 +6,5 @@ test('stuck pursuit is abandoned and another enemy selected',()=>{const h=new Au
 test('walls prevent attacks even within weapon range',()=>{assert.equal(new AutoHunt().update(a,[foe(40)],0,.016,90,{route:()=>[],clear:()=>false}),null);});
 test('reconsiders long pursuit when a closer enemy arrives',()=>{const h=new AutoHunt(),far=foe(420),near=foe(70),nav={route:(_,e)=>[e],clear:()=>true};assert.equal(h.update(a,[far],0,.016,60,nav).target,far);assert.equal(h.update(a,[far,near],.7,.016,60,nav).target,near);});
 
+
+test('empty or unreachable area respects scan cooldown instead of pathfinding every frame',()=>{let calls=0;const h=new AutoHunt(),e=foe(200),nav={route:()=>{calls++;return [];},clear:()=>false};for(let i=0;i<30;i++)h.update(a,[e],i/60,1/60,60,nav);assert.equal(calls,1);});

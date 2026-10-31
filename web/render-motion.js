@@ -8,3 +8,8 @@ export function receiveActor(previous,next,now=performance.now()){
  if(!previous||Math.hypot(next.x-previous.x,next.y-previous.y)>300)return {...next};
  const point=renderPosition(previous,now);return {...next,renderFrom:{x:point.x,y:point.y,at:now}};
 }
+
+export function updateActor(previous,next,now=performance.now()){
+ const received=receiveActor(previous,next,now);
+ return previous?Object.assign(previous,received,{renderFrom:received.renderFrom}):received;
+}

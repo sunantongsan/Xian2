@@ -21,7 +21,7 @@ export class AutoHunt {
   this.nextScan=now+.6;
  }
  update(actor,enemies,now,dt,reach,nav){
-  if(!this.target||this.target.hp<=0||this.target.returning||now>=this.nextScan)this.plan(actor,enemies,now,reach,nav);
+  if(now>=this.nextScan||(this.target&&(this.target.hp<=0||this.target.returning)))this.plan(actor,enemies,now,reach,nav);
   if(!this.target)return null;
   const ready=distance(actor,this.target)<=reach&&nav.clear(actor,this.target);
   if(ready){this.stalled=0;this.lastPosition={...actor};return {target:this.target,ready:true,point:actor};}
@@ -31,4 +31,5 @@ export class AutoHunt {
   return {target:this.target,ready:false,point:this.path[0]};
  }
 }
+
 

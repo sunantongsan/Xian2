@@ -47,32 +47,44 @@ export function drawCombatEffect(ctx,e,project,scale,quality='auto',texture=null
 }
 
 
-// Textured plasma rides the actual world-space damage footprint. The luminous core
-// stays readable on low quality, while normal quality adds cross-fades and embers.
+// Cache one luminous core per class once. A soft alpha edge removes cut atlas borders.
+const plasmaCores=new WeakMap();
+export function preparePlasma(im){
+ if(!im||plasmaCores.has(im)||typeof document==='undefined')return;
+ const cores=[];const cw=im.width/4,ch=im.height/4;
+ for(let row=0;row<4;row++){
+  const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  g.drawImage(im,cw*2+cw*.05,row*ch+ch*.06,cw*.9,ch*.88,0,0,256,256);
+  g.globalCompositeOperation='destination-in';
+  const mask=g.createRadialGradient(128,128,64,128,128,128);mask.addColorStop(0,'#fff');mask.addColorStop(.55,'#fff');mask.addColorStop(1,'#ffffff00');g.fillStyle=mask;g.fillRect(0,0,256,256);cores.push(c);
+ }
+ plasmaCores.set(im,cores);
+}
 export function drawPlasmaTexture(g,e,project,scale,quality,im){
- const t=Math.max(0,Math.min(.999,1-e.life/e.max)),dx=e.aim.x-e.x,dy=e.aim.y-e.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
- const reach=e.form==='bolt'?len:(e.range||len),r=e.radius||50,low=quality==='low';
+ const t=Math.max(0,Math.min(1,1-e.life/e.max));if(t>=1)return;
+ const dx=e.aim.x-e.x,dy=e.aim.y-e.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
+ const reach=e.form==='bolt'?len:(e.range||len),r=e.radius||50;
  const row=e.textureRow??({'sword-cockro':0,'demon-scorpion':1,'sword-dragonfly':2,'sword-cricket':3})[e.hero]??0;
- const cw=im.width/4,ch=im.height/4,frame=Math.min(2.999,t*3),f=Math.floor(frame),mix=frame-f;
- const stamp=(world,width,height,angle=0,alpha=1)=>{const q=project(world.x,world.y);g.save();g.translate(q.x,q.y-18*scale);g.rotate(angle);const paint=(n,a)=>{g.globalAlpha=a*alpha*Math.min(1,(1-t)*6);g.drawImage(im,n*cw+cw*.035,row*ch+ch*.045,cw*.93,ch*(row===2?.80:.90),-width/2*scale,-height/2*scale,width*scale,height*scale);};if(low)paint(Math.round(frame),1);else{paint(f,1-mix);paint(Math.min(3,f+1),mix);}g.restore();};
+ preparePlasma(im);const core=plasmaCores.get(im)?.[row];
+ const stamp=(world,width,height,angle=0,alpha=1)=>{
+  const q=project(world.x,world.y);g.save();g.translate(q.x,q.y-12*scale);g.rotate(angle);
+  g.globalAlpha=alpha*Math.min(1,t*12)*Math.min(1,(1-t)*4)*.65;
+  if(core)g.drawImage(core,-width/2*scale,-height/2*scale,width*scale,height*scale);
+  else {const cw=im.width/4,ch=im.height/4;g.drawImage(im,cw*2+cw*.05,row*ch+ch*.06,cw*.9,ch*.88,-width/2*scale,-height/2*scale,width*scale,height*scale);}
+  g.restore();
+ };
  g.save();g.globalCompositeOperation='lighter';
  const start=project(e.x,e.y),end=project(e.x+ux*reach,e.y+uy*reach),angle=Math.atan2(end.y-start.y,end.x-start.x);
  if(e.form==='circle'||e.form==='field'){
-  const c=e.form==='field'?e.aim:{x:e.x,y:e.y};
-  // Project basis vectors so the luminous dome covers the same radius in any view.
+  const c=e.form==='field'?e.aim:{x:e.x,y:e.y},growth=.65+.35*Math.min(1,t*2);
   const q=project(c.x,c.y),px=project(c.x+r,c.y),py=project(c.x,c.y+r);
   const w=2*Math.hypot(px.x-q.x,py.x-q.x)/scale,h=2*Math.hypot(px.y-q.y,py.y-q.y)/scale;
-  stamp(c,Math.max(60,w),Math.max(60,h+60),0,.85);
-  if(!low)for(let i=0;i<6;i++){const a=i*Math.PI/3+t*.6;stamp({x:c.x+Math.cos(a)*r*.8,y:c.y+Math.sin(a)*r*.8},65,80,a,.5);}
+  stamp(c,Math.max(40,w)*growth,Math.max(40,h+30)*growth,0,.8);
  }else{
   const progress=Math.min(1,t*1.35),c={x:e.x+ux*reach*progress,y:e.y+uy*reach*progress};
-  if(e.form==='bolt')stamp(c,125,95,angle-Math.PI/4,1);
-  else{
-   const across=project(c.x-uy*r,c.y+ux*r),center=project(c.x,c.y),width=Math.hypot(across.x-center.x,across.y-center.y)*2/scale;
-   const orient=Math.atan2(across.y-center.y,across.x-center.x)-Math.PI/2;
-   stamp(c,105,Math.max(100,width),orient,1);
-   if(!low)for(let i=-1;i<=1;i++)stamp({x:c.x-uy*i*r*.65,y:c.y+ux*i*r*.65},100,100,angle-Math.PI/4,.5);
-  }
+  if(e.form==='bolt')stamp(c,95,65,angle-Math.PI/4);
+  else {const across=project(c.x-uy*r,c.y+ux*r),center=project(c.x,c.y),width=Math.hypot(across.x-center.x,across.y-center.y)*2/scale;
+   stamp(c,80,Math.max(70,width),Math.atan2(across.y-center.y,across.x-center.x)-Math.PI/2);}
  }
  g.restore();
 }
