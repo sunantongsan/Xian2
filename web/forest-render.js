@@ -1,13 +1,16 @@
 // Painted creature atlas; gait, breathing, hovering and cast anticipation are independent.
 export function drawForestMonster(g,im,e,x,y,size,time){
- if(!im)return false;const slot=e.def.species,cw=im.width/5,ch=im.height/4;
+ if(!im)return false;const slot=e.def.species,cw=im.width/5;
+ // Painted rows have slightly unequal gutters. Sample each row's authored bounds
+ // instead of including antennae from the next row in a uniform 4-way slice.
+ const rows=[[0,.241],[.25,.226],[.478,.239],[.725,.275]],row=rows[Math.floor(slot/5)],sy=row[0]*im.height,ch=row[1]*im.height;
  const flying=[2,6,9,12,13,19].includes(slot),phase=(e.walkDistance||0)/20;
  const stride=e.moving?Math.sin(phase):0,breathe=Math.sin(time*2.4+slot)*.012;
  const wind=e.state==='windup',lean=wind?Math.sin(time*18)*.02:stride*.025;
  const bob=flying?Math.sin(time*4+slot)*size*.035-6:Math.abs(stride)*-size*.035;
  g.save();g.translate(x,y+bob);g.scale(e.face<0?-1:1,1);g.rotate(lean);
  if(e.hp<=0){g.rotate(.3);g.scale(1,.65);}else g.scale(1-breathe,1+breathe+(wind?.035:0));
- const width=size*1.2;g.drawImage(im,slot%5*cw,Math.floor(slot/5)*ch,cw,ch,-width/2,-size,width,size);g.restore();return true;
+ const width=size*1.2;g.drawImage(im,slot%5*cw+cw*.012,sy,cw*.976,ch,-width/2,-size,width,size);g.restore();return true;
 }
 
 import {drawPlasmaTexture} from './combat-vfx.js';
