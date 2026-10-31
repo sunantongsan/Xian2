@@ -18,7 +18,7 @@ The authenticated server verifies product/token using Google Play Developer API 
 
 `GOOGLE_PLAY_CREDENTIALS` must point to a protected service-account JSON on the server with the required Play purchase verification/consumption permission. Without it, checkout remains disabled. No credentials were added or exposed in this release.
 
-Still required before launch: access the signed-out Play Console, create/activate the four consumable products with the requested Thai prices, configure the backend credential, sign the AAB with the existing upload key, upload to the appropriate test track, and perform a license-tester purchase/restart/cancellation recovery check. No actual payment was made or enabled this turn. Refund/chargeback reconciliation must be finalized before a public paid launch.
+Still required before launch: create/activate the four consumable products with the requested Thai prices, configure the backend credential, sign the AAB with the existing upload key, upload to the appropriate test track, and perform a license-tester purchase/restart/cancellation recovery check. No actual payment was made or enabled this turn. Refund/chargeback reconciliation must be finalized before a public paid launch.
 
 ## Validation
 - 176 JavaScript/server tests pass; syntax and server bundle checks pass.
@@ -29,3 +29,6 @@ Still required before launch: access the signed-out Play Console, create/activat
 - Built release AAB is deliberately UNSIGNED (no original upload key was available in this workspace or the targeted Library searches). Size 27,248,480 bytes; SHA256 73620b8bcfe2589364506ee5404bac2657b8db9692eac5dde189e5a05ac48a02. Saved as COCKRO-4.27.1-105-unsigned.aab. Do not present it as ready for Play upload.
 
 - Final live visual QA: merchant visibly stands behind the counter; clicking its sprite from across the plaza immediately opened the categorized shop. The four promotional gold packs display the exact requested amounts/prices and remain disabled pending native/Play setup. Review screenshots are in `review/cockro-4.27.1-*.jpg`.
+
+- Authenticated Play Console successfully. App 4973660205453037962 / com.sunantongsan.networkcokcro has no one-time products; Console explicitly requires uploading an APK with Billing permission before allowing product creation. Existing release does not meet this requirement. This confirms that signed native build upload is the immediate blocker, not account login.
+- Live 4.27.1 in-page two-tap exchange also verified: 1,009,450 G / 49,749 gold → 1,019,450 G / 49,748 gold.
