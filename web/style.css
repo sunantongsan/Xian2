@@ -301,3 +301,5 @@ body.welcome-screen #modal:has(.welcome-roster){width:min(820px,94vw);max-width:
 
 
 .weapon-stock{max-height:45vh;overflow:auto;padding:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}.weapon-stock .class-weapon-art{width:80px;height:80px;display:block;margin:0 auto 8px}.weapon-stock .card{background:linear-gradient(145deg,#193443,#101c2c);border-color:#8e7545}.weapon-stock b{display:block}.weapon-stock p{font-size:12px;color:#b9dbe5}
+
+.shop-potion{display:block;width:70px;height:70px;margin:auto;background-image:url(items/loot-atlas.webp);background-size:400% 300%;background-repeat:no-repeat}.hp-canister{background-position:66.6667% 100%}.mp-canister{background-position:100% 100%}
