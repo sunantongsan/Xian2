@@ -23,3 +23,16 @@ User explicitly selected PvP everywhere, including town/landing plaza, against b
 - PvP damage starts at 45% of normal attack/skill power before target defense; needs live balancing. Offline characters defend in place, so melee cannot hit a ranged attacker outside weapon/skill reach.
 
 Validation: 159 local Node tests, including real WebSocket offline defense/potion consumption, persisted defeat through server restart, reconnect position, report acknowledgment, PvP target/range/cooldown/MP validation, no repeat death reward, loot pickup/expiry/ownership/full bag and temperament. Client/server syntax and bundled service compile pass. Physical Android performance not measured.
+
+## Published validation
+- Backend source e1131d6ed83633793fe9037a6a8cb5e35a2f535c, release 4.24.0.
+- VPS workflow https://github.com/sunantongsan/Xian2/actions/runs/41160053446 succeeded (46 seconds), including server-host tests and two-player socket smoke.
+- Live health confirms persistentPvp=true, groundLoot=true, 1213 forest creatures and 46 bosses.
+- Initial 4.24.0 patch archive: all 103 manifest entries verified; SHA-256 a3043623e9349dce98282dcf6340e767ac5158439788a83adf747c7ec7ca5cf8.
+- Production browser: QA424 explicitly attacked offline QA4221 in town. Offline defender retaliated; QA424 reached defeat state. No real user character was attacked for testing.
+- Browser verification found the death modal overwrote an opened combat-history report. Client 4.24.1 fixes that and clears the PvP target on defeat; backend stays compatible at 4.24.0.
+- Direct production WebSocket testing from the workspace was unavailable due to DNS EAI_AGAIN; local real-socket restart tests, VPS smoke, and browser production gameplay supplied verification instead.
+- Returning as QA4221 displayed the offline combat report: opponent QA424, won, damage taken 78 / dealt 182. The test defender did not need a potion; real potion consumption was separately verified in socket integration tests.
+- Cached asset loading exposed a startup race: welcome could resolve before the first state snapshot, leaving scene null. Client 4.24.2 initializes the scene from the first snapshot whenever no map is loaded. This avoids a return to the legacy fallback background on fast cached re-entry.
+- Final production client 4.24.2 source d0f9d5f797de3719e9a88b8ec3ff1a45d45ec11a; deployment dpl_5Nbxx7uAbEnfn8YM8auLRyqhkfZ2 READY.
+- Re-entered QA424 on 4.24.2: persisted defeat was retained, painted town loaded correctly, and combat report remained open across state updates. Screenshot: review/cockro-4.24.2-pvp-report.jpg.
