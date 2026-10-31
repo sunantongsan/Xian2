@@ -4921,7 +4921,22 @@ var REGIONS = [
   { id: 5, name: "\u0E2B\u0E31\u0E27\u0E43\u0E08\u0E1B\u0E48\u0E32\u0E14\u0E32\u0E27\u0E44\u0E01\u0E25", min: 51, max: 60, center: [1 / 6, 0.25], entry: [1 / 6, 0.4] }
 ];
 var MAPS = {
-  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 4e3, height: 2666, spawn: [0.5, 0.59], walk: [rect(0.31, 0.43, 0.69, 0.75), rect(0.24, 0.48, 0.76, 0.59), rect(0.45, 0.2, 0.55, 0.97), rect(0.68, 0.49, 0.97, 0.59), rect(0.15, 0.48, 0.32, 0.59)], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
+  town: { id: "town", name: "\u0E2B\u0E21\u0E39\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 \u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", image: "maps/aurora-outpost.webp", width: 4e3, height: 2666, spawn: [0.5, 0.445], walk: [
+    // Main plaza follows its painted perimeter, with broad side promenades.
+    [[0.29, 0.28], [0.71, 0.28], [0.77, 0.32], [0.73, 0.43], [0.76, 0.53], [0.7, 0.64], [0.61, 0.71], [0.39, 0.71], [0.25, 0.66], [0.23, 0.54], [0.27, 0.43], [0.23, 0.31]],
+    rect(0.46, 0.23, 0.54, 0.97),
+    rect(0.68, 0.51, 0.97, 0.58),
+    rect(0.15, 0.49, 0.32, 0.59),
+    // Walk around the two landing pads without crossing parked craft or building roofs.
+    rect(0.12, 0.225, 0.31, 0.275),
+    rect(0.25, 0.17, 0.3, 0.34),
+    rect(0.04, 0.195, 0.12, 0.255),
+    rect(0.08, 0.245, 0.27, 0.29),
+    rect(0.69, 0.225, 0.88, 0.275),
+    rect(0.7, 0.17, 0.75, 0.34),
+    rect(0.88, 0.195, 0.96, 0.255),
+    rect(0.73, 0.245, 0.92, 0.29)
+  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: [0.27, 0.54], name: "\u0E04\u0E25\u0E31\u0E07\u0E40\u0E2A\u0E1A\u0E35\u0E22\u0E07", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
   forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
 };
 function inside(u, v, poly) {
@@ -5011,7 +5026,9 @@ function roadArrival(destination, star) {
 // web/alien-population.js
 var PACK_SIZE = 6;
 var PACKS_PER_REGION = 27;
-var POPULATION = 6 * (PACK_SIZE * PACKS_PER_REGION + 1);
+var EXTRA_NORMALS = Math.ceil(6 * PACK_SIZE * PACKS_PER_REGION * 0.2);
+var EXTRA_BOSSES = 40;
+var POPULATION = 6 * (PACK_SIZE * PACKS_PER_REGION + 1) + EXTRA_NORMALS + EXTRA_BOSSES;
 var CAMPS = REGIONS.flatMap((region) => {
   const baseCol = Math.floor(region.center[0] * 3) * 3, baseRow = region.id < 3 ? 3 : 0;
   const camps = [];
@@ -5041,6 +5058,20 @@ function makePopulation() {
     const col = Math.floor(region.center[0] * 3) * 3 + 1, row = region.id < 3 ? 3 : 0;
     const position = toWorld([(col + 0.5) / FOREST_COLS, (row + 0.34) / FOREST_ROWS], MAPS.forest);
     units.push(makeUnit(MONSTERS.find((m) => m.boss && m.region === region.id), position, region.id + "-boss"));
+  }
+  for (let i = 0; i < EXTRA_NORMALS; i++) {
+    const region = REGIONS[i % 6], n = Math.floor(i / 6), tile = n % 9;
+    const col = Math.floor(region.center[0] * 3) * 3 + tile % 3, row = (region.id < 3 ? 3 : 0) + Math.floor(tile / 3);
+    const position = toWorld([(col + 0.18 + Math.floor(n / 9) % 4 * 0.21) / FOREST_COLS, (row + 0.31 + tile % 2 * 0.38) / FOREST_ROWS], MAPS.forest);
+    const entry = toWorld(region.entry, MAPS.forest), level = region.min + (Math.hypot(position.x - entry.x, position.y - entry.y) < 700 ? n % 3 : (tile + n) % 10);
+    units.push(makeUnit(forestMonster(level), position, `extra-${i}`));
+  }
+  for (let i = 0; i < EXTRA_BOSSES; i++) {
+    const region = REGIONS[i % 6], tile = Math.floor(i / 6), col = Math.floor(region.center[0] * 3) * 3 + tile % 3, row = (region.id < 3 ? 3 : 0) + Math.floor(tile / 3);
+    let position = toWorld([(col + 0.76) / FOREST_COLS, (row + 0.27) / FOREST_ROWS], MAPS.forest);
+    const entry = toWorld(region.entry, MAPS.forest);
+    if (Math.hypot(position.x - entry.x, position.y - entry.y) < 850) position = toWorld([(col + 0.83) / FOREST_COLS, (row + 0.08) / FOREST_ROWS], MAPS.forest);
+    units.push(makeUnit(MONSTERS.find((m) => m.boss && m.region === region.id), position, `extra-boss-${i}`));
   }
   return units;
 }
@@ -5530,7 +5561,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.22.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, players: world.players.size, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.23.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5645,7 +5676,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           activeAccounts.add(account);
           persist(p);
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.22.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
+          send(ws, { type: "welcome", release: "4.23.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards });
           send(ws, world.snapshot(p));
           return;
         }

@@ -6,7 +6,7 @@ import {World} from '../server/world.js';
 import {fresh,validSave,reward} from '../web/core.js';
 import {compileSkill,knownSkills} from '../web/skills.js';
 test('all 20 new forest species coexist with original wildlife and retain save records',()=>{
- const w=new World(),units=w.mobs.forest,news=units.filter(e=>e.def.art==='forest-v2');assert.equal(new Set(news.map(e=>e.def.species)).size,20);assert(units.some(e=>!e.def.art&&!e.def.boss));assert.equal(units.filter(e=>e.def.boss).length,6);
+ const w=new World(),units=w.mobs.forest,news=units.filter(e=>e.def.art==='forest-v2');assert.equal(new Set(news.map(e=>e.def.species)).size,20);assert(units.some(e=>!e.def.art&&!e.def.boss));assert.equal(units.filter(e=>e.def.boss).length,46);
  for(const e of news){assert(e.def.level>=1&&e.def.level<=60);assert(walkable(MAPS.forest,e));assert(e.def.hp>0&&e.def.damage>0);}
  const s=fresh('sword-cockro');FOREST_SPECIES.forEach(sp=>reward(s,forestMonster(sp.min),()=>1));assert.equal(validSave(s).seen.filter(id=>id>=1100&&id<=1119).length,20);
 });

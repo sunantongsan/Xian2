@@ -20,15 +20,9 @@ export function drawForestMonster(g,im,e,x,y,size,time,detail=null){
  const width=size*sw/sh;g.drawImage(im,cx*sx,cy*sy,sw*sx,sh*sy,-width/2,-size,width,size);g.restore();return true;
 }
 
-import {drawPlasmaTexture} from './combat-vfx.js';
 import {drawMonsterZones} from './forest-species.js';
-export function drawMonsterAttack(g,e,project,scale,quality,texture){
- const t=1-e.life/e.max;drawMonsterZones(g,e.zones,project,scale,e.color,.26*(1-t));if(!texture)return;
- const textureRow=['ring','spray','web','roots'].includes(e.pattern)?1:['drill','rupture','fault','solar'].includes(e.pattern)?0:['sonic','artillery','magnet'].includes(e.pattern)?3:2;
- for(const z of e.zones.slice(0,quality==='low'?4:8)){
-  if(z.type==='disk'){
-   if(z.inner){for(let i=0;i<4;i++){const a=i*Math.PI/2;const c={x:z.x+Math.cos(a)*(z.radius+z.inner)/2,y:z.y+Math.sin(a)*(z.radius+z.inner)/2};drawPlasmaTexture(g,{...e,...c,textureRow,form:'circle',radius:(z.radius-z.inner)/2,aim:c},project,scale,'low',texture);}}
-   else drawPlasmaTexture(g,{...e,x:z.x,y:z.y,textureRow,form:'circle',radius:z.radius,aim:{x:z.x,y:z.y}},project,scale,'low',texture);
-  }else{const points=z.points,start=points.length===3?{x:points[0][0],y:points[0][1]}:{x:(points[0][0]+points[3][0])/2,y:(points[0][1]+points[3][1])/2},aim={x:(points[1][0]+points[2][0])/2,y:(points[1][1]+points[2][1])/2};drawPlasmaTexture(g,{...e,...start,textureRow,form:'wave',aim,range:Math.hypot(aim.x-start.x,aim.y-start.y),radius:Math.hypot(points[1][0]-points[2][0],points[1][1]-points[2][1])/2},project,scale,'low',texture);}
- }
+// Keep the complete damage footprint readable, with no layered textures or particles.
+export function drawMonsterAttack(g,e,project,scale){
+ const t=Math.max(0,Math.min(1,1-e.life/e.max));
+ drawMonsterZones(g,e.zones,project,scale,e.color,.14*(1-t));
 }
