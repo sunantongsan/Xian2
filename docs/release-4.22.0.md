@@ -11,3 +11,13 @@ New raster assets created with built-in imagegen:
 The atlas uses procedural breathing, cast anticipation, hovering and gait transforms; it is not a full directional skeletal animation set. Preview pages: `forest-preview.html`, `combat-preview.html`.
 
 - `web/sprites/forest-apex.webp`: separate isolated magma centipede and white-gold solar phoenix, full articulated body and swept wings/tail, painted isometric sci-fi style on alpha. Generated as a two-creature atlas with wide spacing to preserve silhouette edges.
+
+## Published validation — 2026-10-31
+
+Production source: `f46e56ad99d3b0947285b1578937c42e584dccde`.
+Vercel deployment `dpl_Fvw9AiEaqcCJMaU7S4dEVUPUpmtY` is READY on https://cockro-game-updates.vercel.app .
+Production patch: 20,787,630 bytes; SHA-256 `06542d8282d3dd5d74344c30988fcccbf011c592038e226aef71519f1b4101db`; downloaded archive and all 100 manifest entries verified.
+Server release workflow https://github.com/sunantongsan/Xian2/actions/runs/41150703910 succeeded: 81 server-host tests, bundle validation, fixed service deployment, two-player live socket smoke and unsigned SSV rejection. Main deployment commit: `b8705b4f0a34859341042093dfafe8f39e343cc4`.
+External health reports release 4.22.0, forestSpecies 20, forestRoaming true and capacity 64. Live smoke verifies shared movement/monster HP and reconnect persistence. Full local suite: 146 passed. Hosted final bestiary reviewed with all twenty creatures visible, including separate apex silhouettes.
+Desktop simulation with 64 players / 978 forest creatures averaged 4.8 ms per tick over 100 ticks; this is not a VPS or Android performance guarantee.
+Open the installed app again to fetch 4.22.0. No new native bundle is required for this release. Physical Android performance and subjective MU-quality comparison remain unverified.
