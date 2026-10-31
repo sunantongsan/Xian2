@@ -34,7 +34,7 @@ test('welcome loads owned hero and enters online only when Play is pressed',asyn
 
 test('shop snapshots update values without recreating modal or losing scroll',()=>{
  const v=fixture();v.s.gold=100;v.s.stones=80;v.s.upgradeItems.ruby=2;probe.set(v);probe.net.ready=true;
- const stock={dataset:{stock:'ruby'},textContent:''},buy={dataset:{op:'buyUpgradeItem',id:'ruby'}};
+ const stock={dataset:{stock:'ruby'},textContent:''},buy={dataset:{op:'buyUpgradeItem',id:'ruby',price:'40',currency:'ทอง'}};
  const saved=document.querySelectorAll;document.querySelectorAll=selector=>selector==='[data-stock]'?[stock]:selector==='[data-op]'?[buy]:[];
  const content=element('modalContent');content.innerHTML='unchanged shop';element('modal').scrollTop=250;
  try{probe.refreshOnlineShop();assert.equal(stock.textContent,'มี 2 ชิ้น');assert.equal(buy.disabled,false);

@@ -69,6 +69,6 @@ export function upgradeGear(s,slot){
  if(!Number.isFinite(s.stones)||s.stones<cost||s.gold<g||s.upgradeItems.alloy<n)return false;
  s.stones-=cost;s.gold-=g;s.upgradeItems.alloy-=n;it.plus=n;countActivity(s,'upgrade');return true;
 }
-export function gearShopPrice(slot,tier){return 150+100*tier+(slot==='weapon'?100:0);}
+export function gearShopPrice(slot,tier){return slot==='weapon'?1000+500*tier*tier:600+250*tier*tier;}
 export function buyShopGear(s,slot,tier=tierForLevel(s.level)){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;const cost=gearShopPrice(slot,tier);if(s.stones<cost)return false;s.stones-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
 

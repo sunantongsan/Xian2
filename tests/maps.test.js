@@ -4,7 +4,7 @@ import {MAPS,toWorld,toUV,walkable,routeTo,traceStep} from '../web/maps.js';
 test('painted maps have connected safe spawns, services, exits and monster placements',()=>{
  for(const scene of Object.values(MAPS)){
  const start=toWorld(scene.spawn,scene);assert(walkable(scene,start));
- for(const uv of [...scene.pois.map(p=>p.uv),...(scene.spawns||[])]){
+ for(const uv of [...scene.pois.filter(p=>p.action!=='shop').map(p=>p.uv),...(scene.spawns||[])]){
  const goal=toWorld(uv,scene);assert(walkable(scene,goal),scene.name+uv);
  const route=routeTo(scene,start,goal);assert(route.length>0);let last=start;
  for(const p of route){assert(walkable(scene,p));const end=traceStep(scene,last,p);assert(Math.hypot(end.x-p.x,end.y-p.y)<1,`unreachable segment ${scene.name} ${uv}`);last=p;}

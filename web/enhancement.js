@@ -32,4 +32,5 @@ export function applyRegen(p,dt,maxHP,maxMP){
 }
 export const TEST_GRANT_ID='pioneer-50000-v1';
 export function grantTestGold(s,enabled){if(!enabled||s.testGoldGrant===TEST_GRANT_ID)return false;s.stones+=50000;s.testGoldGrant=TEST_GRANT_ID;return true;}
-export function exchangeGold(s,amount){if(!Number.isSafeInteger(amount)||amount<1||amount>1000||s.stones<amount||s.gold+amount*1000>1e10)return false;s.stones-=amount;s.gold+=amount*1000;return true;}
+export function exchangeGold(s,amount){if(!Number.isSafeInteger(amount)||amount<1||amount>1000||s.stones<amount||s.gold+amount*10000>1e10)return false;s.stones-=amount;s.gold+=amount*10000;return true;}
+

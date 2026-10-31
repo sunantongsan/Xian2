@@ -16,10 +16,10 @@ test('all ten-level weapons grow, reject underlevel and malformed purchase, pres
  for(let i=1;i<TIERS.length;i++){assert.equal(TIERS[i].level,i*10);s.bag=[];s.level=i*10-1;const before=s.stones;assert.equal(buyShopGear(s,'weapon',i),false);assert.equal(s.stones,before);s.level=i*10;assert(buyShopGear(s,'weapon',i));assert(canEquip(s,s.bag[0]));assert(itemStats(s.bag[0]).atk>itemStats({slot:'weapon',tier:i-1,rarity:2}).atk);s.level--;assert.equal(canEquip(s,s.bag[0]),false);}
  for(const tier of [-1,NaN,1.5,999,'1'])assert.equal(buyShopGear(s,'weapon',tier),false);
 });
-test('merchant is walkable and buying remotely cannot spend currency',()=>{
- const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(walkable(MAPS.town,pos));assert(routeTo(MAPS.town,p,pos).length);
+test('merchant counter opens remotely in town but forest cannot spend currency',()=>{
+ const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(MERCHANT_UV[0]<.2);
  p.s.stones=10000;p.map='forest';const before=JSON.stringify(p.s);w.command(p,{type:'op',op:'buy'},100);assert.equal(p.opResult.ok,false);assert.equal(JSON.stringify(p.s),before);
- p.map='town';Object.assign(p,pos);w.command(p,{type:'op',op:'buy'},101);assert.equal(p.opResult.ok,true);assert.equal(p.s.potions,11);
+ p.map='town';w.command(p,{type:'op',op:'buy'},101);assert.equal(p.opResult.ok,true);assert.equal(p.s.potions,11);
 });
 test('interpolation smooths visual motion without altering combat position and snaps teleports',()=>{
  const a=receiveActor({x:0,y:0},{x:20,y:10},1000);assert.deepEqual(renderPosition(a,1050),{x:10,y:5});assert.equal(a.x,20);assert.deepEqual(renderPosition(a,1200),{x:20,y:10});const b=receiveActor(a,{x:2000,y:1000},1200);assert.equal(renderPosition(b,1200).x,2000);

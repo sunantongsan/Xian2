@@ -18,12 +18,12 @@ public class MainActivity extends ComponentActivity {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private final AutoUpdater updater=new AutoUpdater();
- private RewardedAds ads;private GoogleLogin googleLogin;
+ private GoldBilling billing;private RewardedAds ads;private GoogleLogin googleLogin;
  private WebView web;private FrameLayout root;private StartupScreen loading;private TextView status;private ProgressBar progress;private boolean destroyed,gameLoaded,startedCheck,foreground;
  @Override public void onCreate(Bundle state){
   super.onCreate(state);root=new FrameLayout(this);setContentView(root);
   getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-  googleLogin=new GoogleLogin(this);googleLogin.callback(getIntent());ads=new RewardedAds(this);ads.start();
+  billing=new GoldBilling(this);googleLogin=new GoogleLogin(this);googleLogin.callback(getIntent());ads=new RewardedAds(this);ads.start();
   loading=new StartupScreen(this);status=loading.status;progress=loading.progress;
   loading.skip.setOnClickListener(v->{loading.skip.setEnabled(false);status.setText("กำลังเปิดรุ่นที่ติดตั้งอยู่…");updater.cancel();});root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){updater.cancel();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
@@ -56,7 +56,7 @@ public class MainActivity extends ComponentActivity {
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())failedBoot();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText("เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่");progress.setVisibility(View.GONE);}return true;}
   });
-  ads.attach(web);googleLogin.attach(web);
+  ads.attach(web);googleLogin.attach(web);billing.attach(web);
   web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();}
  }
  private void checkBoot(int attempt){if(destroyed||web==null)return;if(!foreground){handler.postDelayed(()->checkBoot(attempt),500);return;}web.evaluateJavascript("Boolean(document.getElementById('loading')?.hidden && document.getElementById('choose'))",value->{if(destroyed)return;if("true".equals(value)){worker.execute(()->GamePatch.healthy(this));}else if(attempt<40){handler.postDelayed(()->checkBoot(attempt+1),500);}else failedBoot();});}
@@ -66,6 +66,7 @@ public class MainActivity extends ComponentActivity {
  }
  @Override protected void onNewIntent(android.content.Intent intent){super.onNewIntent(intent);setIntent(intent);if(googleLogin!=null)googleLogin.callback(intent);}
  @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
- @Override protected void onDestroy(){destroyed=true;if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+
 
