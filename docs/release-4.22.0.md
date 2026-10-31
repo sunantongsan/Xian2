@@ -9,3 +9,5 @@ New raster assets created with built-in imagegen:
 - `web/vfx/plasma.webp`: 4 columns × 4 rows, four animation phases per class: orange plasma crescent, emerald nanite vortex, cyan ion arrow, gold sonic shockwave; layered turbulent particles, bright cores and fine wisps on alpha; no weapons or text. Converted to WebP with alpha preserved.
 
 The atlas uses procedural breathing, cast anticipation, hovering and gait transforms; it is not a full directional skeletal animation set. Preview pages: `forest-preview.html`, `combat-preview.html`.
+
+- `web/sprites/forest-apex.webp`: separate isolated magma centipede and white-gold solar phoenix, full articulated body and swept wings/tail, painted isometric sci-fi style on alpha. Generated as a two-creature atlas with wide spacing to preserve silhouette edges.
