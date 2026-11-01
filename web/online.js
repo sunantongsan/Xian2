@@ -2,7 +2,7 @@ import {receiveActor} from './render-motion.js';
 export const ONLINE_URL='wss://game.guardscan.xyz/online/world';
 const KEY='cockro-online-device-token-v1';
 export class OnlineClient {
- async account(action,data={}){return new Promise((resolve,reject)=>{
+ async account(action,data={}){if(this.socket&&this.socket.readyState!==3)await this.disconnect();return new Promise((resolve,reject)=>{
   let ws,timeout,done=false;
   const finish=(error,value)=>{if(done)return;done=true;clearTimeout(timeout);try{ws?.close();}catch{}error?reject(error):resolve(value);};
   try{const token=localStorage.getItem(KEY);ws=new WebSocket(ONLINE_URL);
@@ -15,7 +15,7 @@ export class OnlineClient {
  });}
  setToken(token){if(!/^\w{64}$/.test(token))throw Error('invalid_token');const old=localStorage.getItem(KEY);if(old)localStorage.setItem(KEY+'-previous',old);localStorage.setItem(KEY,token);}
  constructor(onState,onStatus){this.onState=onState;this.onStatus=onStatus;this.socket=null;this.ready=false;this.sequence=0;this.lastSend=0;this.events=0;this.players=[];this.active=false;this.retries=0;}
- clearAccount(){this.disconnect();localStorage.removeItem(KEY);localStorage.removeItem(KEY+'-previous');this.latestState=null;}
+ clearAccount(){this.disconnect();localStorage.removeItem(KEY);localStorage.removeItem(KEY+'-previous');this.latestState=null;this.billingOwner=null;this.billingProfile=null;localStorage.removeItem('cockro-google-flow');localStorage.removeItem('cockro-google-result');}
  get hasAccount(){try{return !!localStorage.getItem(KEY);}catch{return false;}}
  async roster(){
   const token=localStorage.getItem(KEY);if(!token)return [];
@@ -40,7 +40,7 @@ export class OnlineClient {
  });}
  send(data){if(this.ready&&this.socket?.readyState===1&&this.socket.bufferedAmount<65536){try{this.socket.send(JSON.stringify(data));return true;}catch{}}return false;}
  move(p){const now=performance.now();if(now-this.lastSend<100)return;this.lastSend=now;this.send({type:'move',x:p.x,y:p.y,seq:++this.sequence});}
- disconnect(){this.active=false;this.ready=false;clearTimeout(this.timer);const socket=this.socket;this.socket=null;socket?.close();this.players=[];}
+ disconnect(){this.active=false;this.ready=false;clearTimeout(this.timer);const socket=this.socket;this.socket=null;this.players=[];if(!socket||socket.readyState===3)return Promise.resolve();return new Promise(resolve=>{const timer=setTimeout(resolve,1500);socket.addEventListener('close',()=>{clearTimeout(timer);resolve();},{once:true});socket.close();});}
 }
 
 

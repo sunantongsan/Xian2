@@ -1,5 +1,5 @@
 import {createHash,createSign} from 'node:crypto';
-import {readFileSync,mkdirSync,existsSync,writeFileSync,renameSync} from 'node:fs';
+import {readFileSync,readdirSync,mkdirSync,existsSync,writeFileSync,renameSync} from 'node:fs';
 import {join} from 'node:path';
 import {GOLD_PRODUCTS} from '../web/gold-products.js';
 export function validatePlayPurchase(data,{owner,character}){
@@ -22,7 +22,12 @@ export function createPlayVerifier({credentialsPath=process.env.GOOGLE_PLAY_CRED
 export function createBillingService(directory,verifier=createPlayVerifier()){
  const dir=join(directory,'play-receipts');const locks=new Set();
  const write=(path,data)=>{writeFileSync(path+'.tmp',JSON.stringify(data),{mode:0o600});renameSync(path+'.tmp',path);};
- return {enabled:verifier.enabled,async redeem(p,{productId,token},persist){
+ return {enabled:verifier.enabled,history(owner,offset=0){
+ if(!Number.isSafeInteger(offset)||offset<0||offset>1000000)throw Error('invalid_request');
+ const records=existsSync(dir)?readdirSync(dir).filter(f=>/^[a-f0-9]{64}\.json$/.test(f)).map(file=>({file,data:JSON.parse(readFileSync(join(dir,file),'utf8'))})).filter(r=>r.data.owner===owner):[];
+ records.sort((a,b)=>(b.data.created||0)-(a.data.created||0)||a.file.localeCompare(b.file));
+ return {purchases:records.slice(offset,offset+20).map(({file,data:r})=>({reference:file.slice(0,16),product:r.product,gold:r.gold,created:r.created,purchasedAt:r.purchasedAt||null,orderId:r.orderId||null,test:r.test===true,character:r.character,characterName:r.characterName||null,status:r.credited?'credited':'processing'})),nextOffset:offset+20<records.length?offset+20:null};
+ },async redeem(p,{productId,token},persist){
  if(!verifier.enabled)throw Error('billing_unavailable');
  mkdirSync(dir,{recursive:true,mode:0o700});
  const product=GOLD_PRODUCTS.find(x=>x.id===productId);if(!product||typeof token!=='string'||token.length<10||token.length>2048)throw Error('invalid_purchase');
@@ -33,7 +38,7 @@ export function createBillingService(directory,verifier=createPlayVerifier()){
  if(record?.credited){if(!record.consumed){await verifier.consume(productId,token);record.consumed=true;write(path,record);}return {gold:product.gold,duplicate:true};}
  const verified=await verifier.verify(productId,token);validatePlayPurchase(verified,{owner:p.account,character:p.id});
  if(verified.consumptionState===1&&!record)throw Error('already_consumed');
- if(!record){record={owner:p.account,character:p.id,product:productId,gold:product.gold,credited:false,created:Date.now()};write(path,record);}
+ if(!record){record={owner:p.account,character:p.id,characterName:p.s.name||null,product:productId,gold:product.gold,credited:false,created:Date.now(),orderId:typeof verified.orderId==='string'?verified.orderId.slice(0,128):null,purchasedAt:Number.isFinite(Number(verified.purchaseTimeMillis))?Number(verified.purchaseTimeMillis):null,test:verified.purchaseType===0};write(path,record);}
  // Receipt marker and balance commit together; retry after a process crash cannot credit twice.
  const already=p.s.playReceipts?.includes(hash);if(!already){
  if(p.s.stones+product.gold>1e7)throw Error('wallet_full');

@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes5, createHash: createHash5 } = require("crypto");
+    var { randomBytes: randomBytes5, createHash: createHash6 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2944,7 +2944,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash5("sha1").update(key + GUID).digest("base64");
+        const digest = createHash6("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3313,7 +3313,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http2 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash5 } = require("crypto");
+    var { createHash: createHash6 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3620,7 +3620,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash5("sha1").update(key + GUID).digest("base64");
+        const digest = createHash6("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -3758,18 +3758,23 @@ function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTI
 function createBillingService(directory, verifier = createPlayVerifier()) {
   const dir = (0, import_node_path.join)(directory, "play-receipts");
   const locks = /* @__PURE__ */ new Set();
-  const write = (path, data) => {
+  const write2 = (path, data) => {
     (0, import_node_fs.writeFileSync)(path + ".tmp", JSON.stringify(data), { mode: 384 });
     (0, import_node_fs.renameSync)(path + ".tmp", path);
   };
-  return { enabled: verifier.enabled, async redeem(p, { productId, token }, persist) {
+  return { enabled: verifier.enabled, history(owner, offset = 0) {
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1e6) throw Error("invalid_request");
+    const records = (0, import_node_fs.existsSync)(dir) ? (0, import_node_fs.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((file) => ({ file, data: JSON.parse((0, import_node_fs.readFileSync)((0, import_node_path.join)(dir, file), "utf8")) })).filter((r) => r.data.owner === owner) : [];
+    records.sort((a, b) => (b.data.created || 0) - (a.data.created || 0) || a.file.localeCompare(b.file));
+    return { purchases: records.slice(offset, offset + 20).map(({ file, data: r }) => ({ reference: file.slice(0, 16), product: r.product, gold: r.gold, created: r.created, purchasedAt: r.purchasedAt || null, orderId: r.orderId || null, test: r.test === true, character: r.character, characterName: r.characterName || null, status: r.credited ? "credited" : "processing" })), nextOffset: offset + 20 < records.length ? offset + 20 : null };
+  }, async redeem(p, { productId, token }, persist) {
     if (!verifier.enabled) throw Error("billing_unavailable");
     (0, import_node_fs.mkdirSync)(dir, { recursive: true, mode: 448 });
     const product = GOLD_PRODUCTS.find((x) => x.id === productId);
     if (!product || typeof token !== "string" || token.length < 10 || token.length > 2048) throw Error("invalid_purchase");
-    const hash2 = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path.join)(dir, hash2 + ".json");
-    if (locks.has(hash2)) throw Error("purchase_busy");
-    locks.add(hash2);
+    const hash3 = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path.join)(dir, hash3 + ".json");
+    if (locks.has(hash3)) throw Error("purchase_busy");
+    locks.add(hash3);
     try {
       let record = (0, import_node_fs.existsSync)(path) ? JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")) : null;
       if (record && (record.owner !== p.account || record.character !== p.id || record.product !== productId)) throw Error("wrong_account");
@@ -3777,7 +3782,7 @@ function createBillingService(directory, verifier = createPlayVerifier()) {
         if (!record.consumed) {
           await verifier.consume(productId, token);
           record.consumed = true;
-          write(path, record);
+          write2(path, record);
         }
         return { gold: product.gold, duplicate: true };
       }
@@ -3785,31 +3790,31 @@ function createBillingService(directory, verifier = createPlayVerifier()) {
       validatePlayPurchase(verified, { owner: p.account, character: p.id });
       if (verified.consumptionState === 1 && !record) throw Error("already_consumed");
       if (!record) {
-        record = { owner: p.account, character: p.id, product: productId, gold: product.gold, credited: false, created: Date.now() };
-        write(path, record);
+        record = { owner: p.account, character: p.id, characterName: p.s.name || null, product: productId, gold: product.gold, credited: false, created: Date.now(), orderId: typeof verified.orderId === "string" ? verified.orderId.slice(0, 128) : null, purchasedAt: Number.isFinite(Number(verified.purchaseTimeMillis)) ? Number(verified.purchaseTimeMillis) : null, test: verified.purchaseType === 0 };
+        write2(path, record);
       }
-      const already = p.s.playReceipts?.includes(hash2);
+      const already = p.s.playReceipts?.includes(hash3);
       if (!already) {
         if (p.s.stones + product.gold > 1e7) throw Error("wallet_full");
         const next = structuredClone(p.s);
         next.stones += product.gold;
-        next.playReceipts = [...next.playReceipts || [], hash2];
+        next.playReceipts = [...next.playReceipts || [], hash3];
         persist({ id: p.id, s: next });
         p.s = next;
         p.dirty = false;
       }
       record.credited = true;
-      write(path, record);
+      write2(path, record);
       try {
         await verifier.consume(productId, token);
         record.consumed = true;
-        write(path, record);
+        write2(path, record);
       } catch {
         return { gold: product.gold, duplicate: !!already, consumePending: true };
       }
       return { gold: product.gold, duplicate: !!already };
     } finally {
-      locks.delete(hash2);
+      locks.delete(hash3);
     }
   } };
 }
@@ -4922,10 +4927,10 @@ function tickPvp(world, dt, now) {
 }
 
 // server/accounts.js
-var import_node_crypto3 = require("node:crypto");
+var import_node_crypto4 = require("node:crypto");
 var import_node_util = require("node:util");
-var import_node_fs3 = require("node:fs");
-var import_node_path3 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_path4 = require("node:path");
 
 // server/characters.js
 var import_node_crypto2 = require("node:crypto");
@@ -4950,40 +4955,139 @@ function characterRoster(directory, account) {
   });
 }
 
+// server/account-deletion.js
+var import_node_crypto3 = require("node:crypto");
+var import_node_fs3 = require("node:fs");
+var import_node_path3 = require("node:path");
+var hash = (s) => (0, import_node_crypto3.createHash)("sha256").update(s).digest("hex");
+var write = (path, value) => {
+  (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
+  (0, import_node_fs3.renameSync)(path + ".tmp", path);
+};
+function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY, fetcher = fetch } = {}) {
+  const root = (0, import_node_path3.join)(directory, "account-deletions");
+  const files = () => (0, import_node_fs3.existsSync)(root) ? (0, import_node_fs3.readdirSync)(root) : [];
+  const deletedIds = /* @__PURE__ */ new Set();
+  const path = (account) => (0, import_node_path3.join)(root, account + ".json");
+  const read = (account) => (0, import_node_fs3.existsSync)(path(account)) ? JSON.parse((0, import_node_fs3.readFileSync)(path(account), "utf8")) : null;
+  function purge(record) {
+    const ids = CHARACTER_SLOTS.map((slot) => characterId(record.account, slot));
+    ids.forEach((id) => deletedIds.add(id));
+    function clean(base) {
+      for (const id of ids) {
+        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(base, id + ".json"), { force: true });
+        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(base, id + ".json.tmp"), { force: true });
+      }
+      const trash = (0, import_node_path3.join)(base, "deleted-characters");
+      if ((0, import_node_fs3.existsSync)(trash)) {
+        for (const file of (0, import_node_fs3.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs3.rmSync)((0, import_node_path3.join)(trash, file), { force: true });
+      }
+      const accounts = (0, import_node_path3.join)(base, "accounts");
+      if ((0, import_node_fs3.existsSync)(accounts)) {
+        for (const file of (0, import_node_fs3.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
+          const p = (0, import_node_path3.join)(accounts, file), s = JSON.parse((0, import_node_fs3.readFileSync)(p, "utf8"));
+          if (s.account === record.account) (0, import_node_fs3.rmSync)(p);
+        }
+        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(accounts, "profile-" + hash(record.account) + ".json"), { force: true });
+        if (record.uid) (0, import_node_fs3.rmSync)((0, import_node_path3.join)(accounts, "google-" + hash(record.uid) + ".json"), { force: true });
+      }
+      const receipts = (0, import_node_path3.join)(base, "play-receipts");
+      if ((0, import_node_fs3.existsSync)(receipts)) for (const file of (0, import_node_fs3.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
+        const p = (0, import_node_path3.join)(receipts, file), r = JSON.parse((0, import_node_fs3.readFileSync)(p, "utf8"));
+        if (r.owner === record.account) write(p, { product: r.product, gold: r.gold, credited: r.credited, consumed: r.consumed, created: r.created, deleted: true });
+      }
+    }
+    clean(directory);
+    const backups = (0, import_node_path3.join)(directory, "release-backups");
+    if ((0, import_node_fs3.existsSync)(backups)) {
+      for (const item of (0, import_node_fs3.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path3.join)(backups, item.name));
+    }
+    record.localComplete = true;
+    write(path(record.account), record);
+  }
+  function request(account, uid2) {
+    (0, import_node_fs3.mkdirSync)(root, { recursive: true, mode: 448 });
+    const record = read(account) || { account, uid: uid2 || null, requestedAt: Date.now(), localComplete: false, identityComplete: !uid2 };
+    write(path(account), record);
+    CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(account, slot)));
+    purge(record);
+    return { deleted: true, identityCleanupPending: !record.identityComplete };
+  }
+  function recover() {
+    for (const file of files().filter((f) => /^[a-f0-9]{64}\.json$/.test(f))) {
+      const record = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, file), "utf8"));
+      CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(record.account, slot)));
+      if (!record.localComplete) purge(record);
+    }
+  }
+  let processing = false;
+  async function processPending() {
+    if (processing) return;
+    recover();
+    if (!adminKey) return;
+    processing = true;
+    try {
+      for (const file of files().filter((f) => f.endsWith(".json"))) {
+        const record = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, file), "utf8"));
+        if (!record.localComplete || record.identityComplete || !record.uid) continue;
+        try {
+          const response = await fetcher(authUrl + "/auth/v1/admin/users/" + encodeURIComponent(record.uid), { method: "DELETE", headers: { apikey: adminKey, Authorization: "Bearer " + adminKey }, signal: AbortSignal.timeout(1e4) });
+          if (response.ok || response.status === 404) {
+            record.identityComplete = true;
+            delete record.uid;
+            write((0, import_node_path3.join)(root, file), record);
+          }
+        } catch {
+        }
+      }
+    } finally {
+      processing = false;
+    }
+  }
+  const identityPending = (uid2) => files().filter((f) => f.endsWith(".json")).some((f) => {
+    const r = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, f), "utf8"));
+    return !r.identityComplete && r.uid === uid2;
+  });
+  recover();
+  return { request, isDeleted: (account) => !!read(account), isCharacterDeleted: (id) => deletedIds.has(id), identityPending, processPending };
+}
+
 // server/accounts.js
-var scrypt = (0, import_node_util.promisify)(import_node_crypto3.scrypt);
-var hash = (v) => (0, import_node_crypto3.createHash)("sha256").update(v).digest("hex");
+var scrypt = (0, import_node_util.promisify)(import_node_crypto4.scrypt);
+var hash2 = (v) => (0, import_node_crypto4.createHash)("sha256").update(v).digest("hex");
 var AUTH_URL = "https://kfohckvypopaoogmnjuy.supabase.co";
 var AUTH_KEY = "sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA";
 var AUTH_REDIRECT = "cockronetwork://auth/callback";
-function createAccounts(directory, { fetcher = fetch } = {}) {
-  const root = (0, import_node_path3.join)(directory, "accounts");
+function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY } = {}) {
+  const deletion = createAccountDeletion(directory, { authUrl: AUTH_URL, fetcher, adminKey });
+  const root = (0, import_node_path4.join)(directory, "accounts");
   const flows = /* @__PURE__ */ new Map(), attempts = /* @__PURE__ */ new Map(), busy = /* @__PURE__ */ new Set();
-  const path = (kind, key) => (0, import_node_path3.join)(root, kind + "-" + hash(key) + ".json");
+  const path = (kind, key) => (0, import_node_path4.join)(root, kind + "-" + hash2(key) + ".json");
   const read = (kind, key) => {
     const p = path(kind, key);
-    return (0, import_node_fs3.existsSync)(p) ? JSON.parse((0, import_node_fs3.readFileSync)(p, "utf8")) : null;
+    return (0, import_node_fs4.existsSync)(p) ? JSON.parse((0, import_node_fs4.readFileSync)(p, "utf8")) : null;
   };
-  const write = (kind, key, data) => {
-    (0, import_node_fs3.mkdirSync)(root, { recursive: true, mode: 448 });
+  const write2 = (kind, key, data) => {
+    (0, import_node_fs4.mkdirSync)(root, { recursive: true, mode: 448 });
     const p = path(kind, key);
-    (0, import_node_fs3.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs3.renameSync)(p + ".tmp", p);
+    (0, import_node_fs4.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs4.renameSync)(p + ".tmp", p);
   };
   function resolve(token) {
     if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
     const session = read("session", token);
     if (session) {
-      if (session.revoked || !session.persistent && session.expires < Date.now()) throw Error("login_required");
-      if (!session.persistent) write("session", token, { ...session, persistent: true });
+      if (deletion.isDeleted(session.account) || session.revoked || !session.persistent && session.expires < Date.now()) throw Error("login_required");
+      if (!session.persistent) write2("session", token, { ...session, persistent: true });
       return session.account;
     }
-    const account = hash(token);
+    const account = hash2(token);
+    if (deletion.isDeleted(account)) throw Error("account_deleted");
     if (read("profile", account)?.uid) throw Error("login_required");
     if (!read("profile", account) && !characterRoster(directory, account).length) throw Error("account_missing");
     return account;
   }
-  const exists = (account) => !!read("profile", account) || characterRoster(directory, account).length > 0;
+  const exists = (account) => !deletion.isDeleted(account) && (!!read("profile", account) || characterRoster(directory, account).length > 0);
   const meta = (account) => read("profile", account) || {};
   function throttle(account) {
     const now = Date.now(), q = (attempts.get(account) || []).filter((t) => t > now - 6e5);
@@ -4996,17 +5100,22 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
     const m = meta(account);
     if (!m.password || typeof password !== "string" || password.length > 128) throw Error("wrong_password");
     const key = await scrypt(password, m.salt, 32);
-    if (!(0, import_node_crypto3.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
+    if (!(0, import_node_crypto4.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
     attempts.delete(account);
     return m;
   }
   async function manageUnlocked(token, d) {
     const account = resolve(token);
     if (d.action === "logout") {
-      write("session", token, { account, revoked: true });
+      write2("session", token, { account, revoked: true });
       return { loggedOut: true };
     }
-    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid };
+    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid, canReset: !!meta(account).uid && Date.now() - (read("session", token)?.reauthAt || 0) < 3e5, accountId: account.slice(0, 12) };
+    if (d.action === "deleteAccount") {
+      await verifyPassword(account, d.password);
+      if (d.confirmText !== "\u0E25\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35 COCKRO") throw Error("confirmation_mismatch");
+      return deletion.request(account, meta(account).uid);
+    }
     if (d.action === "rename") {
       const state = readCharacter(directory, account, d.character);
       if (!state) throw Error("character_missing");
@@ -5014,17 +5123,21 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
       const name = characterName(d.name);
       if (!name) throw Error("invalid_name");
       state.name = name;
-      const p = (0, import_node_path3.join)(directory, characterId(account, d.character) + ".json");
-      (0, import_node_fs3.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
-      (0, import_node_fs3.renameSync)(p + ".tmp", p);
+      const p = (0, import_node_path4.join)(directory, characterId(account, d.character) + ".json");
+      (0, import_node_fs4.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
+      (0, import_node_fs4.renameSync)(p + ".tmp", p);
       return { characters: characterRoster(directory, account) };
     }
     if (d.action === "setPassword") {
       const m = meta(account);
-      if (m.password) await verifyPassword(account, d.oldPassword);
+      if (d.reset === true) {
+        const session = read("session", token);
+        if (!m.uid || !session?.reauthAt || Date.now() - session.reauthAt > 3e5) throw Error("reauth_required");
+      } else if (m.password) await verifyPassword(account, d.oldPassword);
       if (typeof d.password !== "string" || d.password.length < 8 || d.password.length > 128) throw Error("weak_password");
-      const salt = (0, import_node_crypto3.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
-      write("profile", account, { ...meta(account), salt, password: key.toString("hex") });
+      const salt = (0, import_node_crypto4.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
+      write2("profile", account, { ...meta(account), salt, password: key.toString("hex") });
+      if (d.reset === true) write2("session", token, { ...read("session", token), reauthAt: 0 });
       return { hasPassword: true };
     }
     if (d.action === "delete") {
@@ -5033,15 +5146,15 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
       const state = readCharacter(directory, account, d.character);
       if (!state) throw Error("character_missing");
       if (d.confirmName !== (state.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D")) throw Error("name_mismatch");
-      write("profile", account, meta(account));
-      const trash = (0, import_node_path3.join)(directory, "deleted-characters");
-      (0, import_node_fs3.mkdirSync)(trash, { recursive: true, mode: 448 });
-      (0, import_node_fs3.renameSync)((0, import_node_path3.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path3.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
+      write2("profile", account, meta(account));
+      const trash = (0, import_node_path4.join)(directory, "deleted-characters");
+      (0, import_node_fs4.mkdirSync)(trash, { recursive: true, mode: 448 });
+      (0, import_node_fs4.renameSync)((0, import_node_path4.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path4.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
       return { characters: characterRoster(directory, account) };
     }
     throw Error("invalid_request");
   }
-  async function authStart(token) {
+  async function authStart(token, purpose) {
     let account = null;
     if (token) {
       try {
@@ -5050,12 +5163,13 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
         if (e.message !== "login_required") throw e;
       }
     }
+    if (purpose === "resetPassword" && (!account || !meta(account).uid)) throw Error("google_required");
     for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
     if (flows.size >= 100) throw Error("auth_busy");
-    const flow = (0, import_node_crypto3.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto3.randomBytes)(48).toString("base64url");
-    flows.set(flow, { account, verifier, until: Date.now() + 3e5 });
+    const flow = (0, import_node_crypto4.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto4.randomBytes)(48).toString("base64url");
+    flows.set(flow, { account, purpose, verifier, until: Date.now() + 3e5 });
     const u = new URL(AUTH_URL + "/auth/v1/authorize");
-    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto3.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
+    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto4.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
     return { flow, url: u.href };
   }
   async function authFinish(flow, code) {
@@ -5069,18 +5183,21 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
     if (!check.ok) throw Error("auth_failed");
     const user = await check.json();
     if (typeof user.id !== "string" || !user.identities?.some((i) => i.provider === "google")) throw Error("auth_failed");
+    if (deletion.identityPending(user.id)) throw Error("deletion_pending");
+    if (f.purpose === "resetPassword" && meta(f.account).uid !== user.id) throw Error("wrong_google_account");
+    if (f.account && deletion.isDeleted(f.account)) throw Error("account_deleted");
     const existing = read("google", user.id);
     let account = existing?.account;
     if (!account) {
-      account = f.account || hash((0, import_node_crypto3.randomBytes)(32));
+      account = f.account || hash2((0, import_node_crypto4.randomBytes)(32));
       const profile = meta(account);
       if (profile.uid && profile.uid !== user.id) throw Error("account_linked");
-      write("profile", account, { ...profile, uid: user.id });
-      write("google", user.id, { account });
+      write2("profile", account, { ...profile, uid: user.id });
+      write2("google", user.id, { account });
     }
-    const token = (0, import_node_crypto3.randomBytes)(32).toString("hex");
-    write("session", token, { account, persistent: true, createdAt: Date.now() });
-    return { token, google: true, characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
+    const token = (0, import_node_crypto4.randomBytes)(32).toString("hex");
+    write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0 });
+    return { token, google: true, passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
   async function manage(token, d) {
     const account = resolve(token);
@@ -5092,7 +5209,7 @@ function createAccounts(directory, { fetcher = fetch } = {}) {
       busy.delete(account);
     }
   }
-  return { resolve, exists, meta, manage, authStart, authFinish, busy };
+  return { resolve, exists, meta, manage, authStart, authFinish, busy, deletion };
 }
 
 // server/server.js
@@ -5118,7 +5235,7 @@ function deliverReward(s, t) {
 }
 
 // server/test-rewards.js
-var import_node_crypto4 = require("node:crypto");
+var import_node_crypto5 = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
   const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
@@ -5126,7 +5243,7 @@ function issueTestTicket(s, item, now = Date.now()) {
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
   if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto4.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto5.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -5140,7 +5257,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
 }
 
 // server/rewarded-ads.js
-var import_node_crypto5 = require("node:crypto");
+var import_node_crypto6 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -5148,7 +5265,7 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto5.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const ticket = { nonce: (0, import_node_crypto6.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -5192,7 +5309,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto5.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto6.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -5213,9 +5330,9 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto6 = require("node:crypto");
-var import_node_fs4 = require("node:fs");
-var import_node_path4 = require("node:path");
+var import_node_crypto7 = require("node:crypto");
+var import_node_fs5 = require("node:fs");
+var import_node_path5 = require("node:path");
 
 // web/monster-behavior.js
 var aggressiveMonster = (def) => def.aggressive ?? (!!def.boss || def.id % 3 === 0);
@@ -5842,7 +5959,7 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier, billingVerifier } = {}) {
-  (0, import_node_fs4.mkdirSync)(directory, { recursive: true, mode: 448 });
+  (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
   const accounts = createAccounts(directory);
   const world = new World({ maxPlayers, testRewards }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
@@ -5856,11 +5973,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     return true;
   }
   const persist = (p) => {
+    if (accounts.deletion.isCharacterDeleted(p.id)) throw Error("account_deleted");
     try {
       if (p.map) capturePresence(p);
-      const path = (0, import_node_path4.join)(directory, p.id + ".json");
-      (0, import_node_fs4.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs4.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path5.join)(directory, p.id + ".json");
+      (0, import_node_fs5.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs5.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -5868,10 +5986,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       throw Error("save_unavailable");
     }
   };
-  for (const file of (0, import_node_fs4.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+  for (const file of (0, import_node_fs5.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
     try {
-      const state = validSave(JSON.parse((0, import_node_fs4.readFileSync)((0, import_node_path4.join)(directory, file), "utf8")));
-      if (state) world.restore(file.slice(0, -5), state);
+      const state = validSave(JSON.parse((0, import_node_fs5.readFileSync)((0, import_node_path5.join)(directory, file), "utf8")));
+      if (state && !accounts.deletion.isCharacterDeleted(file.slice(0, -5))) world.restore(file.slice(0, -5), state);
     } catch {
       diskFailure = true;
     }
@@ -5901,9 +6019,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.getActor(data.user_id), path = (0, import_node_path4.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs4.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8")));
+        const live = world.getActor(data.user_id), path = (0, import_node_path5.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs5.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -5936,7 +6054,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.28.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.29.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -5993,14 +6111,31 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
                   if (e.message !== "login_required") throw e;
                 }
               }
-              result = await accounts.authStart(d.token);
+              result = await accounts.authStart(d.token, d.purpose);
             } else if (d.type === "authFinish") {
               result = await accounts.authFinish(d.flow, d.code);
             } else {
               if (activeAccounts.has(accounts.resolve(d.token))) throw Error("already_online");
               const owner = accounts.resolve(d.token);
-              result = await accounts.manage(d.token, d);
-              if (d.action === "delete") world.sleepers.delete(characterId(owner, d.character));
+              try {
+                result = d.action === "purchaseHistory" ? billing.history(owner, d.offset ?? 0) : await accounts.manage(d.token, d);
+                if (d.action === "purchaseHistory") {
+                  const roster = characterRoster(directory, owner);
+                  for (const r of result.purchases) {
+                    const c = roster.find((c2) => characterId(owner, c2.id) === r.character);
+                    r.characterName = r.characterName || (c ? "\u0E0A\u0E48\u0E2D\u0E07 " + (CHARACTER_SLOTS.indexOf(c.id) + 1) + " (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E0A\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E34\u0E21)" : "\u0E15\u0E31\u0E27\u0E25\u0E30\u0E04\u0E23\u0E17\u0E35\u0E48\u0E16\u0E39\u0E01\u0E25\u0E1A");
+                    delete r.character;
+                  }
+                }
+              } finally {
+                if (result && d.action === "delete" || accounts.deletion.isDeleted(owner)) {
+                  const ids = d.action === "delete" ? [characterId(owner, d.character)] : CHARACTER_SLOTS.map((slot) => characterId(owner, slot));
+                  for (const id of ids) {
+                    for (const [key, fight] of [...world.fights]) if (fight.a === id || fight.b === id) finishFight(world, key, "interrupted", "interrupted", Date.now() / 1e3);
+                    world.sleepers.delete(id);
+                  }
+                }
+              }
             }
             send(ws, { type: "accountResult", ...result });
           } catch (e) {
@@ -6018,12 +6153,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!test) throw Error("login_required");
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs4.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto6.randomBytes)(32).toString("hex");
+            if ((0, import_node_fs5.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            token = (0, import_node_crypto7.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const account = created ? (0, import_node_crypto6.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
+          const account = created ? (0, import_node_crypto7.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
           for (const slot of CHARACTER_SLOTS) {
             const body = world.sleepers.get(characterId(account, slot));
             if (body?.dirty) persist(body);
@@ -6062,7 +6197,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.28.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.29.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
           return;
         }
@@ -6076,6 +6211,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             send(ws, { type: "billingResult", ok: false, message: ["payment_pending", "wrong_account", "wallet_full", "billing_unavailable", "purchase_busy"].includes(e.message) ? e.message : "purchase_not_verified" });
           } finally {
             managing = false;
+            if (ws.readyState !== 1) activeAccounts.delete(p.account);
           }
           return;
         }
@@ -6096,6 +6232,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
                 send(ws, { type: "billingResult", ok: false, message: ["payment_pending", "wrong_account", "wallet_full", "billing_unavailable", "purchase_busy"].includes(e.message) ? e.message : "purchase_not_verified" });
               } finally {
                 managing = false;
+                if (ws.readyState !== 1) activeAccounts.delete(p.account);
               }
               return;
             }
@@ -6152,7 +6289,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
         } catch {
         }
-        activeAccounts.delete(p.account);
+        if (!managing) activeAccounts.delete(p.account);
       }
     });
     ws.player = () => p;
@@ -6182,6 +6319,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       }
     }
   }, 100);
+  const deletionWorker = setInterval(() => accounts.deletion.processPending().catch(() => {
+  }), 6e4);
+  accounts.deletion.processPending().catch(() => {
+  });
   const heartbeat = setInterval(() => {
     for (const ws of connections) {
       if (!ws.alive) {
@@ -6197,6 +6338,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   const close = async () => {
     clearInterval(ticker);
     clearInterval(heartbeat);
+    clearInterval(deletionWorker);
     for (const key of [...world.fights.keys()]) finishFight(world, key, "interrupted", "interrupted", Date.now() / 1e3);
     for (const p of world.actors()) {
       try {
@@ -6211,20 +6353,20 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 }
 
 // server/release-backup.js
-var import_node_fs5 = require("node:fs");
-var import_node_path5 = require("node:path");
+var import_node_fs6 = require("node:fs");
+var import_node_path6 = require("node:path");
 function backupBefore416(directory, release = "4.16.0") {
-  (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path5.join)(directory, "release-backups"), final = (0, import_node_path5.join)(root, "before-" + release);
-  if ((0, import_node_fs5.existsSync)((0, import_node_path5.join)(final, "complete.json"))) return false;
-  (0, import_node_fs5.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path5.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
-  (0, import_node_fs5.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs5.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs5.copyFileSync)((0, import_node_path5.join)(directory, name), (0, import_node_path5.join)(stage, name), import_node_fs5.constants.COPYFILE_EXCL);
-  for (const name of ["accounts", "deleted-characters"]) if ((0, import_node_fs5.existsSync)((0, import_node_path5.join)(directory, name))) (0, import_node_fs5.cpSync)((0, import_node_path5.join)(directory, name), (0, import_node_path5.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
-  (0, import_node_fs5.writeFileSync)((0, import_node_path5.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs5.renameSync)(stage, final);
+  (0, import_node_fs6.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path6.join)(directory, "release-backups"), final = (0, import_node_path6.join)(root, "before-" + release);
+  if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(final, "complete.json"))) return false;
+  (0, import_node_fs6.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path6.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs6.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs6.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs6.copyFileSync)((0, import_node_path6.join)(directory, name), (0, import_node_path6.join)(stage, name), import_node_fs6.constants.COPYFILE_EXCL);
+  for (const name of ["accounts", "deleted-characters"]) if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(directory, name))) (0, import_node_fs6.cpSync)((0, import_node_path6.join)(directory, name), (0, import_node_path6.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
+  (0, import_node_fs6.writeFileSync)((0, import_node_path6.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs6.renameSync)(stage, final);
   console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
