@@ -13,3 +13,12 @@ The journal must be preserved across disaster recovery, and deleted-account tomb
 Purchase history is account-scoped, 20 entries per page. It shows verified product/gold, purchase or recording time, order ID when supplied by Play, character name when captured, and credited/processing status. Legacy receipts have no retroactively invented order ID, exact payment amount, or refund status. Actual amounts/refunds remain in Google Play order history. Failed or pending purchases not yet verified are not presented as successful. Purchase tokens are never exposed. Receipts are not double-credited.
 
 Validation: 187 Node tests passed, including new password/deletion/identity-retry/history tests and a real WebSocket test ensuring an offline character cannot reappear after account deletion. Local Playwright exercised set/change/wrong password, purchase history, wrong delete confirmation, character deletion, empty-roster access and full game-account deletion with no page errors. Screenshots use local synthetic test data, never a real charge. Physical-device and live Google recovery have not been tested for this release.
+
+
+## Release evidence (2026-11-01)
+
+Source: 7bf40da90561e3ef694f260bb846fdf40592b16a. Online deployment run 41281011632 succeeded, including production health 4.29.0, registration/two-player smoke and SSV rejection. Production patch deployment dpl_6mPxQDrSaD68HjTmNhJpfLNPRLyG is READY. Preview package integrity and all 111 asset hashes were verified. Patch SHA-256: 0f17a1012678b64e63cd965801aa560309e282e36e2f3c59c5f74ce6933ca71e.
+
+Android bundleRelease, lintDebug and native unit tests succeeded (21 passed, one optional live-feed test skipped). Signed AAB 107 is 27,284,972 bytes; SHA-256 9d8a6aa65a9aa70ff785f97de787b274c073cbbda43f6498e3f54a41ea23ecc2. JAR signature verified and bundled game.js/release.json match the tested source. Artifact saved as COCKRO-4.29.0-107-signed.aab (Library libfile_ce56a7bd9d108191b16c66a09fa0721b).
+
+This turn did not upload 107 to Google Play or alter pending Store publication. Existing compatible apps receive the game patch through the existing update feed. Supabase administrative access remains unresolved; do not describe identity deletion as fully enabled.
