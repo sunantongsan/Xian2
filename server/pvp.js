@@ -11,15 +11,17 @@ export function finishFight(world,key,resultA,resultB,now){
  for(const [id,other,result] of [[f.a,f.b,resultA],[f.b,f.a,resultB]]){const p=world.getActor(id);if(!p)continue;const record=f.stats[id];p.s.pvpReports??=[];p.s.pvpReports=p.s.pvpReports.filter(r=>r.id!==`${key}-${Math.round(f.started*1000)}`);p.s.pvpReports.push({id:`${key}-${Math.round(f.started*1000)}`,at:now*1000,opponent:f.names[other],result,...record,unread:true});p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;world.event(p,{kind:'pvpResult',result,opponent:f.names[other]});}
 }
 export function pvpAttack(world,p,d,now){
- const target=world.getActor(d.target);if(!target||target===p||target.hp<=0||p.hp<=0||target.map!==p.map||now<p.actionUntil||p.pendingPvp||now<(target.pvpShield||0))return false;
+ const reject=reason=>{if(d.type==='skillPlayer'&&d.manual===true)world.event(p,{kind:'pvpSkillRejected',reason});return false;};
+ const target=world.getActor(d.target);if(!target||target===p||target.hp<=0||p.hp<=0||target.map!==p.map||now<(target.pvpShield||0))return reject('target');
+ if(now<p.actionUntil||p.pendingPvp)return reject('busy');
  let range=p.s.hero==='sword-dragonfly'?340:120,power=1,k;
- if(d.type==='skillPlayer'){if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return false;const r=knownSkills(p.s).find(r=>r.id===p.s.equipped[d.slot]&&r.level<=p.s.level);if(!r)return false;k=compileSkill(r);if(now<(p.cd[r.id]||0)||p.mp<k.mp)return false;range=k.range;power=k.power*combatStats(p.s).spell*(1+(p.s.skillRanks[r.id]||0)*.06);}
+ if(d.type==='skillPlayer'){if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return reject('skill');const r=knownSkills(p.s).find(r=>r.id===p.s.equipped[d.slot]&&r.level<=p.s.level);if(!r)return reject('skill');k=compileSkill(r);if(now<(p.cd[r.id]||0))return reject('cooldown');if(p.mp<k.mp)return reject('mana');range=k.form==='circle'?k.radius:k.range;power=k.power*combatStats(p.s).spell*(1+(p.s.skillRanks[r.id]||0)*.06);}
  else if(now<(p.cd.attack||0))return false;
- if(distance(p,target)>range||distance(traceStep(world.maps[p.map],p,target),target)>1)return false;
+ if(distance(p,target)>range||distance(traceStep(world.maps[p.map],p,target),target)>1)return reject('range');
  const key=[p.id,target.id].sort().join(':');let f=world.fights.get(key);
  if(!f){const blank=()=>({damageTaken:0,damageDealt:0,potions:0,mpPotions:0});f={a:p.id,b:target.id,started:now,last:now,names:{[p.id]:p.name,[target.id]:target.name},stats:{[p.id]:blank(),[target.id]:blank()}};world.fights.set(key,f);}
  f.last=now;p.lastPvp=target.lastPvp=now;target.defender=p.id;
- if(k){p.mp-=k.mp;p.cd[k.id]=now+k.cd;p.castId=k.id;}else p.cd.attack=now+.46*(1-combatStats(p.s).haste);
+ if(k){p.pvpNextSkill=(d.slot+1)%5;p.mp-=k.mp;p.cd[k.id]=now+k.cd;p.castId=k.id;}else p.cd.attack=now+.46*(1-combatStats(p.s).haste);
  p.actionUntil=now+(k?.5:.35);p.actionKind=k?'skill':'attack';p.anim=p.actionKind;p.animTime=0;
  // Commit an attack, not its outcome. Impact is resolved on a later server tick.
  const windup=k?.55:.32;
@@ -56,7 +58,7 @@ export function tickPvp(world,dt,now){
   const use=(type,key,condition)=>{if(!condition)return;const before=p.s[key];world.command(p,{type},now);if(p.s[key]<before)for(const f of world.fights.values())if(f.stats[p.id])f.stats[p.id][key==='potions'?'potions':'mpPotions']++;};
   use('potion','potions',p.hp<maxHP(p.s)*.5);use('mpPotion','mpPotions',p.mp<combatStats(p.s).mp*.25);
   // Offline characters defend in place; they do not hunt, collect loot or gain XP unattended.
-  let cast=false;for(let slot=0;slot<5&&!cast;slot++)cast=pvpAttack(world,p,{type:'skillPlayer',target:enemy.id,slot},now);
+  let cast=false;const first=p.pvpNextSkill||0;for(let n=0;n<5&&!cast;n++){const slot=(first+n)%5;cast=pvpAttack(world,p,{type:'skillPlayer',target:enemy.id,slot},now);}
   if(!cast)pvpAttack(world,p,{type:'attackPlayer',target:enemy.id},now);
  }
  for(const [key,f]of [...world.fights]){

@@ -4831,19 +4831,25 @@ function finishFight(world, key, resultA, resultB, now) {
   }
 }
 function pvpAttack(world, p, d, now) {
+  const reject = (reason) => {
+    if (d.type === "skillPlayer" && d.manual === true) world.event(p, { kind: "pvpSkillRejected", reason });
+    return false;
+  };
   const target = world.getActor(d.target);
-  if (!target || target === p || target.hp <= 0 || p.hp <= 0 || target.map !== p.map || now < p.actionUntil || p.pendingPvp || now < (target.pvpShield || 0)) return false;
+  if (!target || target === p || target.hp <= 0 || p.hp <= 0 || target.map !== p.map || now < (target.pvpShield || 0)) return reject("target");
+  if (now < p.actionUntil || p.pendingPvp) return reject("busy");
   let range = p.s.hero === "sword-dragonfly" ? 340 : 120, power = 1, k;
   if (d.type === "skillPlayer") {
-    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return false;
+    if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return reject("skill");
     const r = knownSkills(p.s).find((r2) => r2.id === p.s.equipped[d.slot] && r2.level <= p.s.level);
-    if (!r) return false;
+    if (!r) return reject("skill");
     k = compileSkill(r);
-    if (now < (p.cd[r.id] || 0) || p.mp < k.mp) return false;
-    range = k.range;
+    if (now < (p.cd[r.id] || 0)) return reject("cooldown");
+    if (p.mp < k.mp) return reject("mana");
+    range = k.form === "circle" ? k.radius : k.range;
     power = k.power * combatStats(p.s).spell * (1 + (p.s.skillRanks[r.id] || 0) * 0.06);
   } else if (now < (p.cd.attack || 0)) return false;
-  if (distance(p, target) > range || distance(traceStep(world.maps[p.map], p, target), target) > 1) return false;
+  if (distance(p, target) > range || distance(traceStep(world.maps[p.map], p, target), target) > 1) return reject("range");
   const key = [p.id, target.id].sort().join(":");
   let f = world.fights.get(key);
   if (!f) {
@@ -4855,6 +4861,7 @@ function pvpAttack(world, p, d, now) {
   p.lastPvp = target.lastPvp = now;
   target.defender = p.id;
   if (k) {
+    p.pvpNextSkill = (d.slot + 1) % 5;
     p.mp -= k.mp;
     p.cd[k.id] = now + k.cd;
     p.castId = k.id;
@@ -4915,7 +4922,11 @@ function tickPvp(world, dt, now) {
     use("potion", "potions", p.hp < maxHP(p.s) * 0.5);
     use("mpPotion", "mpPotions", p.mp < combatStats(p.s).mp * 0.25);
     let cast = false;
-    for (let slot = 0; slot < 5 && !cast; slot++) cast = pvpAttack(world, p, { type: "skillPlayer", target: enemy.id, slot }, now);
+    const first = p.pvpNextSkill || 0;
+    for (let n = 0; n < 5 && !cast; n++) {
+      const slot = (first + n) % 5;
+      cast = pvpAttack(world, p, { type: "skillPlayer", target: enemy.id, slot }, now);
+    }
     if (!cast) pvpAttack(world, p, { type: "attackPlayer", target: enemy.id }, now);
   }
   for (const [key, f] of [...world.fights]) {
@@ -5951,7 +5962,7 @@ var World = class {
   }
   snapshot(p, now = Date.now() / 1e3) {
     const actor = (q) => ({ id: q.id, offline: !!q.offline, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
-    const self = { ...actor(p), map: p.map, mp: p.mp, save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
+    const self = { ...actor(p), map: p.map, mp: p.mp, actionRemaining: Math.max(0, p.actionUntil - now), save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", serverTime: now * 1e3, self, online: this.players.size, loot: this.loot.filter((d) => d.map === p.map && dist2(p, d) < 1700).map((d) => ({ ...d, owner: void 0 })), players: this.actors().filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
   }
@@ -6054,7 +6065,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.29.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.30.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6197,7 +6208,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.29.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.30.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
           return;
         }
