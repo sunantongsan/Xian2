@@ -11,7 +11,7 @@ export function finishFight(world,key,resultA,resultB,now){
  for(const [id,other,result] of [[f.a,f.b,resultA],[f.b,f.a,resultB]]){const p=world.getActor(id);if(!p)continue;const record=f.stats[id];p.s.pvpReports??=[];p.s.pvpReports=p.s.pvpReports.filter(r=>r.id!==`${key}-${Math.round(f.started*1000)}`);p.s.pvpReports.push({id:`${key}-${Math.round(f.started*1000)}`,at:now*1000,opponent:f.names[other],result,...record,unread:true});p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;world.event(p,{kind:'pvpResult',result,opponent:f.names[other]});}
 }
 export function pvpAttack(world,p,d,now){
- const target=world.getActor(d.target);if(!target||target===p||target.hp<=0||p.hp<=0||target.map!==p.map||now<p.actionUntil||now<(target.pvpShield||0))return false;
+ const target=world.getActor(d.target);if(!target||target===p||target.hp<=0||p.hp<=0||target.map!==p.map||now<p.actionUntil||p.pendingPvp||now<(target.pvpShield||0))return false;
  let range=p.s.hero==='sword-dragonfly'?340:120,power=1,k;
  if(d.type==='skillPlayer'){if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return false;const r=knownSkills(p.s).find(r=>r.id===p.s.equipped[d.slot]&&r.level<=p.s.level);if(!r)return false;k=compileSkill(r);if(now<(p.cd[r.id]||0)||p.mp<k.mp)return false;range=k.range;power=k.power*combatStats(p.s).spell*(1+(p.s.skillRanks[r.id]||0)*.06);}
  else if(now<(p.cd.attack||0))return false;
@@ -21,15 +21,35 @@ export function pvpAttack(world,p,d,now){
  f.last=now;p.lastPvp=target.lastPvp=now;target.defender=p.id;
  if(k){p.mp-=k.mp;p.cd[k.id]=now+k.cd;p.castId=k.id;}else p.cd.attack=now+.46*(1-combatStats(p.s).haste);
  p.actionUntil=now+(k?.5:.35);p.actionKind=k?'skill':'attack';p.anim=p.actionKind;p.animTime=0;
- const hit=Math.min(target.hp,Math.max(1,damage(p.s)*power*.45*100/(100+combatStats(target.s).defense)));
- target.hp-=hit;f.stats[p.id].damageDealt+=Math.round(hit);f.stats[target.id].damageTaken+=Math.round(hit);p.dirty=target.dirty=true;
- world.event(p,{kind:'hit',target:target.id,x:target.x,y:target.y,amount:Math.round(hit)});
+ // Commit an attack, not its outcome. Impact is resolved on a later server tick.
+ const windup=k?.55:.32;
+ p.actionUntil=now+windup;
+ p.cd.attack=Math.max(p.cd.attack||0,now+.8);
+ p.pendingPvp={target:target.id,key,due:now+windup,range,power};
  world.event(p,{kind:k?'skill':'attack',hero:p.s.hero,skillId:k?.id,form:k?.form,aim:{x:target.x,y:target.y},range,color:k?.color,radius:k?.radius});
  checkpointFight(world,key,f,now);
- if(target.hp<=0){target.anim='dead';target.defender=null;for(const [id,fight]of [...world.fights])if(fight.a===target.id||fight.b===target.id)finishFight(world,id,fight.a===target.id?'lost':'won',fight.b===target.id?'lost':'won',now);}
  return true;
 }
+export function resolvePvpImpacts(world,now){
+ for(const p of world.actors()){
+  const attack=p.pendingPvp;if(!attack||now<attack.due)continue;
+  delete p.pendingPvp;
+  const target=world.getActor(attack.target),f=world.fights.get(attack.key);
+  if(!f||p.hp<=0||!target||target.hp<=0||p.map!==target.map)continue;
+  if(now<(target.pvpShield||0)||now<(target.inv||0)||distance(p,target)>attack.range||distance(traceStep(world.maps[p.map],p,target),target)>1){
+   world.event(p,{kind:'pvpMiss',target:target.id,x:target.x,y:target.y});continue;
+  }
+  // Retain gear advantage, while a full-health opponent gets time to react.
+  const hit=Math.min(target.hp,maxHP(target.s)*.3,Math.max(1,damage(p.s)*attack.power*.45*100/(100+combatStats(target.s).defense)));
+  target.hp=Math.max(0,target.hp-hit);f.last=now;
+  f.stats[p.id].damageDealt+=Math.round(hit);f.stats[target.id].damageTaken+=Math.round(hit);p.dirty=target.dirty=true;
+  world.event(p,{kind:'hit',target:target.id,x:target.x,y:target.y,amount:Math.round(hit)});
+  checkpointFight(world,attack.key,f,now);
+  if(target.hp<=0){target.anim='dead';target.defender=null;delete target.pendingPvp;for(const [id,fight]of [...world.fights])if(fight.a===target.id||fight.b===target.id)finishFight(world,id,fight.a===target.id?'lost':'won',fight.b===target.id?'lost':'won',now);}
+ }
+}
 export function tickPvp(world,dt,now){
+ resolvePvpImpacts(world,now);
  for(const p of world.sleepers.values()){
   if(p.hp<=0)continue;const enemy=world.getActor(p.defender);
   if(!enemy||enemy.hp<=0||enemy.map!==p.map||now-(p.lastPvp||0)>10||distance(p,enemy)>650)continue;

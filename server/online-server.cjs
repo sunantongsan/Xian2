@@ -4827,7 +4827,7 @@ function finishFight(world, key, resultA, resultB, now) {
 }
 function pvpAttack(world, p, d, now) {
   const target = world.getActor(d.target);
-  if (!target || target === p || target.hp <= 0 || p.hp <= 0 || target.map !== p.map || now < p.actionUntil || now < (target.pvpShield || 0)) return false;
+  if (!target || target === p || target.hp <= 0 || p.hp <= 0 || target.map !== p.map || now < p.actionUntil || p.pendingPvp || now < (target.pvpShield || 0)) return false;
   let range = p.s.hero === "sword-dragonfly" ? 340 : 120, power = 1, k;
   if (d.type === "skillPlayer") {
     if (!Number.isInteger(d.slot) || d.slot < 0 || d.slot > 4) return false;
@@ -4858,22 +4858,43 @@ function pvpAttack(world, p, d, now) {
   p.actionKind = k ? "skill" : "attack";
   p.anim = p.actionKind;
   p.animTime = 0;
-  const hit = Math.min(target.hp, Math.max(1, damage(p.s) * power * 0.45 * 100 / (100 + combatStats(target.s).defense)));
-  target.hp -= hit;
-  f.stats[p.id].damageDealt += Math.round(hit);
-  f.stats[target.id].damageTaken += Math.round(hit);
-  p.dirty = target.dirty = true;
-  world.event(p, { kind: "hit", target: target.id, x: target.x, y: target.y, amount: Math.round(hit) });
+  const windup = k ? 0.55 : 0.32;
+  p.actionUntil = now + windup;
+  p.cd.attack = Math.max(p.cd.attack || 0, now + 0.8);
+  p.pendingPvp = { target: target.id, key, due: now + windup, range, power };
   world.event(p, { kind: k ? "skill" : "attack", hero: p.s.hero, skillId: k?.id, form: k?.form, aim: { x: target.x, y: target.y }, range, color: k?.color, radius: k?.radius });
   checkpointFight(world, key, f, now);
-  if (target.hp <= 0) {
-    target.anim = "dead";
-    target.defender = null;
-    for (const [id, fight] of [...world.fights]) if (fight.a === target.id || fight.b === target.id) finishFight(world, id, fight.a === target.id ? "lost" : "won", fight.b === target.id ? "lost" : "won", now);
-  }
   return true;
 }
+function resolvePvpImpacts(world, now) {
+  for (const p of world.actors()) {
+    const attack = p.pendingPvp;
+    if (!attack || now < attack.due) continue;
+    delete p.pendingPvp;
+    const target = world.getActor(attack.target), f = world.fights.get(attack.key);
+    if (!f || p.hp <= 0 || !target || target.hp <= 0 || p.map !== target.map) continue;
+    if (now < (target.pvpShield || 0) || now < (target.inv || 0) || distance(p, target) > attack.range || distance(traceStep(world.maps[p.map], p, target), target) > 1) {
+      world.event(p, { kind: "pvpMiss", target: target.id, x: target.x, y: target.y });
+      continue;
+    }
+    const hit = Math.min(target.hp, maxHP(target.s) * 0.3, Math.max(1, damage(p.s) * attack.power * 0.45 * 100 / (100 + combatStats(target.s).defense)));
+    target.hp = Math.max(0, target.hp - hit);
+    f.last = now;
+    f.stats[p.id].damageDealt += Math.round(hit);
+    f.stats[target.id].damageTaken += Math.round(hit);
+    p.dirty = target.dirty = true;
+    world.event(p, { kind: "hit", target: target.id, x: target.x, y: target.y, amount: Math.round(hit) });
+    checkpointFight(world, attack.key, f, now);
+    if (target.hp <= 0) {
+      target.anim = "dead";
+      target.defender = null;
+      delete target.pendingPvp;
+      for (const [id, fight] of [...world.fights]) if (fight.a === target.id || fight.b === target.id) finishFight(world, id, fight.a === target.id ? "lost" : "won", fight.b === target.id ? "lost" : "won", now);
+    }
+  }
+}
 function tickPvp(world, dt, now) {
+  resolvePvpImpacts(world, now);
   for (const p of world.sleepers.values()) {
     if (p.hp <= 0) continue;
     const enemy = world.getActor(p.defender);
@@ -5915,7 +5936,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.27.1", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.28.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6041,7 +6062,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.27.1", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.28.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
           return;
         }

@@ -7,7 +7,7 @@ globalThis.Audio=class{constructor(){this.paused=true;}play(){this.paused=false;
 globalThis.innerWidth=844;globalThis.innerHeight=390;globalThis.devicePixelRatio=1;
 globalThis.document={body:{appendChild(){},classList:{add(){},remove(){},toggle(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
-source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,celebrateReward,ads,isOnline:()=>onlineMode};';
+source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,drawPvpStatus,celebrateReward,ads,isOnline:()=>onlineMode};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const {fresh}=await import('../web/core.js');
 function fixture(){const s=fresh('sword-male');s.sound=false;return {s,p:{x:0,y:0,hp:140,mp:83,face:1,anim:'idle',animTime:1,walkDistance:0,gaitBlend:0,inv:0,dead:false},enemies:[{def:{id:0,slot:0,hp:1000,speed:0,attack:'melee',cooldown:1,damage:1,level:1},x:70,y:0,hp:1000,state:'idle',clock:100,face:1,flash:0}]};}
@@ -69,3 +69,5 @@ test('closing a video early never displays a success dialog',()=>{
 });
 
 
+
+test("PvP HUD renders online and offline opponents at mobile width",()=>{for(const offline of [false,true])assert.doesNotThrow(()=>probe.drawPvpStatus({name:"Rival",offline,hp:80,maxHp:140}));});
