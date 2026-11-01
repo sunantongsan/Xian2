@@ -17,3 +17,5 @@ Validation: Node suite, timing/range/dash/spam/death/map-transition tests, real 
 - Physical Android play/performance testing remains unverified.
 
 Google Play published internal release 18, versionCode 106 / 4.28.0, on 1 November 2026. Console confirms available to internal testers. Closed Alpha promotion is in progress.
+
+Closed Alpha release 8 (106 / 4.28.0) and the Finance-to-Role-playing category correction were submitted for review on 1 November 2026. Console shows the submitted changes under review, initially in automatic quick checks. Managed publishing remains enabled; Alpha is not yet claimed live. The automatically added Play Games PC opt-in was reverted. Approved store metadata/assets remain pending publication alongside old release 104; no old release was published in this task.
