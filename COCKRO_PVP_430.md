@@ -11,3 +11,6 @@ Scope: skill selection, input timing and rotation. Existing PvP skill damage/eff
 Validation: 193 Node tests passed. New tests cover all five slots on all four playable heroes, resource consumption, cooldown independence, fair auto rotation, offline defense rotation, manual rejection reasons, queued input priority and cancellation. Playwright with a real local WebSocket server checks automatic use of all five skills, manual buttons, auto toggle and target retention during keyboard movement. No real player account is modified by the fixtures. Android physical-device testing remains outstanding.
 
 Delivery uses the existing engine-88 auto-update feed. No native Android or Google Play track change is needed for this game-only patch.
+
+
+Release evidence (2026-11-01): source a829108246733091e1b512b654a67d9aa034fdf2; backend run 41283070139 completed successfully including production health, multiplayer smoke and SSV rejection. Production patch deployment dpl_93CiLqKiHuZKRci9GM3G8h2yFcAA is READY on cockro-game-updates.vercel.app. Preview package and all 112 assets verified; SHA-256 80c00754af7b7960db407bd4caeeeb9903807490a09df8c445ddc88a76cfb093, 21,223,081 bytes. No Play Console release was modified.
