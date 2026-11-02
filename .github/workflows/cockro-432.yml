@@ -1,4 +1,4 @@
-name: Verify COCKRO 4.32 candidate
+name: Verify COCKRO 4.33 candidate
 on:
   push:
     branches: [cockro/4.32-coins-referrals-mobile]
@@ -21,6 +21,7 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps chromium --only-shell
           node tools/review-432.mjs
+          node tools/review-commerce.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -36,7 +37,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:bundleRelease :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: COCKRO-109-candidate-unsigned
+          name: COCKRO-110-candidate-unsigned
           path: |
             app/build/outputs/bundle/release/app-release.aab
             patch-public/latest.json
@@ -45,7 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: COCKRO-109-validation
+          name: COCKRO-110-validation
           path: |
             review/*.png
             app/build/reports/tests

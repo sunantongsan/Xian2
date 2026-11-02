@@ -17,6 +17,7 @@ export function createAccountDeletion(directory,{authUrl,adminKey=process.env.SU
  function purge(record){
   const ids=CHARACTER_SLOTS.map(slot=>characterId(record.account,slot));ids.forEach(id=>deletedIds.add(id));
   function clean(base){
+   const commerce=join(base,'commerce.json');if(existsSync(commerce)){const data=JSON.parse(readFileSync(commerce,'utf8'));delete data.vaults?.[record.account];delete data.shops?.[record.account];write(commerce,data);}
    if(existsSync(join(base,'referrals.json')))createReferrals(base).remove(record.account);
    for(const id of ids){rmSync(join(base,id+'.json'),{force:true});rmSync(join(base,id+'.json.tmp'),{force:true});}
    const trash=join(base,'deleted-characters');if(existsSync(trash))for(const file of readdirSync(trash))if(ids.some(id=>file.startsWith(id+'-')))rmSync(join(trash,file),{force:true});

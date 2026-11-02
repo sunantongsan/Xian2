@@ -1,0 +1,11 @@
+# COCKRO 4.33.0 / Android 110 candidate
+
+Preserves all existing accounts and four character slots. Adds an account warehouse for G, COCKRO coin, bag equipment, potions, upgrade materials and unused EXP tickets. Equipped gear must first be removed; temporary fashion is excluded. Warehouse capacity is 120 entries. Character wallet and stack limits are enforced before every transfer.
+
+Player stalls persist in town while the owner is offline or on another character. One stall per account, up to 12 escrowed listings, with G or Coin prices per entire bundle. Buyers must be within 350 world units of the stall; the seller need not remain present. Payment goes to the character currently owning the stall. Opening from another character explicitly moves the stall and assigns that character as owner. Closing keeps listed items recoverable. Last 50 sales are shown. Character deletion is blocked while that character owns listed items.
+
+All mutations require the latest ledger revision. A synchronous fsynced write-ahead journal commits the ledger and involved character saves together, replays interrupted commits before actor restore and fences gameplay after storage failure. This design assumes the existing single server process owns the save directory; multiple processes must not share it. Rejects self-purchases, stale requests, spoofed prices, equipped/non-transferable items, overflow and purchases racing billing operations. Account deletion removes the warehouse and store; existing accounts have not been deleted.
+
+Validation: 214 Node tests (including real sockets, offline sale across restart, simultaneous buyers, WAL interruption, balance conservation, stale replay and access isolation), JavaScript syntax, server bundling and asset checks. Headless Chromium exercises warehouse/shop/market at 360x640, 390x844 and 844x390; numeric deposits and horizontal overflow checked. Existing stats and EXP-ticket browser checks retained.
+
+Not yet deployed or submitted to Play. Native CI/build/signing and full live authentication/recovery/deletion verification remain release gates. Tess now exposes the correct Supabase project, but connecting it alone does not configure server-side Auth deletion credentials. Do not claim a live release until these gates pass.
