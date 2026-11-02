@@ -13,3 +13,9 @@ EXP tickets are purchased with G: x2 = 50,000; x5 = 150,000; x10 = 350,000. Each
 Compact character sheet separates stats from equipment (equipment remains in bag), reduces text and buttons, and uses responsive summary grids with 40px allocation controls. Portrait and landscape layouts preserve numeric entry and server-confirmed allocation.
 
 Validation: 205 Node tests pass, including real WebSockets, balances, EXP usage, duplicate referrals and interrupted delivery. JavaScript syntax, server bundling, asset containers and integrity-checked patch generation pass locally. Headless Chromium verified no stats scrolling at 390×844, 360×640 and 844×390, stat allocation, ticket purchase/use, and zero page errors. Native validation is recorded separately. This branch is a candidate; it is not a production deployment or Play submission.
+
+## Account flow follow-up
+
+Google-linked accounts now reauthenticate with the same Google identity before confirming account deletion; no additional game password is required. The proof is limited to account deletion, expires after five minutes, and cannot be substituted with a password-reset proof. Legacy unlinked accounts retain the password flow. Character deletion retains its existing password protection. 207 Node tests pass, including wrong-account, expired proof and retry behavior.
+
+Legacy Cockro-Networkv4 Settings.tsx was inspected: its deletion button launches an email request, not an automatic Auth deletion API. Both connected Supabase accounts still expose only uzinxxeadejmzxqmqqtx, while the live app uses kfohckvypopaoogmnjuy. Live login/deletion and production release are pending correct-project access. The previously signed candidate must be rebuilt after this follow-up before submission.

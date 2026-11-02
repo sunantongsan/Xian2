@@ -5213,11 +5213,14 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       write2("session", token, { account, revoked: true });
       return { loggedOut: true };
     }
-    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid, canReset: !!meta(account).uid && Date.now() - (read("session", token)?.reauthAt || 0) < 3e5, accountId: account.slice(0, 12) };
+    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid, canReset: !!meta(account).uid && Date.now() - (read("session", token)?.reauthAt || 0) < 3e5, canDelete: !!meta(account).uid && Date.now() - (read("session", token)?.deleteReauthAt || 0) < 3e5, accountId: account.slice(0, 12) };
     if (d.action === "referralStatus") return referrals.status(account, meta(account).uid);
     if (d.action === "redeemReferral") return referrals.redeem(account, meta(account).uid, d.code);
     if (d.action === "deleteAccount") {
-      await verifyPassword(account, d.password);
+      if (meta(account).uid) {
+        const proof = read("session", token)?.deleteReauthAt;
+        if (!proof || Date.now() - proof > 3e5) throw Error("reauth_required");
+      } else await verifyPassword(account, d.password);
       if (d.confirmText !== "\u0E25\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35 COCKRO") throw Error("confirmation_mismatch");
       return deletion.request(account, meta(account).uid);
     }
@@ -5268,7 +5271,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
         if (e.message !== "login_required") throw e;
       }
     }
-    if (purpose === "resetPassword" && (!account || !meta(account).uid)) throw Error("google_required");
+    if (["resetPassword", "deleteAccount"].includes(purpose) && (!account || !meta(account).uid)) throw Error("google_required");
     for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
     if (flows.size >= 100) throw Error("auth_busy");
     const flow = (0, import_node_crypto5.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto5.randomBytes)(48).toString("base64url");
@@ -5289,7 +5292,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const user = await check.json();
     if (typeof user.id !== "string" || !user.identities?.some((i) => i.provider === "google")) throw Error("auth_failed");
     if (deletion.identityPending(user.id)) throw Error("deletion_pending");
-    if (f.purpose === "resetPassword" && meta(f.account).uid !== user.id) throw Error("wrong_google_account");
+    if (["resetPassword", "deleteAccount"].includes(f.purpose) && meta(f.account).uid !== user.id) throw Error("wrong_google_account");
     if (f.account && deletion.isDeleted(f.account)) throw Error("account_deleted");
     const existing = read("google", user.id);
     let account = existing?.account;
@@ -5301,8 +5304,8 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       write2("google", user.id, { account });
     }
     const token = (0, import_node_crypto5.randomBytes)(32).toString("hex");
-    write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0 });
-    return { token, google: true, passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
+    write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0, deleteReauthAt: f.purpose === "deleteAccount" ? Date.now() : 0 });
+    return { token, google: true, accountDeletionReady: f.purpose === "deleteAccount", passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
   async function manage(token, d) {
     const account = resolve(token);
