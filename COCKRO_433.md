@@ -9,3 +9,9 @@ All mutations require the latest ledger revision. A synchronous fsynced write-ah
 Validation: 214 Node tests (including real sockets, offline sale across restart, simultaneous buyers, WAL interruption, balance conservation, stale replay and access isolation), JavaScript syntax, server bundling and asset checks. Headless Chromium exercises warehouse/shop/market at 360x640, 390x844 and 844x390; numeric deposits and horizontal overflow checked. Existing stats and EXP-ticket browser checks retained.
 
 Not yet deployed or submitted to Play. Native CI/build/signing and full live authentication/recovery/deletion verification remain release gates. Tess now exposes the correct Supabase project, but connecting it alone does not configure server-side Auth deletion credentials. Do not claim a live release until these gates pass.
+
+## Play version 108 rejection investigation
+
+Play Console on 2 November reports Broken Functionality / unresponsive UI for code 108. Its IN_APP_EXPERIENCE-3002.png attachment shows the native startup screen after selecting the installed-version button. Found two concrete defects: native boot validation only accepted #choose (absent on fresh Google-login screens), and Skip waited for network disconnect/update worker completion. The candidate now recognizes the Google sign-in screen and an explicit web-ready flag; Skip opens bundled assets immediately, cancels network teardown off the UI thread, and a 15-second startup watchdog provides the same fallback. Forced bundle boot does not mark an untested installed patch healthy.
+
+A browser test boots actual assets with empty storage, checks the native readiness expression on the Google login screen, clicks Google, and verifies a real local server's PKCE URL reaches the native bridge. A new JVM test blocks HTTP disconnect and proves cancellation returns without waiting. Native CI must rerun for these changes; the first 110 artifact predates this startup fix and must not be submitted.
