@@ -4538,13 +4538,13 @@ function zoneContains(z, p) {
     const d = Math.hypot(p.x - z.x, p.y - z.y);
     return d <= z.radius && d >= (z.inner || 0);
   }
-  let sign = 0;
+  let sign2 = 0;
   for (let i = 0; i < z.points.length; i++) {
     const a = z.points[i], b = z.points[(i + 1) % z.points.length], c = (b[0] - a[0]) * (p.y - a[1]) - (b[1] - a[1]) * (p.x - a[0]);
     if (Math.abs(c) < 1e-7) continue;
     const s = Math.sign(c);
-    if (sign && s !== sign) return false;
-    sign = s;
+    if (sign2 && s !== sign2) return false;
+    sign2 = s;
   }
   return true;
 }
@@ -5259,10 +5259,10 @@ function createReferrals(directory) {
 }
 
 // server/accounts.js
-var import_node_crypto6 = require("node:crypto");
+var import_node_crypto7 = require("node:crypto");
 var import_node_util = require("node:util");
-var import_node_fs6 = require("node:fs");
-var import_node_path6 = require("node:path");
+var import_node_fs7 = require("node:fs");
+var import_node_path7 = require("node:path");
 
 // server/characters.js
 var import_node_crypto4 = require("node:crypto");
@@ -5287,66 +5287,92 @@ function characterRoster(directory, account) {
   });
 }
 
-// server/account-deletion.js
+// server/identity-cleanup.js
 var import_node_crypto5 = require("node:crypto");
 var import_node_fs5 = require("node:fs");
 var import_node_path5 = require("node:path");
-var hash2 = (s) => (0, import_node_crypto5.createHash)("sha256").update(s).digest("hex");
+function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
+  (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const path = (0, import_node_path5.join)(directory, "account-cleanup-key.pem");
+  if (!(0, import_node_fs5.existsSync)(path)) {
+    const { privateKey } = (0, import_node_crypto5.generateKeyPairSync)("ed25519");
+    (0, import_node_fs5.writeFileSync)(path + ".tmp", privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 384 });
+    (0, import_node_fs5.renameSync)(path + ".tmp", path);
+  }
+  const key = (0, import_node_fs5.readFileSync)(path, "utf8");
+  const publicKey = (0, import_node_crypto5.createPublicKey)(key).export({ type: "spki", format: "der" }).toString("base64");
+  async function remove(uid2) {
+    const body = JSON.stringify({ uid: uid2, timestamp: Date.now() });
+    const signature = (0, import_node_crypto5.sign)(null, Buffer.from(body), key).toString("base64");
+    const response = await fetcher(authUrl + "/functions/v1/cockro-account-cleanup", { method: "POST", headers: { "Content-Type": "application/json", "X-Cockro-Signature": signature }, body, signal: AbortSignal.timeout(15e3) });
+    if (!response.ok) return false;
+    const result = await response.json();
+    return result.deleted === true;
+  }
+  return { remove, publicKey };
+}
+
+// server/account-deletion.js
+var import_node_crypto6 = require("node:crypto");
+var import_node_fs6 = require("node:fs");
+var import_node_path6 = require("node:path");
+var hash2 = (s) => (0, import_node_crypto6.createHash)("sha256").update(s).digest("hex");
 var write = (path, value) => {
-  (0, import_node_fs5.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
-  (0, import_node_fs5.renameSync)(path + ".tmp", path);
+  (0, import_node_fs6.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
+  (0, import_node_fs6.renameSync)(path + ".tmp", path);
 };
 function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY, fetcher = fetch } = {}) {
-  const root = (0, import_node_path5.join)(directory, "account-deletions");
-  const files = () => (0, import_node_fs5.existsSync)(root) ? (0, import_node_fs5.readdirSync)(root) : [];
+  const identity = createIdentityCleanup(directory, { authUrl, fetcher });
+  const root = (0, import_node_path6.join)(directory, "account-deletions");
+  const files = () => (0, import_node_fs6.existsSync)(root) ? (0, import_node_fs6.readdirSync)(root) : [];
   const deletedIds = /* @__PURE__ */ new Set();
-  const path = (account) => (0, import_node_path5.join)(root, account + ".json");
-  const read = (account) => (0, import_node_fs5.existsSync)(path(account)) ? JSON.parse((0, import_node_fs5.readFileSync)(path(account), "utf8")) : null;
+  const path = (account) => (0, import_node_path6.join)(root, account + ".json");
+  const read = (account) => (0, import_node_fs6.existsSync)(path(account)) ? JSON.parse((0, import_node_fs6.readFileSync)(path(account), "utf8")) : null;
   function purge(record) {
     const ids = CHARACTER_SLOTS.map((slot) => characterId(record.account, slot));
     ids.forEach((id) => deletedIds.add(id));
     function clean(base) {
-      const commerce = (0, import_node_path5.join)(base, "commerce.json");
-      if ((0, import_node_fs5.existsSync)(commerce)) {
-        const data = JSON.parse((0, import_node_fs5.readFileSync)(commerce, "utf8"));
+      const commerce = (0, import_node_path6.join)(base, "commerce.json");
+      if ((0, import_node_fs6.existsSync)(commerce)) {
+        const data = JSON.parse((0, import_node_fs6.readFileSync)(commerce, "utf8"));
         delete data.vaults?.[record.account];
         delete data.shops?.[record.account];
         write(commerce, data);
       }
-      if ((0, import_node_fs5.existsSync)((0, import_node_path5.join)(base, "referrals.json"))) createReferrals(base).remove(record.account);
+      if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(base, "referrals.json"))) createReferrals(base).remove(record.account);
       for (const id of ids) {
-        (0, import_node_fs5.rmSync)((0, import_node_path5.join)(base, id + ".json"), { force: true });
-        (0, import_node_fs5.rmSync)((0, import_node_path5.join)(base, id + ".json.tmp"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(base, id + ".json"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(base, id + ".json.tmp"), { force: true });
       }
-      const trash = (0, import_node_path5.join)(base, "deleted-characters");
-      if ((0, import_node_fs5.existsSync)(trash)) {
-        for (const file of (0, import_node_fs5.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs5.rmSync)((0, import_node_path5.join)(trash, file), { force: true });
+      const trash = (0, import_node_path6.join)(base, "deleted-characters");
+      if ((0, import_node_fs6.existsSync)(trash)) {
+        for (const file of (0, import_node_fs6.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs6.rmSync)((0, import_node_path6.join)(trash, file), { force: true });
       }
-      const accounts = (0, import_node_path5.join)(base, "accounts");
-      if ((0, import_node_fs5.existsSync)(accounts)) {
-        for (const file of (0, import_node_fs5.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
-          const p = (0, import_node_path5.join)(accounts, file), s = JSON.parse((0, import_node_fs5.readFileSync)(p, "utf8"));
-          if (s.account === record.account) (0, import_node_fs5.rmSync)(p);
+      const accounts = (0, import_node_path6.join)(base, "accounts");
+      if ((0, import_node_fs6.existsSync)(accounts)) {
+        for (const file of (0, import_node_fs6.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
+          const p = (0, import_node_path6.join)(accounts, file), s = JSON.parse((0, import_node_fs6.readFileSync)(p, "utf8"));
+          if (s.account === record.account) (0, import_node_fs6.rmSync)(p);
         }
-        (0, import_node_fs5.rmSync)((0, import_node_path5.join)(accounts, "profile-" + hash2(record.account) + ".json"), { force: true });
-        if (record.uid) (0, import_node_fs5.rmSync)((0, import_node_path5.join)(accounts, "google-" + hash2(record.uid) + ".json"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(accounts, "profile-" + hash2(record.account) + ".json"), { force: true });
+        if (record.uid) (0, import_node_fs6.rmSync)((0, import_node_path6.join)(accounts, "google-" + hash2(record.uid) + ".json"), { force: true });
       }
-      const receipts = (0, import_node_path5.join)(base, "play-receipts");
-      if ((0, import_node_fs5.existsSync)(receipts)) for (const file of (0, import_node_fs5.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
-        const p = (0, import_node_path5.join)(receipts, file), r = JSON.parse((0, import_node_fs5.readFileSync)(p, "utf8"));
+      const receipts = (0, import_node_path6.join)(base, "play-receipts");
+      if ((0, import_node_fs6.existsSync)(receipts)) for (const file of (0, import_node_fs6.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
+        const p = (0, import_node_path6.join)(receipts, file), r = JSON.parse((0, import_node_fs6.readFileSync)(p, "utf8"));
         if (r.owner === record.account) write(p, { product: r.product, gold: r.gold, credited: r.credited, consumed: r.consumed, created: r.created, deleted: true });
       }
     }
     clean(directory);
-    const backups = (0, import_node_path5.join)(directory, "release-backups");
-    if ((0, import_node_fs5.existsSync)(backups)) {
-      for (const item of (0, import_node_fs5.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path5.join)(backups, item.name));
+    const backups = (0, import_node_path6.join)(directory, "release-backups");
+    if ((0, import_node_fs6.existsSync)(backups)) {
+      for (const item of (0, import_node_fs6.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path6.join)(backups, item.name));
     }
     record.localComplete = true;
     write(path(record.account), record);
   }
   function request(account, uid2) {
-    (0, import_node_fs5.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs6.mkdirSync)(root, { recursive: true, mode: 448 });
     const record = read(account) || { account, uid: uid2 || null, requestedAt: Date.now(), localComplete: false, identityComplete: !uid2 };
     write(path(account), record);
     CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(account, slot)));
@@ -5355,7 +5381,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
   }
   function recover() {
     for (const file of files().filter((f) => /^[a-f0-9]{64}\.json$/.test(f))) {
-      const record = JSON.parse((0, import_node_fs5.readFileSync)((0, import_node_path5.join)(root, file), "utf8"));
+      const record = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
       CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(record.account, slot)));
       if (!record.localComplete) purge(record);
     }
@@ -5364,18 +5390,22 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
   async function processPending() {
     if (processing) return;
     recover();
-    if (!adminKey) return;
     processing = true;
     try {
       for (const file of files().filter((f) => f.endsWith(".json"))) {
-        const record = JSON.parse((0, import_node_fs5.readFileSync)((0, import_node_path5.join)(root, file), "utf8"));
+        const record = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
         if (!record.localComplete || record.identityComplete || !record.uid) continue;
         try {
-          const response = await fetcher(authUrl + "/auth/v1/admin/users/" + encodeURIComponent(record.uid), { method: "DELETE", headers: { apikey: adminKey, Authorization: "Bearer " + adminKey }, signal: AbortSignal.timeout(1e4) });
-          if (response.ok || response.status === 404) {
+          let complete;
+          if (!adminKey) complete = await identity.remove(record.uid);
+          else {
+            const response = await fetcher(authUrl + "/auth/v1/admin/users/" + encodeURIComponent(record.uid), { method: "DELETE", headers: { apikey: adminKey, Authorization: "Bearer " + adminKey }, signal: AbortSignal.timeout(1e4) });
+            complete = response.ok || response.status === 404;
+          }
+          if (complete) {
             record.identityComplete = true;
             delete record.uid;
-            write((0, import_node_path5.join)(root, file), record);
+            write((0, import_node_path6.join)(root, file), record);
           }
         } catch {
         }
@@ -5385,34 +5415,34 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
     }
   }
   const identityPending = (uid2) => files().filter((f) => f.endsWith(".json")).some((f) => {
-    const r = JSON.parse((0, import_node_fs5.readFileSync)((0, import_node_path5.join)(root, f), "utf8"));
+    const r = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, f), "utf8"));
     return !r.identityComplete && r.uid === uid2;
   });
   recover();
-  return { request, isDeleted: (account) => !!read(account), isCharacterDeleted: (id) => deletedIds.has(id), identityPending, processPending };
+  return { publicKey: identity.publicKey, request, isDeleted: (account) => !!read(account), isCharacterDeleted: (id) => deletedIds.has(id), identityPending, processPending };
 }
 
 // server/accounts.js
-var scrypt = (0, import_node_util.promisify)(import_node_crypto6.scrypt);
-var hash3 = (v) => (0, import_node_crypto6.createHash)("sha256").update(v).digest("hex");
+var scrypt = (0, import_node_util.promisify)(import_node_crypto7.scrypt);
+var hash3 = (v) => (0, import_node_crypto7.createHash)("sha256").update(v).digest("hex");
 var AUTH_URL = "https://kfohckvypopaoogmnjuy.supabase.co";
 var AUTH_KEY = "sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA";
 var AUTH_REDIRECT = "cockronetwork://auth/callback";
 function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY } = {}) {
   const referrals = createReferrals(directory);
   const deletion = createAccountDeletion(directory, { authUrl: AUTH_URL, fetcher, adminKey });
-  const root = (0, import_node_path6.join)(directory, "accounts");
+  const root = (0, import_node_path7.join)(directory, "accounts");
   const flows = /* @__PURE__ */ new Map(), attempts = /* @__PURE__ */ new Map(), busy = /* @__PURE__ */ new Set();
-  const path = (kind, key) => (0, import_node_path6.join)(root, kind + "-" + hash3(key) + ".json");
+  const path = (kind, key) => (0, import_node_path7.join)(root, kind + "-" + hash3(key) + ".json");
   const read = (kind, key) => {
     const p = path(kind, key);
-    return (0, import_node_fs6.existsSync)(p) ? JSON.parse((0, import_node_fs6.readFileSync)(p, "utf8")) : null;
+    return (0, import_node_fs7.existsSync)(p) ? JSON.parse((0, import_node_fs7.readFileSync)(p, "utf8")) : null;
   };
   const write2 = (kind, key, data) => {
-    (0, import_node_fs6.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs7.mkdirSync)(root, { recursive: true, mode: 448 });
     const p = path(kind, key);
-    (0, import_node_fs6.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs6.renameSync)(p + ".tmp", p);
+    (0, import_node_fs7.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs7.renameSync)(p + ".tmp", p);
   };
   function resolve(token) {
     if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
@@ -5441,7 +5471,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const m = meta(account);
     if (!m.password || typeof password !== "string" || password.length > 128) throw Error("wrong_password");
     const key = await scrypt(password, m.salt, 32);
-    if (!(0, import_node_crypto6.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
+    if (!(0, import_node_crypto7.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
     attempts.delete(account);
     return m;
   }
@@ -5469,9 +5499,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       const name = characterName(d.name);
       if (!name) throw Error("invalid_name");
       state.name = name;
-      const p = (0, import_node_path6.join)(directory, characterId(account, d.character) + ".json");
-      (0, import_node_fs6.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
-      (0, import_node_fs6.renameSync)(p + ".tmp", p);
+      const p = (0, import_node_path7.join)(directory, characterId(account, d.character) + ".json");
+      (0, import_node_fs7.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
+      (0, import_node_fs7.renameSync)(p + ".tmp", p);
       return { characters: characterRoster(directory, account) };
     }
     if (d.action === "setPassword") {
@@ -5481,7 +5511,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
         if (!m.uid || !session?.reauthAt || Date.now() - session.reauthAt > 3e5) throw Error("reauth_required");
       } else if (m.password) await verifyPassword(account, d.oldPassword);
       if (typeof d.password !== "string" || d.password.length < 8 || d.password.length > 128) throw Error("weak_password");
-      const salt = (0, import_node_crypto6.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
+      const salt = (0, import_node_crypto7.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
       write2("profile", account, { ...meta(account), salt, password: key.toString("hex") });
       if (d.reset === true) write2("session", token, { ...read("session", token), reauthAt: 0 });
       return { hasPassword: true };
@@ -5493,9 +5523,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       if (!state) throw Error("character_missing");
       if (d.confirmName !== (state.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D")) throw Error("name_mismatch");
       write2("profile", account, meta(account));
-      const trash = (0, import_node_path6.join)(directory, "deleted-characters");
-      (0, import_node_fs6.mkdirSync)(trash, { recursive: true, mode: 448 });
-      (0, import_node_fs6.renameSync)((0, import_node_path6.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path6.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
+      const trash = (0, import_node_path7.join)(directory, "deleted-characters");
+      (0, import_node_fs7.mkdirSync)(trash, { recursive: true, mode: 448 });
+      (0, import_node_fs7.renameSync)((0, import_node_path7.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path7.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
       return { characters: characterRoster(directory, account) };
     }
     throw Error("invalid_request");
@@ -5512,10 +5542,10 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     if (["resetPassword", "deleteAccount"].includes(purpose) && (!account || !meta(account).uid)) throw Error("google_required");
     for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
     if (flows.size >= 100) throw Error("auth_busy");
-    const flow = (0, import_node_crypto6.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto6.randomBytes)(48).toString("base64url");
+    const flow = (0, import_node_crypto7.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto7.randomBytes)(48).toString("base64url");
     flows.set(flow, { account, purpose, verifier, until: Date.now() + 3e5 });
     const u = new URL(AUTH_URL + "/auth/v1/authorize");
-    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto6.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
+    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto7.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
     return { flow, url: u.href };
   }
   async function authFinish(flow, code) {
@@ -5535,13 +5565,13 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const existing = read("google", user.id);
     let account = existing?.account;
     if (!account) {
-      account = f.account || hash3((0, import_node_crypto6.randomBytes)(32));
+      account = f.account || hash3((0, import_node_crypto7.randomBytes)(32));
       const profile = meta(account);
       if (profile.uid && profile.uid !== user.id) throw Error("account_linked");
       write2("profile", account, { ...profile, uid: user.id });
       write2("google", user.id, { account });
     }
-    const token = (0, import_node_crypto6.randomBytes)(32).toString("hex");
+    const token = (0, import_node_crypto7.randomBytes)(32).toString("hex");
     write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0, deleteReauthAt: f.purpose === "deleteAccount" ? Date.now() : 0 });
     return { token, google: true, accountDeletionReady: f.purpose === "deleteAccount", passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
@@ -5581,7 +5611,7 @@ function deliverReward(s, t) {
 }
 
 // server/test-rewards.js
-var import_node_crypto7 = require("node:crypto");
+var import_node_crypto8 = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
   const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
@@ -5589,7 +5619,7 @@ function issueTestTicket(s, item, now = Date.now()) {
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
   if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto7.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto8.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -5603,7 +5633,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
 }
 
 // server/rewarded-ads.js
-var import_node_crypto8 = require("node:crypto");
+var import_node_crypto9 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -5611,7 +5641,7 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto8.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const ticket = { nonce: (0, import_node_crypto9.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -5655,7 +5685,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto8.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto9.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -5676,9 +5706,9 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto9 = require("node:crypto");
-var import_node_fs7 = require("node:fs");
-var import_node_path7 = require("node:path");
+var import_node_crypto10 = require("node:crypto");
+var import_node_fs8 = require("node:fs");
+var import_node_path8 = require("node:path");
 
 // web/monster-behavior.js
 var aggressiveMonster = (def) => def.aggressive ?? (!!def.boss || def.id % 3 === 0);
@@ -6312,7 +6342,7 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier, billingVerifier } = {}) {
-  (0, import_node_fs7.mkdirSync)(directory, { recursive: true, mode: 448 });
+  (0, import_node_fs8.mkdirSync)(directory, { recursive: true, mode: 448 });
   const accounts = createAccounts(directory);
   const world = new World({ maxPlayers, testRewards }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
@@ -6330,9 +6360,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     if (accounts.deletion.isCharacterDeleted(p.id)) throw Error("account_deleted");
     try {
       if (p.map) capturePresence(p);
-      const path = (0, import_node_path7.join)(directory, p.id + ".json");
-      (0, import_node_fs7.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs7.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path8.join)(directory, p.id + ".json");
+      (0, import_node_fs8.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs8.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -6341,9 +6371,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     }
   };
   const commerce = createCommerce(directory, { players: () => world.players, getActor: (id) => world.getActor(id), capture: capturePresence });
-  for (const file of (0, import_node_fs7.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+  for (const file of (0, import_node_fs8.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
     try {
-      const state = validSave(JSON.parse((0, import_node_fs7.readFileSync)((0, import_node_path7.join)(directory, file), "utf8")));
+      const state = validSave(JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path8.join)(directory, file), "utf8")));
       if (state && !accounts.deletion.isCharacterDeleted(file.slice(0, -5))) world.restore(file.slice(0, -5), state);
     } catch {
       diskFailure = true;
@@ -6374,9 +6404,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.getActor(data.user_id), path = (0, import_node_path7.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs7.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs7.readFileSync)(path, "utf8")));
+        const live = world.getActor(data.user_id), path = (0, import_node_path8.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs8.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs8.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -6409,7 +6439,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.33.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.33.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6515,12 +6545,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!test) throw Error("login_required");
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs7.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto9.randomBytes)(32).toString("hex");
+            if ((0, import_node_fs8.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            token = (0, import_node_crypto10.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const account = created ? (0, import_node_crypto9.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
+          const account = created ? (0, import_node_crypto10.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
           for (const slot of CHARACTER_SLOTS) {
             const body = world.sleepers.get(characterId(account, slot));
             if (body?.dirty) persist(body);
@@ -6551,9 +6581,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           const id = characterId(account, character);
           if (testRewards && (created || d.newCharacter === true)) state.gold = 1e6;
           accounts.referrals.deliver(account, character, state, (value) => {
-            const file = (0, import_node_path7.join)(directory, id + ".json");
-            (0, import_node_fs7.writeFileSync)(file + ".tmp", JSON.stringify(value));
-            (0, import_node_fs7.renameSync)(file + ".tmp", file);
+            const file = (0, import_node_path8.join)(directory, id + ".json");
+            (0, import_node_fs8.writeFileSync)(file + ".tmp", JSON.stringify(value));
+            (0, import_node_fs8.renameSync)(file + ".tmp", file);
           }, { welcome: (created || d.newCharacter === true) && characterRoster(directory, account).length === 0 });
           if (!testRewards) state.townBuffUntil = 0;
           p = world.join(id, state);
@@ -6742,20 +6772,20 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 }
 
 // server/release-backup.js
-var import_node_fs8 = require("node:fs");
-var import_node_path8 = require("node:path");
+var import_node_fs9 = require("node:fs");
+var import_node_path9 = require("node:path");
 function backupBefore416(directory, release = "4.16.0") {
-  (0, import_node_fs8.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path8.join)(directory, "release-backups"), final = (0, import_node_path8.join)(root, "before-" + release);
-  if ((0, import_node_fs8.existsSync)((0, import_node_path8.join)(final, "complete.json"))) return false;
-  (0, import_node_fs8.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path8.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
-  (0, import_node_fs8.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs8.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs8.copyFileSync)((0, import_node_path8.join)(directory, name), (0, import_node_path8.join)(stage, name), import_node_fs8.constants.COPYFILE_EXCL);
-  for (const name of ["accounts", "deleted-characters", "account-deletions", "commerce.json", "commerce-pending.json", "referrals.json", "play-receipts"]) if ((0, import_node_fs8.existsSync)((0, import_node_path8.join)(directory, name))) (0, import_node_fs8.cpSync)((0, import_node_path8.join)(directory, name), (0, import_node_path8.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
-  (0, import_node_fs8.writeFileSync)((0, import_node_path8.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs8.renameSync)(stage, final);
+  (0, import_node_fs9.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path9.join)(directory, "release-backups"), final = (0, import_node_path9.join)(root, "before-" + release);
+  if ((0, import_node_fs9.existsSync)((0, import_node_path9.join)(final, "complete.json"))) return false;
+  (0, import_node_fs9.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path9.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs9.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs9.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs9.copyFileSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), import_node_fs9.constants.COPYFILE_EXCL);
+  for (const name of ["accounts", "deleted-characters", "account-deletions", "commerce.json", "commerce-pending.json", "referrals.json", "play-receipts", "account-cleanup-key.pem"]) if ((0, import_node_fs9.existsSync)((0, import_node_path9.join)(directory, name))) (0, import_node_fs9.cpSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
+  (0, import_node_fs9.writeFileSync)((0, import_node_path9.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs9.renameSync)(stage, final);
   console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
