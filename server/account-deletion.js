@@ -1,3 +1,4 @@
+import {createReferrals} from './referrals.js';
 import {createHash} from 'node:crypto';
 import {existsSync,mkdirSync,readFileSync,readdirSync,renameSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -16,6 +17,7 @@ export function createAccountDeletion(directory,{authUrl,adminKey=process.env.SU
  function purge(record){
   const ids=CHARACTER_SLOTS.map(slot=>characterId(record.account,slot));ids.forEach(id=>deletedIds.add(id));
   function clean(base){
+   if(existsSync(join(base,'referrals.json')))createReferrals(base).remove(record.account);
    for(const id of ids){rmSync(join(base,id+'.json'),{force:true});rmSync(join(base,id+'.json.tmp'),{force:true});}
    const trash=join(base,'deleted-characters');if(existsSync(trash))for(const file of readdirSync(trash))if(ids.some(id=>file.startsWith(id+'-')))rmSync(join(trash,file),{force:true});
    const accounts=join(base,'accounts');if(existsSync(accounts)){
@@ -38,3 +40,4 @@ export function createAccountDeletion(directory,{authUrl,adminKey=process.env.SU
  const identityPending=uid=>files().filter(f=>f.endsWith('.json')).some(f=>{const r=JSON.parse(readFileSync(join(root,f),'utf8'));return !r.identityComplete&&r.uid===uid;});
  recover();return {request,isDeleted:account=>!!read(account),isCharacterDeleted:id=>deletedIds.has(id),identityPending,processPending};
 }
+

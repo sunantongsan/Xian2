@@ -5,3 +5,9 @@ local.properties
 *.keystore
 web/assets/*.png
 node_modules/
+
+patch-public/
+review/
+*.aab
+*.apk
+*.p12

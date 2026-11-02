@@ -1,3 +1,4 @@
+import {createReferrals} from './referrals.js';
 // Supabase owns identity; this server owns game saves and account-to-character links.
 import {createHash,randomBytes,scrypt as derive,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
@@ -11,6 +12,7 @@ export const AUTH_URL='https://kfohckvypopaoogmnjuy.supabase.co';
 export const AUTH_KEY='sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA';
 export const AUTH_REDIRECT='cockronetwork://auth/callback';
 export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUPABASE_SERVICE_ROLE_KEY}={}){
+ const referrals=createReferrals(directory);
  const deletion=createAccountDeletion(directory,{authUrl:AUTH_URL,fetcher,adminKey});
  const root=join(directory,'accounts');const flows=new Map(),attempts=new Map(),busy=new Set();
  const path=(kind,key)=>join(root,kind+'-'+hash(key)+'.json');
@@ -22,6 +24,8 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  function throttle(account){const now=Date.now(),q=(attempts.get(account)||[]).filter(t=>t>now-600000);if(q.length>=5)throw Error('password_locked');q.push(now);attempts.set(account,q);}
  async function verifyPassword(account,password){throttle(account);const m=meta(account);if(!m.password||typeof password!=='string'||password.length>128)throw Error('wrong_password');const key=await scrypt(password,m.salt,32);if(!timingSafeEqual(key,Buffer.from(m.password,'hex')))throw Error('wrong_password');attempts.delete(account);return m;}
  async function manageUnlocked(token,d){const account=resolve(token);if(d.action==='logout'){write('session',token,{account,revoked:true});return {loggedOut:true};}if(d.action==='status')return {hasPassword:!!meta(account).password,google:!!meta(account).uid,canReset:!!meta(account).uid&&Date.now()-(read('session',token)?.reauthAt||0)<300000,accountId:account.slice(0,12)};
+ if(d.action==='referralStatus')return referrals.status(account,meta(account).uid);
+ if(d.action==='redeemReferral')return referrals.redeem(account,meta(account).uid,d.code);
  if(d.action==='deleteAccount'){await verifyPassword(account,d.password);if(d.confirmText!=='ลบบัญชี COCKRO')throw Error('confirmation_mismatch');return deletion.request(account,meta(account).uid);}
  if(d.action==='rename'){const state=readCharacter(directory,account,d.character);if(!state)throw Error('character_missing');if(state.name)throw Error('already_named');const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;const p=join(directory,characterId(account,d.character)+'.json');writeFileSync(p+'.tmp',JSON.stringify(state),{mode:0o600});renameSync(p+'.tmp',p);return {characters:characterRoster(directory,account)};}
  if(d.action==='setPassword'){const m=meta(account);if(d.reset===true){const session=read('session',token);if(!m.uid||!session?.reauthAt||Date.now()-session.reauthAt>300000)throw Error('reauth_required');}else if(m.password)await verifyPassword(account,d.oldPassword);if(typeof d.password!=='string'||d.password.length<8||d.password.length>128)throw Error('weak_password');const salt=randomBytes(16).toString('hex'),key=await scrypt(d.password,salt,32);write('profile',account,{...meta(account),salt,password:key.toString('hex')});if(d.reset===true)write('session',token,{...read('session',token),reauthAt:0});return {hasPassword:true};}
@@ -39,6 +43,7 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  // A known Google account is loaded, never overwritten by an unrelated guest save.
  const token=randomBytes(32).toString('hex');write('session',token,{account,persistent:true,createdAt:Date.now(),reauthAt:f.purpose==='resetPassword'?Date.now():0});return {token,google:true,passwordReset:f.purpose==='resetPassword',characters:characterRoster(directory,account),loadedExisting:!!existing&&f.account!==account};}
  async function manage(token,d){const account=resolve(token);if(busy.has(account))throw Error('account_busy');busy.add(account);try{return await manageUnlocked(token,d);}finally{busy.delete(account);}}
- return {resolve,exists,meta,manage,authStart,authFinish,busy,deletion};
+ return {resolve,exists,meta,manage,authStart,authFinish,busy,deletion,referrals};
 }
+
 
