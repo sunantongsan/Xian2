@@ -26,5 +26,16 @@ public class AutoUpdaterTest {
  @Test public void boundsManifestAndPreventsForeignDownloadUrl()throws Exception{AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[32769],200,32769));try{u.latest();fail();}catch(IOException expected){}JSONObject m=new JSONObject(manifest(new byte[]{1}));m.put("path","https://untrusted.example/update.zip");try{new UpdateManifest(m.toString());fail();}catch(IOException expected){}}
  @Test public void comparesNumericVersionsAndRejectsDowngrades()throws Exception{assertTrue(UpdateManifest.compare("4.10.0","4.9.9")>0);assertEquals(0,UpdateManifest.compare("4.5.1","4.5.1"));assertTrue(UpdateManifest.compare("4.5.0","4.5.1")<0);try{UpdateManifest.compare("4.5.1-preview","4.5.1");fail();}catch(IOException expected){}}
  @Test public void rejectsWrongGameEngineAndOversizedBundle()throws Exception{for(String field:new String[]{"game","engine","size"}){JSONObject m=new JSONObject(manifest(new byte[]{1}));m.put(field,field.equals("game")?"another":field.equals("engine")?99:UpdateManifest.MAX_BYTES+1);try{new UpdateManifest(m.toString());fail();}catch(IOException expected){}}}
+ @Test public void cancellationReturnsBeforeBlockedNetworkDisconnect()throws Exception{
+  java.util.concurrent.CountDownLatch entered=new java.util.concurrent.CountDownLatch(1),release=new java.util.concurrent.CountDownLatch(1);
+  AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1},200,1){
+   public int getResponseCode(){entered.countDown();try{release.await();}catch(InterruptedException e){Thread.currentThread().interrupt();}return 200;}
+   public void disconnect(){try{release.await();}catch(InterruptedException e){Thread.currentThread().interrupt();}}
+  });
+  Thread download=new Thread(()->{try{u.latest();}catch(Exception expected){}});download.start();assertTrue(entered.await(2,java.util.concurrent.TimeUnit.SECONDS));
+  try{java.util.concurrent.CountDownLatch returned=new java.util.concurrent.CountDownLatch(1);Thread click=new Thread(()->{u.cancel();returned.countDown();});click.start();assertTrue("Cancel must not block UI on network teardown",returned.await(500,java.util.concurrent.TimeUnit.MILLISECONDS));try{u.checkCancelled();fail();}catch(IOException expected){}}
+  finally{release.countDown();download.join(2000);}
+ }
 }
+
 

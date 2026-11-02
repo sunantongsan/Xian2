@@ -23,5 +23,7 @@ export class GameAudio {
  attack(hero){this.effect(hero==='sword-dragonfly'?'skill-bolt':'skill-dash',{volume:.16,rate:hero==='sword-cricket'?.8:1.2,gap:180});}
  hit(){this.effect('hit-soft',{volume:.16,gap:180});}
  tap(){this.effect('ui-tap',{volume:.18,gap:90});}
+ buff(){this.effect('upgrade-success',{volume:.32,gap:1500});}
  success(){this.effect('ui-confirm',{volume:.32,gap:400});}
 }
+

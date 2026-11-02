@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes5, createHash: createHash6 } = require("crypto");
+    var { randomBytes: randomBytes5, createHash: createHash7 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2944,7 +2944,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash6("sha1").update(key + GUID).digest("base64");
+        const digest = createHash7("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3313,7 +3313,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http2 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash6 } = require("crypto");
+    var { createHash: createHash7 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3620,7 +3620,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash6("sha1").update(key + GUID).digest("base64");
+        const digest = createHash7("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -3707,140 +3707,10 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// server/play-billing.js
+// server/commerce.js
 var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
-
-// web/gold-products.js
-var GOLD_PRODUCTS = [
-  { id: "cockro_gold_5000", gold: 5e3, thb: 30, title: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E49\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48" },
-  { id: "cockro_gold_20000", gold: 2e4, thb: 100, title: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1E\u0E25\u0E31\u0E07" },
-  { id: "cockro_gold_150000", gold: 15e4, thb: 500, title: "\u0E22\u0E2D\u0E14\u0E19\u0E31\u0E01\u0E23\u0E1A" },
-  { id: "cockro_gold_500000", gold: 5e5, thb: 1e3, title: "\u0E1E\u0E25\u0E31\u0E07\u0E23\u0E30\u0E14\u0E31\u0E1A\u0E40\u0E17\u0E1E" }
-];
-
-// server/play-billing.js
-function validatePlayPurchase(data, { owner, character }) {
-  if (data.purchaseState !== 0) throw Error("payment_pending");
-  if (data.obfuscatedExternalAccountId !== owner || data.obfuscatedExternalProfileId !== character) throw Error("wrong_account");
-  if ((data.quantity ?? 1) !== 1) throw Error("invalid_quantity");
-}
-function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTIALS, fetcher = fetch } = {}) {
-  let credentials = null;
-  try {
-    if (credentialsPath) credentials = JSON.parse((0, import_node_fs.readFileSync)(credentialsPath, "utf8"));
-  } catch {
-  }
-  const enabled = !!(credentials?.client_email && credentials?.private_key);
-  let cached = null;
-  async function access() {
-    if (!enabled) throw Error("billing_unavailable");
-    if (cached && cached.until > Date.now()) return cached.token;
-    const now = Math.floor(Date.now() / 1e3), enc = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
-    const base = enc({ alg: "RS256", typ: "JWT" }) + "." + enc({ iss: credentials.client_email, scope: "https://www.googleapis.com/auth/androidpublisher", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 });
-    const assertion = base + "." + (0, import_node_crypto.createSign)("RSA-SHA256").update(base).sign(credentials.private_key, "base64url");
-    const r = await fetcher("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }), signal: AbortSignal.timeout(15e3) });
-    if (!r.ok) throw Error("billing_unavailable");
-    const d = await r.json();
-    if (!d.access_token) throw Error("billing_unavailable");
-    cached = { token: d.access_token, until: Date.now() + 3e6 };
-    return cached.token;
-  }
-  async function request(product, token, consume = false) {
-    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.sunantongsan.networkcokcro/purchases/products/${encodeURIComponent(product)}/tokens/${encodeURIComponent(token)}${consume ? ":consume" : ""}`;
-    const r = await fetcher(url, { method: consume ? "POST" : "GET", headers: { Authorization: "Bearer " + await access() }, signal: AbortSignal.timeout(15e3) });
-    if (!r.ok) throw Error(r.status >= 500 ? "verification_unavailable" : "purchase_not_verified");
-    return consume ? null : r.json();
-  }
-  return { enabled, verify: (id, token) => request(id, token), consume: (id, token) => request(id, token, true) };
-}
-function createBillingService(directory, verifier = createPlayVerifier()) {
-  const dir = (0, import_node_path.join)(directory, "play-receipts");
-  const locks = /* @__PURE__ */ new Set();
-  const write2 = (path, data) => {
-    (0, import_node_fs.writeFileSync)(path + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs.renameSync)(path + ".tmp", path);
-  };
-  return { enabled: verifier.enabled, history(owner, offset = 0) {
-    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1e6) throw Error("invalid_request");
-    const records = (0, import_node_fs.existsSync)(dir) ? (0, import_node_fs.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((file) => ({ file, data: JSON.parse((0, import_node_fs.readFileSync)((0, import_node_path.join)(dir, file), "utf8")) })).filter((r) => r.data.owner === owner) : [];
-    records.sort((a, b) => (b.data.created || 0) - (a.data.created || 0) || a.file.localeCompare(b.file));
-    return { purchases: records.slice(offset, offset + 20).map(({ file, data: r }) => ({ reference: file.slice(0, 16), product: r.product, gold: r.gold, created: r.created, purchasedAt: r.purchasedAt || null, orderId: r.orderId || null, test: r.test === true, character: r.character, characterName: r.characterName || null, status: r.credited ? "credited" : "processing" })), nextOffset: offset + 20 < records.length ? offset + 20 : null };
-  }, async redeem(p, { productId, token }, persist) {
-    if (!verifier.enabled) throw Error("billing_unavailable");
-    (0, import_node_fs.mkdirSync)(dir, { recursive: true, mode: 448 });
-    const product = GOLD_PRODUCTS.find((x) => x.id === productId);
-    if (!product || typeof token !== "string" || token.length < 10 || token.length > 2048) throw Error("invalid_purchase");
-    const hash3 = (0, import_node_crypto.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path.join)(dir, hash3 + ".json");
-    if (locks.has(hash3)) throw Error("purchase_busy");
-    locks.add(hash3);
-    try {
-      let record = (0, import_node_fs.existsSync)(path) ? JSON.parse((0, import_node_fs.readFileSync)(path, "utf8")) : null;
-      if (record && (record.owner !== p.account || record.character !== p.id || record.product !== productId)) throw Error("wrong_account");
-      if (record?.credited) {
-        if (!record.consumed) {
-          await verifier.consume(productId, token);
-          record.consumed = true;
-          write2(path, record);
-        }
-        return { gold: product.gold, duplicate: true };
-      }
-      const verified = await verifier.verify(productId, token);
-      validatePlayPurchase(verified, { owner: p.account, character: p.id });
-      if (verified.consumptionState === 1 && !record) throw Error("already_consumed");
-      if (!record) {
-        record = { owner: p.account, character: p.id, characterName: p.s.name || null, product: productId, gold: product.gold, credited: false, created: Date.now(), orderId: typeof verified.orderId === "string" ? verified.orderId.slice(0, 128) : null, purchasedAt: Number.isFinite(Number(verified.purchaseTimeMillis)) ? Number(verified.purchaseTimeMillis) : null, test: verified.purchaseType === 0 };
-        write2(path, record);
-      }
-      const already = p.s.playReceipts?.includes(hash3);
-      if (!already) {
-        if (p.s.stones + product.gold > 1e7) throw Error("wallet_full");
-        const next = structuredClone(p.s);
-        next.stones += product.gold;
-        next.playReceipts = [...next.playReceipts || [], hash3];
-        persist({ id: p.id, s: next });
-        p.s = next;
-        p.dirty = false;
-      }
-      record.credited = true;
-      write2(path, record);
-      try {
-        await verifier.consume(productId, token);
-        record.consumed = true;
-        write2(path, record);
-      } catch {
-        return { gold: product.gold, duplicate: !!already, consumePending: true };
-      }
-      return { gold: product.gold, duplicate: !!already };
-    } finally {
-      locks.delete(hash3);
-    }
-  } };
-}
-
-// server/state-wire.js
-function stateForWire(data, cursor = 0) {
-  if (data.type !== "state") return data;
-  return { ...data, events: data.events.filter((e) => e.id > cursor) };
-}
-
-// web/world-save.js
-function normalizeWorldSave(s, v) {
-  const w = v.worldState;
-  if (w && ["town", "forest", "star"].includes(w.map) && ["x", "y", "hp", "mp"].every((k) => Number.isFinite(w[k])) && Math.abs(w.x) < 1e6 && Math.abs(w.y) < 1e6) {
-    s.worldState = { map: w.map, x: w.x, y: w.y, hp: Math.max(0, w.hp), mp: Math.max(0, w.mp), cd: Object.fromEntries(Object.entries(w.cd || {}).filter(([k, n]) => /^[a-zA-Z0-9_-]{1,40}$/.test(k) && Number.isFinite(n) && n >= 0)), offlineSince: Number.isFinite(w.offlineSince) ? w.offlineSince : 0 };
-  }
-  s.pvpReports = (Array.isArray(v.pvpReports) ? v.pvpReports : []).filter((r) => r && typeof r.id === "string" && Number.isFinite(r.at)).slice(-30).map((r) => ({ id: r.id.slice(0, 80), at: r.at, opponent: String(r.opponent || "\u0E1C\u0E39\u0E49\u0E40\u0E25\u0E48\u0E19").slice(0, 40), result: ["won", "lost", "escaped", "interrupted"].includes(r.result) ? r.result : "interrupted", damageTaken: Math.max(0, Number(r.damageTaken) || 0), damageDealt: Math.max(0, Number(r.damageDealt) || 0), potions: Math.max(0, Number(r.potions) || 0), mpPotions: Math.max(0, Number(r.mpPotions) || 0), unread: r.unread !== false, pending: r.pending === true }));
-}
-
-// web/character-name.js
-function characterName(value) {
-  if (typeof value !== "string") return null;
-  const name = value.normalize("NFC").trim().replace(/ +/g, " ");
-  if (name.length < 2 || name.length > 20 || !/[\p{L}\p{N}]/u.test(name) || !/^[\p{L}\p{M}\p{N} _-]+$/u.test(name)) return null;
-  return name;
-}
 
 // web/daily-activities.js
 var dayKey = (now = Date.now()) => new Date(now + 7 * 36e5).toISOString().slice(0, 10);
@@ -3867,31 +3737,6 @@ function normalizeActivities(s, v) {
   if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.day)) return;
   s.dailyActivities = { day: d.day, claimed: Array.isArray(d.claimed) ? d.claimed.filter((id) => DAILY_TASKS.some((t) => t.id === id)) : [] };
   for (const t of DAILY_TASKS) s.dailyActivities[t.id] = Number.isFinite(d[t.id]) ? Math.max(0, Math.min(1e5, Math.floor(d[t.id]))) : 0;
-}
-
-// web/checkin.js
-var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
-var DAY = 864e5;
-var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
-function normalizeCheckin(s, v = s) {
-  const c = v.checkin || {};
-  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
-  return s;
-}
-function checkinStatus(s, now = Date.now()) {
-  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
-  const claimed = Number.isInteger(last) && last >= today;
-  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
-  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
-}
-function claimCheckin(s, now = Date.now()) {
-  if (!Number.isFinite(now)) return 0;
-  normalizeCheckin(s);
-  const status = checkinStatus(s, now);
-  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
-  s.stones += status.reward;
-  s.checkin = { lastDay: status.today, streak: status.day };
-  return status.reward;
 }
 
 // web/enhancement.js
@@ -3958,13 +3803,6 @@ function applyRegen(p, dt, maxHP2, maxMP) {
   p.hp = Math.min(maxHP2, p.hp + maxHP2 * hp * ticks);
   p.mp = Math.min(maxMP, (p.mp || 0) + maxMP * mp * ticks);
 }
-var TEST_GRANT_ID = "pioneer-50000-v1";
-function grantTestGold(s, enabled) {
-  if (!enabled || s.testGoldGrant === TEST_GRANT_ID) return false;
-  s.stones += 5e4;
-  s.testGoldGrant = TEST_GRANT_ID;
-  return true;
-}
 function exchangeGold(s, amount) {
   if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1e3 || s.stones < amount || s.gold + amount * 1e4 > 1e10) return false;
   s.stones -= amount;
@@ -4004,6 +3842,559 @@ function socketGem(s, slot, id) {
   if (old) s.upgradeItems[old]++;
   it.gems = normalizeGems({ [id]: 1 });
   return true;
+}
+
+// web/gear.js
+var SLOTS = {
+  weapon: { name: "\u0E2D\u0E32\u0E27\u0E38\u0E18", atk: 9 },
+  helm: { name: "\u0E2B\u0E21\u0E27\u0E01\u0E40\u0E01\u0E23\u0E32\u0E30", def: 1.2, hp: 22 },
+  armor: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E2D\u0E01", def: 2.2, hp: 40 },
+  gloves: { name: "\u0E16\u0E38\u0E07\u0E21\u0E37\u0E2D", def: 0.8, atk: 3 },
+  boots: { name: "\u0E23\u0E2D\u0E07\u0E40\u0E17\u0E49\u0E32", def: 0.8, speed: 3 },
+  wings: { name: "\u0E1B\u0E35\u0E01\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", atk: 4, def: 1.2, hp: 20 },
+  ring: { name: "\u0E41\u0E2B\u0E27\u0E19", crit: 0.012 },
+  amulet: { name: "\u0E2A\u0E23\u0E49\u0E2D\u0E22\u0E1E\u0E25\u0E31\u0E07", mp: 14, spell: 0.03 }
+};
+var SLOT_ORDER = ["helm", "armor", "gloves", "boots", "weapon", "wings", "ring", "amulet"];
+var TIERS = [
+  { name: "\u0E1D\u0E36\u0E01\u0E2B\u0E31\u0E14", level: 1 },
+  { name: "\u0E40\u0E2B\u0E25\u0E47\u0E01\u0E14\u0E32\u0E27", level: 10 },
+  { name: "\u0E44\u0E04\u0E15\u0E34\u0E19\u0E2D\u0E33\u0E1E\u0E31\u0E19", level: 20 },
+  { name: "\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25\u0E44\u0E0B\u0E40\u0E1A\u0E2D\u0E23\u0E4C", level: 30 },
+  { name: "\u0E19\u0E35\u0E2D\u0E2D\u0E19\u0E42\u0E04\u0E23", level: 40 },
+  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", level: 50 },
+  ...Array.from({ length: 16 }, (_, i) => ({ name: "\u0E04\u0E27\u0E2D\u0E19\u0E15\u0E31\u0E21 Mk." + (i + 6), level: (i + 6) * 10 }))
+];
+var RARITY = [
+  { name: "\u0E18\u0E23\u0E23\u0E21\u0E14\u0E32", color: "#e9e4d6", mult: 1 },
+  { name: "\u0E14\u0E35\u0E40\u0E22\u0E35\u0E48\u0E22\u0E21", color: "#5aa8ff", mult: 1.25 },
+  { name: "\u0E2B\u0E32\u0E22\u0E32\u0E01", color: "#4ff08a", mult: 1.6 },
+  { name: "\u0E15\u0E33\u0E19\u0E32\u0E19", color: "#ffb440", mult: 2.1 }
+];
+var BAG_SIZE = 40;
+var tierForLevel = (level) => TIERS.reduce((t, x, i) => level >= x.level ? i : t, 0);
+function itemStats(it) {
+  const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + Math.max(it.plus || 0, it.legacyPlus || 0) * 0.08), o = {};
+  for (const key of ["atk", "def", "hp", "crit", "speed", "mp", "spell"]) if (base[key]) o[key] = +(base[key] * k).toFixed(key === "crit" || key === "spell" ? 3 : 1);
+  for (const id of GEM_IDS) {
+    const n = normalizeGems(it.gems)[id], g = UPGRADE_ITEMS[id];
+    if (n) o[g.stat] = +((o[g.stat] || 0) + n * g.amount).toFixed(g.stat === "crit" ? 3 : 1);
+  }
+  const opt = specialInfo(it.special);
+  if (opt && !["hpRegen", "mpRegen"].includes(opt.stat)) o[opt.stat] = (o[opt.stat] || 0) + opt.value;
+  return o;
+}
+function sellPrice(it) {
+  return Math.round(40 * (1 + it.tier) ** 2 * RARITY[it.rarity].mult);
+}
+function gearTotals(s) {
+  const t = { atk: 0, def: 0, hp: 0, crit: 0, speed: 0, mp: 0, spell: 0 };
+  for (const it of Object.values(s.equip || {})) if (it) for (const [k, v] of Object.entries(itemStats(it))) t[k] += v;
+  return t;
+}
+var uid = 0;
+function makeItem(slot, tier, rarity, rng = Math.random) {
+  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0, ...specialFields({}) };
+}
+function rollDrop(m, rng = Math.random) {
+  const chance = m.boss ? 1 : m.elite ? 0.15 : 0.01;
+  if (rng() >= chance) return null;
+  const slot = SLOT_ORDER[Math.floor(rng() * SLOT_ORDER.length)], tier = tierForLevel(m.level);
+  const r = rng();
+  let rarity = r < 0.04 ? 3 : r < 0.16 ? 2 : r < 0.45 ? 1 : 0;
+  if (m.boss) rarity = Math.max(2, rarity);
+  else if (m.elite) rarity = Math.max(1, rarity);
+  return makeItem(slot, tier, rarity, rng);
+}
+function canEquip(s, it) {
+  return s.level >= TIERS[it.tier].level;
+}
+function equip(s, id) {
+  const i = s.bag.findIndex((x) => x.id === id);
+  if (i < 0) return "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E44\u0E2D\u0E40\u0E17\u0E47\u0E21";
+  const it = s.bag[i];
+  if (!canEquip(s, it)) return `\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E25\u0E40\u0E27\u0E25 ${TIERS[it.tier].level}`;
+  s.bag.splice(i, 1);
+  const old = s.equip[it.slot];
+  if (old) s.bag.push(old);
+  s.equip[it.slot] = it;
+  return null;
+}
+function unequip(s, slot) {
+  const it = s.equip[slot];
+  if (!it) return "\u0E0A\u0E48\u0E2D\u0E07\u0E27\u0E48\u0E32\u0E07";
+  if (s.bag.length >= BAG_SIZE) return "\u0E01\u0E23\u0E30\u0E40\u0E1B\u0E4B\u0E32\u0E40\u0E15\u0E47\u0E21";
+  s.bag.push(it);
+  s.equip[slot] = null;
+  return null;
+}
+function sell(s, id) {
+  const i = s.bag.findIndex((x) => x.id === id);
+  if (i < 0) return 0;
+  const [it] = s.bag.splice(i, 1), g = sellPrice(it);
+  s.gold += g;
+  return g;
+}
+function freshGear(s) {
+  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => [k, null]));
+  s.equip.weapon = makeItem("weapon", 0, 0);
+  s.equip.armor = makeItem("armor", 0, 0);
+  s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
+  return s;
+}
+var validItem = (it) => it && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
+function normalizeGear(s, v = {}) {
+  if (!v.equip && !v.bag) return freshGear(s);
+  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
+    const it = v.equip?.[k];
+    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
+  }));
+  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
+  return s;
+}
+var gearUpgradeCost = (it) => 20 * ((it.plus || 0) + 1) + it.tier * 5;
+var gearUpgradeG = (it) => 500 * ((it.plus || 0) + 1) ** 2;
+function upgradeGear(s, slot) {
+  const it = s.equip?.[slot];
+  if (!ENHANCE_SLOTS.includes(slot) || !it || (it.plus || 0) >= MAX_PLUS) return false;
+  normalizeUpgradeItems(s);
+  const cost = gearUpgradeCost(it), g = gearUpgradeG(it), n = (it.plus || 0) + 1;
+  if (!Number.isFinite(s.stones) || s.stones < cost || s.gold < g || s.upgradeItems.alloy < n) return false;
+  s.stones -= cost;
+  s.gold -= g;
+  s.upgradeItems.alloy -= n;
+  it.plus = n;
+  countActivity(s, "upgrade");
+  return true;
+}
+function gearShopPrice(slot, tier) {
+  return slot === "weapon" ? 1e3 + 500 * tier * tier : 600 + 250 * tier * tier;
+}
+function buyShopGear(s, slot, tier = tierForLevel(s.level)) {
+  if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE || !Number.isInteger(tier) || !TIERS[tier] || s.level < TIERS[tier].level) return false;
+  const cost = gearShopPrice(slot, tier);
+  if (s.stones < cost) return false;
+  s.stones -= cost;
+  s.bag.push(makeItem(slot, tier, 2));
+  return true;
+}
+
+// web/exp-tickets.js
+var EXP_DURATION = 36e5;
+var EXP_TICKETS = Object.freeze({
+  x2: { name: "\u0E15\u0E31\u0E4B\u0E27 EXP \xD72", multiplier: 2, price: 5e4 },
+  x5: { name: "\u0E15\u0E31\u0E4B\u0E27 EXP \xD75", multiplier: 5, price: 15e4 },
+  x10: { name: "\u0E15\u0E31\u0E4B\u0E27 EXP \xD710", multiplier: 10, price: 35e4 }
+});
+function normalizeExpTickets(s, v = s, now = Date.now()) {
+  s.expTickets = Object.fromEntries(Object.keys(EXP_TICKETS).map((id) => [id, Number.isSafeInteger(v.expTickets?.[id]) ? Math.max(0, Math.min(99999, v.expTickets[id])) : 0]));
+  const b = v.expBoost;
+  s.expBoost = b && Object.hasOwn(EXP_TICKETS, b.id) && Number.isFinite(b.until) && b.until > now ? { id: b.id, until: Math.min(b.until, now + EXP_DURATION) } : null;
+}
+function expMultiplier(s, now = Date.now()) {
+  return s.expBoost?.until > now ? EXP_TICKETS[s.expBoost.id]?.multiplier || 1 : 1;
+}
+function buyExpTicket(s, id) {
+  if (!Object.hasOwn(EXP_TICKETS, id)) return false;
+  const it = EXP_TICKETS[id];
+  if (!Number.isFinite(s.gold) || s.gold < it.price || (s.expTickets?.[id] || 0) >= 99999) return false;
+  s.expTickets ??= {};
+  s.gold -= it.price;
+  s.expTickets[id] = (s.expTickets[id] || 0) + 1;
+  return true;
+}
+function useExpTicket(s, id, replaceUntil = 0, now = Date.now()) {
+  if (!Object.hasOwn(EXP_TICKETS, id) || !Number.isSafeInteger(s.expTickets?.[id]) || s.expTickets[id] < 1) return false;
+  if (s.expBoost?.until > now && replaceUntil !== s.expBoost.until) return false;
+  s.expTickets[id]--;
+  s.expBoost = { id, until: now + EXP_DURATION };
+  return true;
+}
+
+// server/commerce.js
+var CAPS = { gold: 1e10, stones: 1e7 };
+var integer = (n, max) => Number.isSafeInteger(n) && n > 0 && n <= max;
+function need(ok, message) {
+  if (!ok) throw Error(message);
+}
+function take(s, kind, id, quantity) {
+  need(integer(quantity, 99999), "invalid_quantity");
+  if (kind === "gear") {
+    need(quantity === 1, "invalid_quantity");
+    const i = s.bag.findIndex((it) => it.id === id);
+    need(i >= 0, "item_missing");
+    return { kind, id, quantity: 1, item: s.bag.splice(i, 1)[0] };
+  }
+  const [holder, key] = stack(s, kind, id);
+  need((holder[key] || 0) >= quantity, "item_missing");
+  holder[key] -= quantity;
+  return { kind, id, quantity };
+}
+function stack(s, kind, id) {
+  if (kind === "material" && Object.hasOwn(UPGRADE_ITEMS, id)) return [s.upgradeItems, id];
+  if (kind === "ticket" && Object.hasOwn(EXP_TICKETS, id)) return [s.expTickets, id];
+  if (kind === "potion" && ["hp", "mp"].includes(id)) return [s, id === "hp" ? "potions" : "mpPotions"];
+  throw Error("item_not_transferable");
+}
+function give(s, cargo) {
+  if (cargo.kind === "gear") {
+    need(s.bag.length < BAG_SIZE, "bag_full");
+    need(!s.bag.some((it) => it.id === cargo.item.id) && !Object.values(s.equip).some((it) => it?.id === cargo.item.id), "duplicate_item");
+    s.bag.push(structuredClone(cargo.item));
+    return;
+  }
+  const [holder, key] = stack(s, cargo.kind, cargo.id);
+  need((holder[key] || 0) + cargo.quantity <= 99999, "bag_full");
+  holder[key] = (holder[key] || 0) + cargo.quantity;
+}
+function createCommerce(directory, { players, getActor = (id) => players().get(id), capture = () => {
+}, writeHook } = {}) {
+  const ledgerPath = (0, import_node_path.join)(directory, "commerce.json"), walPath = (0, import_node_path.join)(directory, "commerce-pending.json");
+  let failed = false;
+  const syncDir = () => {
+    const fd = (0, import_node_fs.openSync)(directory, "r");
+    try {
+      (0, import_node_fs.fsyncSync)(fd);
+    } finally {
+      (0, import_node_fs.closeSync)(fd);
+    }
+  };
+  const write2 = (file, value) => {
+    (0, import_node_fs.writeFileSync)(file + ".tmp", JSON.stringify(value), { mode: 384 });
+    const fd = (0, import_node_fs.openSync)(file + ".tmp", "r");
+    try {
+      (0, import_node_fs.fsyncSync)(fd);
+    } finally {
+      (0, import_node_fs.closeSync)(fd);
+    }
+    (0, import_node_fs.renameSync)(file + ".tmp", file);
+    syncDir();
+  };
+  function apply(tx) {
+    for (const [id, s] of Object.entries(tx.characters)) {
+      need(/^[a-f0-9]{64}$/.test(id), "invalid_character");
+      write2((0, import_node_path.join)(directory, id + ".json"), s);
+    }
+    write2(ledgerPath, tx.ledger);
+    (0, import_node_fs.unlinkSync)(walPath);
+    syncDir();
+  }
+  if ((0, import_node_fs.existsSync)(walPath)) apply(JSON.parse((0, import_node_fs.readFileSync)(walPath, "utf8")));
+  let ledger = (0, import_node_fs.existsSync)(ledgerPath) ? JSON.parse((0, import_node_fs.readFileSync)(ledgerPath, "utf8")) : { revision: 0, vaults: {}, shops: {} };
+  const vault = (l, account) => l.vaults[account] ??= { gold: 0, stones: 0, items: [] };
+  function ready(p) {
+    need(!failed, "save_unavailable");
+    need(p && players().get(p.id) === p && !p.offline, "seller_offline");
+    need(!p.economyBusy, "account_busy");
+    need(p.map === "town" && p.hp > 0 && Date.now() / 1e3 - (p.lastPvp ?? -Infinity) >= 10, "town_only");
+  }
+  function active(shop) {
+    return shop.open;
+  }
+  function view(p) {
+    const own = ledger.shops[p.account];
+    return { revision: ledger.revision, vault: structuredClone(ledger.vaults[p.account] || { gold: 0, stones: 0, items: [] }), ownShop: structuredClone(own || { open: false, title: "", listings: [] }), shops: Object.values(ledger.shops).filter(active).map((shop) => ({ character: shop.character, title: shop.title, name: shop.name, x: shop.x, y: shop.y, listings: structuredClone(shop.listings) })) };
+  }
+  function run(p, d) {
+    ready(p);
+    if (d.action === "view") return view(p);
+    need(d.revision === ledger.revision, "stale_market");
+    const next = structuredClone(ledger), changed = /* @__PURE__ */ new Map();
+    const state = (actor) => {
+      if (!changed.has(actor)) {
+        capture(actor);
+        changed.set(actor, structuredClone(actor.s));
+      }
+      return changed.get(actor);
+    };
+    const s = state(p), v = vault(next, p.account);
+    let shop = next.shops[p.account];
+    switch (d.action) {
+      case "depositMoney":
+      case "withdrawMoney": {
+        need(Object.hasOwn(CAPS, d.currency), "invalid_currency");
+        need(integer(d.amount, CAPS[d.currency]), "invalid_quantity");
+        const [from, to] = d.action === "depositMoney" ? [s, v] : [v, s];
+        need(from[d.currency] >= d.amount, "insufficient_funds");
+        need(to[d.currency] + d.amount <= CAPS[d.currency], "wallet_full");
+        from[d.currency] -= d.amount;
+        to[d.currency] += d.amount;
+        break;
+      }
+      case "depositItem":
+        need(v.items.length < 120, "vault_full");
+        v.items.push({ ...take(s, d.kind, d.id, d.quantity), key: (0, import_node_crypto.randomUUID)() });
+        break;
+      case "withdrawItem": {
+        const i = v.items.findIndex((it) => it.key === d.key);
+        need(i >= 0, "item_missing");
+        give(s, v.items[i]);
+        v.items.splice(i, 1);
+        break;
+      }
+      case "openShop": {
+        need(typeof d.title === "string" && d.title.trim().length >= 2 && d.title.trim().length <= 32, "invalid_title");
+        shop ??= { listings: [] };
+        shop.title = d.title.trim();
+        shop.open = true;
+        shop.character = p.id;
+        shop.name = p.name;
+        shop.x = p.x;
+        shop.y = p.y;
+        next.shops[p.account] = shop;
+        break;
+      }
+      case "closeShop":
+        need(shop, "shop_missing");
+        shop.open = false;
+        break;
+      case "listItem": {
+        need(shop?.character === p.id, "shop_missing");
+        need(shop.listings.length < 12, "shop_full");
+        need(Object.hasOwn(CAPS, d.currency) && integer(d.price, CAPS[d.currency]), "invalid_price");
+        shop.listings.push({ key: (0, import_node_crypto.randomUUID)(), cargo: take(s, d.kind, d.id, d.quantity), currency: d.currency, price: d.price });
+        break;
+      }
+      case "cancelListing": {
+        need(shop, "shop_missing");
+        const i = shop.listings.findIndex((it) => it.key === d.key);
+        need(i >= 0, "item_missing");
+        give(s, shop.listings[i].cargo);
+        shop.listings.splice(i, 1);
+        break;
+      }
+      case "buy": {
+        const target = Object.entries(next.shops).find(([account, x]) => account !== p.account && x.character === d.seller);
+        need(target, "shop_missing");
+        const sale = target[1];
+        need(active(sale), "seller_offline");
+        const seller = getActor(sale.character);
+        need(seller, "shop_missing");
+        need(!seller.economyBusy, "account_busy");
+        need(Math.hypot(p.x - sale.x, p.y - sale.y) <= 350, "seller_too_far");
+        const i = sale.listings.findIndex((it) => it.key === d.key);
+        need(i >= 0, "item_missing");
+        const item = sale.listings[i];
+        need(d.price === item.price && d.currency === item.currency, "price_changed");
+        need(s[item.currency] >= item.price, "insufficient_funds");
+        const recipient = state(seller);
+        need(recipient[item.currency] + item.price <= CAPS[item.currency], "wallet_full");
+        give(s, item.cargo);
+        s[item.currency] -= item.price;
+        recipient[item.currency] += item.price;
+        sale.sales ??= [];
+        sale.sales.push({ at: Date.now(), buyer: p.name, cargo: item.cargo, currency: item.currency, price: item.price });
+        sale.sales = sale.sales.slice(-50);
+        sale.listings.splice(i, 1);
+        break;
+      }
+      default:
+        throw Error("invalid_request");
+    }
+    next.revision++;
+    const tx = { ledger: next, characters: Object.fromEntries([...changed].map(([actor, save]) => [actor.id, save])) };
+    try {
+      write2(walPath, tx);
+      writeHook?.();
+      apply(tx);
+    } catch {
+      failed = true;
+      throw Error("save_unavailable");
+    }
+    ledger = next;
+    for (const [actor, save] of changed) {
+      actor.s = save;
+      actor.dirty = false;
+      actor.lastSaved = Date.now();
+    }
+    refreshSigns();
+    return view(p);
+  }
+  function refreshSigns() {
+    for (const p of players().values()) {
+      const shop = ledger.shops[p.account];
+      p.shopTitle = shop?.character === p.id && active(shop) ? shop.title : "";
+    }
+  }
+  function removeAccount(account) {
+    const next = structuredClone(ledger);
+    delete next.vaults[account];
+    delete next.shops[account];
+    next.revision++;
+    try {
+      write2(walPath, { ledger: next, characters: {} });
+      apply({ ledger: next, characters: {} });
+      ledger = next;
+    } catch {
+      failed = true;
+      throw Error("save_unavailable");
+    }
+  }
+  const stalls = () => Object.values(ledger.shops).filter(active).map((x) => ({ character: x.character, title: x.title, name: x.name, x: x.x, y: x.y, count: x.listings.length }));
+  const ownsListedItems = (account, id) => ledger.shops[account]?.character === id && ledger.shops[account].listings.length > 0;
+  return { run, view, refreshSigns, stalls, removeAccount, ownsListedItems, get failed() {
+    return failed;
+  } };
+}
+
+// server/play-billing.js
+var import_node_crypto2 = require("node:crypto");
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
+
+// web/gold-products.js
+var GOLD_PRODUCTS = [
+  { id: "cockro_gold_5000", gold: 5e3, thb: 30, title: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E49\u0E19\u0E2E\u0E35\u0E42\u0E23\u0E48" },
+  { id: "cockro_gold_20000", gold: 2e4, thb: 100, title: "\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E1E\u0E25\u0E31\u0E07" },
+  { id: "cockro_gold_150000", gold: 15e4, thb: 500, title: "\u0E22\u0E2D\u0E14\u0E19\u0E31\u0E01\u0E23\u0E1A" },
+  { id: "cockro_gold_500000", gold: 5e5, thb: 1e3, title: "\u0E1E\u0E25\u0E31\u0E07\u0E23\u0E30\u0E14\u0E31\u0E1A\u0E40\u0E17\u0E1E" }
+];
+
+// server/play-billing.js
+function validatePlayPurchase(data, { owner, character }) {
+  if (data.purchaseState !== 0) throw Error("payment_pending");
+  if (data.obfuscatedExternalAccountId !== owner || data.obfuscatedExternalProfileId !== character) throw Error("wrong_account");
+  if ((data.quantity ?? 1) !== 1) throw Error("invalid_quantity");
+}
+function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTIALS, fetcher = fetch } = {}) {
+  let credentials = null;
+  try {
+    if (credentialsPath) credentials = JSON.parse((0, import_node_fs2.readFileSync)(credentialsPath, "utf8"));
+  } catch {
+  }
+  const enabled = !!(credentials?.client_email && credentials?.private_key);
+  let cached = null;
+  async function access() {
+    if (!enabled) throw Error("billing_unavailable");
+    if (cached && cached.until > Date.now()) return cached.token;
+    const now = Math.floor(Date.now() / 1e3), enc = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
+    const base = enc({ alg: "RS256", typ: "JWT" }) + "." + enc({ iss: credentials.client_email, scope: "https://www.googleapis.com/auth/androidpublisher", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 });
+    const assertion = base + "." + (0, import_node_crypto2.createSign)("RSA-SHA256").update(base).sign(credentials.private_key, "base64url");
+    const r = await fetcher("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }), signal: AbortSignal.timeout(15e3) });
+    if (!r.ok) throw Error("billing_unavailable");
+    const d = await r.json();
+    if (!d.access_token) throw Error("billing_unavailable");
+    cached = { token: d.access_token, until: Date.now() + 3e6 };
+    return cached.token;
+  }
+  async function request(product, token, consume = false) {
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.sunantongsan.networkcokcro/purchases/products/${encodeURIComponent(product)}/tokens/${encodeURIComponent(token)}${consume ? ":consume" : ""}`;
+    const r = await fetcher(url, { method: consume ? "POST" : "GET", headers: { Authorization: "Bearer " + await access() }, signal: AbortSignal.timeout(15e3) });
+    if (!r.ok) throw Error(r.status >= 500 ? "verification_unavailable" : "purchase_not_verified");
+    return consume ? null : r.json();
+  }
+  return { enabled, verify: (id, token) => request(id, token), consume: (id, token) => request(id, token, true) };
+}
+function createBillingService(directory, verifier = createPlayVerifier()) {
+  const dir = (0, import_node_path2.join)(directory, "play-receipts");
+  const locks = /* @__PURE__ */ new Set();
+  const write2 = (path, data) => {
+    (0, import_node_fs2.writeFileSync)(path + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs2.renameSync)(path + ".tmp", path);
+  };
+  return { enabled: verifier.enabled, history(owner, offset = 0) {
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1e6) throw Error("invalid_request");
+    const records = (0, import_node_fs2.existsSync)(dir) ? (0, import_node_fs2.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((file) => ({ file, data: JSON.parse((0, import_node_fs2.readFileSync)((0, import_node_path2.join)(dir, file), "utf8")) })).filter((r) => r.data.owner === owner) : [];
+    records.sort((a, b) => (b.data.created || 0) - (a.data.created || 0) || a.file.localeCompare(b.file));
+    return { purchases: records.slice(offset, offset + 20).map(({ file, data: r }) => ({ reference: file.slice(0, 16), product: r.product, gold: r.gold, created: r.created, purchasedAt: r.purchasedAt || null, orderId: r.orderId || null, test: r.test === true, character: r.character, characterName: r.characterName || null, status: r.credited ? "credited" : "processing" })), nextOffset: offset + 20 < records.length ? offset + 20 : null };
+  }, async redeem(p, { productId, token }, persist) {
+    if (!verifier.enabled) throw Error("billing_unavailable");
+    (0, import_node_fs2.mkdirSync)(dir, { recursive: true, mode: 448 });
+    const product = GOLD_PRODUCTS.find((x) => x.id === productId);
+    if (!product || typeof token !== "string" || token.length < 10 || token.length > 2048) throw Error("invalid_purchase");
+    const hash4 = (0, import_node_crypto2.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path2.join)(dir, hash4 + ".json");
+    if (locks.has(hash4)) throw Error("purchase_busy");
+    locks.add(hash4);
+    try {
+      let record = (0, import_node_fs2.existsSync)(path) ? JSON.parse((0, import_node_fs2.readFileSync)(path, "utf8")) : null;
+      if (record && (record.owner !== p.account || record.character !== p.id || record.product !== productId)) throw Error("wrong_account");
+      if (record?.credited) {
+        if (!record.consumed) {
+          await verifier.consume(productId, token);
+          record.consumed = true;
+          write2(path, record);
+        }
+        return { gold: product.gold, duplicate: true };
+      }
+      const verified = await verifier.verify(productId, token);
+      validatePlayPurchase(verified, { owner: p.account, character: p.id });
+      if (verified.consumptionState === 1 && !record) throw Error("already_consumed");
+      if (!record) {
+        record = { owner: p.account, character: p.id, characterName: p.s.name || null, product: productId, gold: product.gold, credited: false, created: Date.now(), orderId: typeof verified.orderId === "string" ? verified.orderId.slice(0, 128) : null, purchasedAt: Number.isFinite(Number(verified.purchaseTimeMillis)) ? Number(verified.purchaseTimeMillis) : null, test: verified.purchaseType === 0 };
+        write2(path, record);
+      }
+      const already = p.s.playReceipts?.includes(hash4);
+      if (!already) {
+        if (p.s.stones + product.gold > 1e7) throw Error("wallet_full");
+        const next = structuredClone(p.s);
+        next.stones += product.gold;
+        next.playReceipts = [...next.playReceipts || [], hash4];
+        persist({ id: p.id, s: next });
+        p.s = next;
+        p.dirty = false;
+      }
+      record.credited = true;
+      write2(path, record);
+      try {
+        await verifier.consume(productId, token);
+        record.consumed = true;
+        write2(path, record);
+      } catch {
+        return { gold: product.gold, duplicate: !!already, consumePending: true };
+      }
+      return { gold: product.gold, duplicate: !!already };
+    } finally {
+      locks.delete(hash4);
+    }
+  } };
+}
+
+// server/state-wire.js
+function stateForWire(data, cursor = 0) {
+  if (data.type !== "state") return data;
+  return { ...data, events: data.events.filter((e) => e.id > cursor) };
+}
+
+// web/world-save.js
+function normalizeWorldSave(s, v) {
+  const w = v.worldState;
+  if (w && ["town", "forest", "star"].includes(w.map) && ["x", "y", "hp", "mp"].every((k) => Number.isFinite(w[k])) && Math.abs(w.x) < 1e6 && Math.abs(w.y) < 1e6) {
+    s.worldState = { map: w.map, x: w.x, y: w.y, hp: Math.max(0, w.hp), mp: Math.max(0, w.mp), cd: Object.fromEntries(Object.entries(w.cd || {}).filter(([k, n]) => /^[a-zA-Z0-9_-]{1,40}$/.test(k) && Number.isFinite(n) && n >= 0)), offlineSince: Number.isFinite(w.offlineSince) ? w.offlineSince : 0 };
+  }
+  s.pvpReports = (Array.isArray(v.pvpReports) ? v.pvpReports : []).filter((r) => r && typeof r.id === "string" && Number.isFinite(r.at)).slice(-30).map((r) => ({ id: r.id.slice(0, 80), at: r.at, opponent: String(r.opponent || "\u0E1C\u0E39\u0E49\u0E40\u0E25\u0E48\u0E19").slice(0, 40), result: ["won", "lost", "escaped", "interrupted"].includes(r.result) ? r.result : "interrupted", damageTaken: Math.max(0, Number(r.damageTaken) || 0), damageDealt: Math.max(0, Number(r.damageDealt) || 0), potions: Math.max(0, Number(r.potions) || 0), mpPotions: Math.max(0, Number(r.mpPotions) || 0), unread: r.unread !== false, pending: r.pending === true }));
+}
+
+// web/character-name.js
+function characterName(value) {
+  if (typeof value !== "string") return null;
+  const name = value.normalize("NFC").trim().replace(/ +/g, " ");
+  if (name.length < 2 || name.length > 20 || !/[\p{L}\p{N}]/u.test(name) || !/^[\p{L}\p{M}\p{N} _-]+$/u.test(name)) return null;
+  return name;
+}
+
+// web/checkin.js
+var DAILY_GOLD = [3, 4, 5, 6, 7, 8, 15];
+var DAY = 864e5;
+var thaiDay = (ms) => Math.floor((ms + 7 * 36e5) / DAY);
+function normalizeCheckin(s, v = s) {
+  const c = v.checkin || {};
+  s.checkin = { lastDay: Number.isSafeInteger(c.lastDay) && c.lastDay >= 0 ? c.lastDay : null, streak: Number.isInteger(c.streak) ? Math.max(0, Math.min(7, c.streak)) : 0 };
+  return s;
+}
+function checkinStatus(s, now = Date.now()) {
+  const today = thaiDay(now), c = s.checkin || {}, last = c.lastDay;
+  const claimed = Number.isInteger(last) && last >= today;
+  const day = claimed ? Math.max(1, c.streak || 1) : last === today - 1 ? (c.streak || 0) % 7 + 1 : 1;
+  return { day, claimed, reward: DAILY_GOLD[day - 1], today };
+}
+function claimCheckin(s, now = Date.now()) {
+  if (!Number.isFinite(now)) return 0;
+  normalizeCheckin(s);
+  const status = checkinStatus(s, now);
+  if (status.claimed || s.stones > 1e7 - status.reward) return 0;
+  s.stones += status.reward;
+  s.checkin = { lastDay: status.today, streak: status.day };
+  return status.reward;
 }
 
 // web/fashion.js
@@ -4147,13 +4538,13 @@ function zoneContains(z, p) {
     const d = Math.hypot(p.x - z.x, p.y - z.y);
     return d <= z.radius && d >= (z.inner || 0);
   }
-  let sign = 0;
+  let sign2 = 0;
   for (let i = 0; i < z.points.length; i++) {
     const a = z.points[i], b = z.points[(i + 1) % z.points.length], c = (b[0] - a[0]) * (p.y - a[1]) - (b[1] - a[1]) * (p.x - a[0]);
     if (Math.abs(c) < 1e-7) continue;
     const s = Math.sign(c);
-    if (sign && s !== sign) return false;
-    sign = s;
+    if (sign2 && s !== sign2) return false;
+    sign2 = s;
   }
   return true;
 }
@@ -4314,141 +4705,6 @@ SCHOOL.push(
   { id: "d10", sect: "demon", name: "\u0E1D\u0E39\u0E07\u0E42\u0E14\u0E23\u0E19\u0E19\u0E32\u0E42\u0E19", level: 180, form: "field", element: "poison", mods: ["wide", "force"] }
 );
 
-// web/gear.js
-var SLOTS = {
-  weapon: { name: "\u0E2D\u0E32\u0E27\u0E38\u0E18", atk: 9 },
-  helm: { name: "\u0E2B\u0E21\u0E27\u0E01\u0E40\u0E01\u0E23\u0E32\u0E30", def: 1.2, hp: 22 },
-  armor: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E2D\u0E01", def: 2.2, hp: 40 },
-  gloves: { name: "\u0E16\u0E38\u0E07\u0E21\u0E37\u0E2D", def: 0.8, atk: 3 },
-  boots: { name: "\u0E23\u0E2D\u0E07\u0E40\u0E17\u0E49\u0E32", def: 0.8, speed: 3 },
-  wings: { name: "\u0E1B\u0E35\u0E01\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19", atk: 4, def: 1.2, hp: 20 },
-  ring: { name: "\u0E41\u0E2B\u0E27\u0E19", crit: 0.012 },
-  amulet: { name: "\u0E2A\u0E23\u0E49\u0E2D\u0E22\u0E1E\u0E25\u0E31\u0E07", mp: 14, spell: 0.03 }
-};
-var SLOT_ORDER = ["helm", "armor", "gloves", "boots", "weapon", "wings", "ring", "amulet"];
-var TIERS = [
-  { name: "\u0E1D\u0E36\u0E01\u0E2B\u0E31\u0E14", level: 1 },
-  { name: "\u0E40\u0E2B\u0E25\u0E47\u0E01\u0E14\u0E32\u0E27", level: 10 },
-  { name: "\u0E44\u0E04\u0E15\u0E34\u0E19\u0E2D\u0E33\u0E1E\u0E31\u0E19", level: 20 },
-  { name: "\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E31\u0E25\u0E44\u0E0B\u0E40\u0E1A\u0E2D\u0E23\u0E4C", level: 30 },
-  { name: "\u0E19\u0E35\u0E2D\u0E2D\u0E19\u0E42\u0E04\u0E23", level: 40 },
-  { name: "\u0E41\u0E01\u0E19\u0E14\u0E32\u0E27\u0E40\u0E1E\u0E25\u0E34\u0E07", level: 50 },
-  ...Array.from({ length: 16 }, (_, i) => ({ name: "\u0E04\u0E27\u0E2D\u0E19\u0E15\u0E31\u0E21 Mk." + (i + 6), level: (i + 6) * 10 }))
-];
-var RARITY = [
-  { name: "\u0E18\u0E23\u0E23\u0E21\u0E14\u0E32", color: "#e9e4d6", mult: 1 },
-  { name: "\u0E14\u0E35\u0E40\u0E22\u0E35\u0E48\u0E22\u0E21", color: "#5aa8ff", mult: 1.25 },
-  { name: "\u0E2B\u0E32\u0E22\u0E32\u0E01", color: "#4ff08a", mult: 1.6 },
-  { name: "\u0E15\u0E33\u0E19\u0E32\u0E19", color: "#ffb440", mult: 2.1 }
-];
-var BAG_SIZE = 40;
-var tierForLevel = (level) => TIERS.reduce((t, x, i) => level >= x.level ? i : t, 0);
-function itemStats(it) {
-  const base = SLOTS[it.slot], k = (1 + it.tier * 1.15) * RARITY[it.rarity].mult * (1 + Math.max(it.plus || 0, it.legacyPlus || 0) * 0.08), o = {};
-  for (const key of ["atk", "def", "hp", "crit", "speed", "mp", "spell"]) if (base[key]) o[key] = +(base[key] * k).toFixed(key === "crit" || key === "spell" ? 3 : 1);
-  for (const id of GEM_IDS) {
-    const n = normalizeGems(it.gems)[id], g = UPGRADE_ITEMS[id];
-    if (n) o[g.stat] = +((o[g.stat] || 0) + n * g.amount).toFixed(g.stat === "crit" ? 3 : 1);
-  }
-  const opt = specialInfo(it.special);
-  if (opt && !["hpRegen", "mpRegen"].includes(opt.stat)) o[opt.stat] = (o[opt.stat] || 0) + opt.value;
-  return o;
-}
-function sellPrice(it) {
-  return Math.round(40 * (1 + it.tier) ** 2 * RARITY[it.rarity].mult);
-}
-function gearTotals(s) {
-  const t = { atk: 0, def: 0, hp: 0, crit: 0, speed: 0, mp: 0, spell: 0 };
-  for (const it of Object.values(s.equip || {})) if (it) for (const [k, v] of Object.entries(itemStats(it))) t[k] += v;
-  return t;
-}
-var uid = 0;
-function makeItem(slot, tier, rarity, rng = Math.random) {
-  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0, ...specialFields({}) };
-}
-function rollDrop(m, rng = Math.random) {
-  const chance = m.boss ? 1 : m.elite ? 0.15 : 0.01;
-  if (rng() >= chance) return null;
-  const slot = SLOT_ORDER[Math.floor(rng() * SLOT_ORDER.length)], tier = tierForLevel(m.level);
-  const r = rng();
-  let rarity = r < 0.04 ? 3 : r < 0.16 ? 2 : r < 0.45 ? 1 : 0;
-  if (m.boss) rarity = Math.max(2, rarity);
-  else if (m.elite) rarity = Math.max(1, rarity);
-  return makeItem(slot, tier, rarity, rng);
-}
-function canEquip(s, it) {
-  return s.level >= TIERS[it.tier].level;
-}
-function equip(s, id) {
-  const i = s.bag.findIndex((x) => x.id === id);
-  if (i < 0) return "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E44\u0E2D\u0E40\u0E17\u0E47\u0E21";
-  const it = s.bag[i];
-  if (!canEquip(s, it)) return `\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E25\u0E40\u0E27\u0E25 ${TIERS[it.tier].level}`;
-  s.bag.splice(i, 1);
-  const old = s.equip[it.slot];
-  if (old) s.bag.push(old);
-  s.equip[it.slot] = it;
-  return null;
-}
-function unequip(s, slot) {
-  const it = s.equip[slot];
-  if (!it) return "\u0E0A\u0E48\u0E2D\u0E07\u0E27\u0E48\u0E32\u0E07";
-  if (s.bag.length >= BAG_SIZE) return "\u0E01\u0E23\u0E30\u0E40\u0E1B\u0E4B\u0E32\u0E40\u0E15\u0E47\u0E21";
-  s.bag.push(it);
-  s.equip[slot] = null;
-  return null;
-}
-function sell(s, id) {
-  const i = s.bag.findIndex((x) => x.id === id);
-  if (i < 0) return 0;
-  const [it] = s.bag.splice(i, 1), g = sellPrice(it);
-  s.gold += g;
-  return g;
-}
-function freshGear(s) {
-  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => [k, null]));
-  s.equip.weapon = makeItem("weapon", 0, 0);
-  s.equip.armor = makeItem("armor", 0, 0);
-  s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
-  return s;
-}
-var validItem = (it) => it && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
-function normalizeGear(s, v = {}) {
-  if (!v.equip && !v.bag) return freshGear(s);
-  s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
-    const it = v.equip?.[k];
-    return [k, validItem(it) && it.slot === k ? { id: it.id.slice(0, 40), slot: k, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} } : null];
-  }));
-  s.bag = (Array.isArray(v.bag) ? v.bag : []).filter(validItem).slice(0, BAG_SIZE).map((it) => ({ id: it.id.slice(0, 40), slot: it.slot, tier: it.tier, rarity: it.rarity, plus: Math.max(0, Math.min(ENHANCE_SLOTS.includes(it.slot) ? 9 : 15, Math.floor(it.plus || 0))), ...specialFields(it), ...it.legacyPlus ? { legacyPlus: Math.min(15, it.legacyPlus) } : {}, ...it.gems ? { gems: normalizeGems(it.gems) } : {} }));
-  return s;
-}
-var gearUpgradeCost = (it) => 20 * ((it.plus || 0) + 1) + it.tier * 5;
-var gearUpgradeG = (it) => 500 * ((it.plus || 0) + 1) ** 2;
-function upgradeGear(s, slot) {
-  const it = s.equip?.[slot];
-  if (!ENHANCE_SLOTS.includes(slot) || !it || (it.plus || 0) >= MAX_PLUS) return false;
-  normalizeUpgradeItems(s);
-  const cost = gearUpgradeCost(it), g = gearUpgradeG(it), n = (it.plus || 0) + 1;
-  if (!Number.isFinite(s.stones) || s.stones < cost || s.gold < g || s.upgradeItems.alloy < n) return false;
-  s.stones -= cost;
-  s.gold -= g;
-  s.upgradeItems.alloy -= n;
-  it.plus = n;
-  countActivity(s, "upgrade");
-  return true;
-}
-function gearShopPrice(slot, tier) {
-  return slot === "weapon" ? 1e3 + 500 * tier * tier : 600 + 250 * tier * tier;
-}
-function buyShopGear(s, slot, tier = tierForLevel(s.level)) {
-  if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE || !Number.isInteger(tier) || !TIERS[tier] || s.level < TIERS[tier].level) return false;
-  const cost = gearShopPrice(slot, tier);
-  if (s.stones < cost) return false;
-  s.stones -= cost;
-  s.bag.push(makeItem(slot, tier, 2));
-  return true;
-}
-
 // web/town-buff.js
 var BUFF_DURATION = 36e5;
 var BUFF_NPC_UV = [0.57, 0.59];
@@ -4475,7 +4731,8 @@ function grantTownBuff(p, enabled, near, now = Date.now()) {
 // web/core.js
 var VERSION = 1;
 function fresh(hero) {
-  const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], playReceipts: [], pvpReports: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], accountRewardReceipts: [], playReceipts: [], pvpReports: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  normalizeExpTickets(s);
   normalizeSkills(s);
   normalizeUpgradeItems(s);
   normalizeCheckin(s);
@@ -4496,7 +4753,7 @@ function reward(s, m, rng = Math.random) {
   countActivity(s, "hunt");
   if (m.boss) countActivity(s, "boss");
   s.gold += m.gold;
-  s.xp += m.xp;
+  s.xp += Math.floor(m.xp * expMultiplier(s));
   s.kills++;
   s.reputation = (s.reputation || 0) + (m.boss ? 25 : 1);
   if (!s.seen.includes(m.id)) s.seen.push(m.id);
@@ -4520,9 +4777,11 @@ function unlocked(s, z) {
 function validSave(v) {
   if (!v || v.version !== VERSION || !["sword-male", "sword-female", "demon-male", "demon-female", "sword-cockro", "demon-scorpion", "sword-dragonfly", "sword-cricket"].includes(v.hero)) return null;
   const s = fresh(v.hero);
+  s.accountRewardReceipts = Array.isArray(v.accountRewardReceipts) ? [...new Set(v.accountRewardReceipts.filter((x) => typeof x === "string" && /^[a-f0-9]{64}$/.test(x)))] : [];
   s.playReceipts = Array.isArray(v.playReceipts) ? [...new Set(v.playReceipts.filter((x) => typeof x === "string" && /^[a-f0-9]{64}$/.test(x)))] : [];
   s.name = characterName(v.name) || "";
   normalizeTownBuff(s, v);
+  normalizeExpTickets(s, v);
   normalizeWorldSave(s, v);
   normalizeActivities(s, v);
   if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
@@ -4569,13 +4828,13 @@ function inCone(px, py, x, y, angle, range, arc) {
   const dx = px - x, dy = py - y;
   return Math.hypot(dx, dy) <= range && Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle))) <= arc / 2;
 }
-var integer = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+var integer2 = (v, max) => Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
 function normalizeProgress(s, v = s) {
   const budget = (s.level - 1) * 10;
   let left = budget;
   const attrs = {};
   for (const key of ["vit", "str", "int", "agi"]) {
-    attrs[key] = Math.min(left, integer(v.attributes?.[key], 2090));
+    attrs[key] = Math.min(left, integer2(v.attributes?.[key], 2090));
     left -= attrs[key];
   }
   s.attributes = attrs;
@@ -4584,13 +4843,13 @@ function normalizeProgress(s, v = s) {
   let points = budget;
   for (const [id, value] of Object.entries(v.skillRanks || {})) {
     if (!knownSkills(s).some((r) => r.id === id && r.level <= s.level)) continue;
-    const rank = Math.min(points, integer(value, 19));
+    const rank = Math.min(points, integer2(value, 19));
     ranks[id] = rank;
     points -= rank;
   }
   s.skillRanks = ranks;
   s.skillPoints = points;
-  s.reputation = integer(v.reputation ?? s.kills, 1e10);
+  s.reputation = integer2(v.reputation ?? s.kills, 1e10);
   s.autoAttack = v.autoAttack === true;
   return s;
 }
@@ -4623,8 +4882,8 @@ function combatStats(s) {
 }
 
 // web/merchant.js
-var MERCHANT_UV = [0.174, 0.407];
-var MERCHANT_OPS = /* @__PURE__ */ new Set(["buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
+var MERCHANT_UV = [0.235, 0.48];
+var MERCHANT_OPS = /* @__PURE__ */ new Set(["buyExpTicket", "buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
 function buyMerchantStack(s, op, id, quantity = 1, items) {
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) return false;
   let currency, key, price, inventory;
@@ -4937,25 +5196,87 @@ function tickPvp(world, dt, now) {
   }
 }
 
+// server/referrals.js
+var import_node_crypto3 = require("node:crypto");
+var import_node_fs3 = require("node:fs");
+var import_node_path3 = require("node:path");
+var hash = (s) => (0, import_node_crypto3.createHash)("sha256").update(s).digest("hex");
+function createReferrals(directory) {
+  const path = (0, import_node_path3.join)(directory, "referrals.json");
+  const read = () => (0, import_node_fs3.existsSync)(path) ? JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8")) : { members: {}, claims: {}, awards: {} };
+  const write2 = (d) => {
+    (0, import_node_fs3.mkdirSync)(directory, { recursive: true });
+    (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(d), { mode: 384 });
+    (0, import_node_fs3.renameSync)(path + ".tmp", path);
+  };
+  const code = (account) => hash("cockro-referral:" + account).slice(0, 12).toUpperCase();
+  function status(account, uid2) {
+    const d = read(), c = code(account);
+    if (uid2) {
+      d.members[c] = { account, identity: hash(uid2) };
+      write2(d);
+    }
+    return { code: uid2 ? c : null, used: !!(uid2 && d.claims[hash(uid2)]), pending: Object.values(d.awards).filter((a) => a.account === account && !a.delivered).reduce((n, a) => n + a.amount, 0) };
+  }
+  function redeem(account, uid2, input) {
+    if (!uid2) throw Error("google_required");
+    if (typeof input !== "string" || !/^[A-F0-9]{12}$/.test(input.trim().toUpperCase())) throw Error("referral_invalid");
+    const d = read(), identity = hash(uid2), member = d.members[input.trim().toUpperCase()];
+    if (!member) throw Error("referral_invalid");
+    if (member.account === account || member.identity === identity) throw Error("referral_self");
+    if (d.claims[identity]) throw Error("referral_used");
+    const id = hash("referral:" + identity);
+    d.claims[identity] = true;
+    d.awards[id] = { account: member.account, amount: 500, delivered: false };
+    write2(d);
+    return { accepted: true, reward: 500 };
+  }
+  function deliver(account, character, s, persist, { welcome = false } = {}) {
+    const d = read(), welcomeId = hash("welcome:" + account);
+    if (welcome && !d.awards[welcomeId]) d.awards[welcomeId] = { account, amount: 500, delivered: false };
+    s.accountRewardReceipts ??= [];
+    for (const [id, a] of Object.entries(d.awards)) {
+      if (a.account !== account || a.delivered || a.character && a.character !== character) continue;
+      if (!s.accountRewardReceipts.includes(id) && s.stones + a.amount > 1e7) continue;
+      a.character = character;
+      write2(d);
+      if (!s.accountRewardReceipts.includes(id)) {
+        s.stones += a.amount;
+        s.accountRewardReceipts.push(id);
+        persist(s);
+      }
+      a.delivered = true;
+      write2(d);
+    }
+  }
+  function remove(account) {
+    const d = read();
+    delete d.members[code(account)];
+    for (const [id, a] of Object.entries(d.awards)) if (a.account === account) delete d.awards[id];
+    write2(d);
+  }
+  return { status, redeem, deliver, remove };
+}
+
 // server/accounts.js
-var import_node_crypto4 = require("node:crypto");
+var import_node_crypto7 = require("node:crypto");
 var import_node_util = require("node:util");
-var import_node_fs4 = require("node:fs");
-var import_node_path4 = require("node:path");
+var import_node_fs7 = require("node:fs");
+var import_node_path7 = require("node:path");
 
 // server/characters.js
-var import_node_crypto2 = require("node:crypto");
-var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
+var import_node_crypto4 = require("node:crypto");
+var import_node_fs4 = require("node:fs");
+var import_node_path4 = require("node:path");
 var CHARACTER_SLOTS = ["main", "slot2", "slot3", "slot4"];
 function characterId(account, slot = "main") {
   if (!CHARACTER_SLOTS.includes(slot)) throw Error("character_missing");
-  return slot === "main" ? account : (0, import_node_crypto2.createHash)("sha256").update(account + ":" + slot).digest("hex");
+  return slot === "main" ? account : (0, import_node_crypto4.createHash)("sha256").update(account + ":" + slot).digest("hex");
 }
 function readCharacter(directory, account, slot = "main") {
-  const path = (0, import_node_path2.join)(directory, characterId(account, slot) + ".json");
-  if (!(0, import_node_fs2.existsSync)(path)) return null;
-  const state = validSave(JSON.parse((0, import_node_fs2.readFileSync)(path, "utf8")));
+  const path = (0, import_node_path4.join)(directory, characterId(account, slot) + ".json");
+  if (!(0, import_node_fs4.existsSync)(path)) return null;
+  const state = validSave(JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8")));
   if (!state) throw Error("invalid_save");
   return state;
 }
@@ -4966,58 +5287,92 @@ function characterRoster(directory, account) {
   });
 }
 
+// server/identity-cleanup.js
+var import_node_crypto5 = require("node:crypto");
+var import_node_fs5 = require("node:fs");
+var import_node_path5 = require("node:path");
+function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
+  (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const path = (0, import_node_path5.join)(directory, "account-cleanup-key.pem");
+  if (!(0, import_node_fs5.existsSync)(path)) {
+    const { privateKey } = (0, import_node_crypto5.generateKeyPairSync)("ed25519");
+    (0, import_node_fs5.writeFileSync)(path + ".tmp", privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 384 });
+    (0, import_node_fs5.renameSync)(path + ".tmp", path);
+  }
+  const key = (0, import_node_fs5.readFileSync)(path, "utf8");
+  const publicKey = (0, import_node_crypto5.createPublicKey)(key).export({ type: "spki", format: "der" }).toString("base64");
+  async function remove(uid2) {
+    const body = JSON.stringify({ uid: uid2, timestamp: Date.now() });
+    const signature = (0, import_node_crypto5.sign)(null, Buffer.from(body), key).toString("base64");
+    const response = await fetcher(authUrl + "/functions/v1/cockro-account-cleanup", { method: "POST", headers: { "Content-Type": "application/json", "X-Cockro-Signature": signature }, body, signal: AbortSignal.timeout(15e3) });
+    if (!response.ok) return false;
+    const result = await response.json();
+    return result.deleted === true;
+  }
+  return { remove, publicKey };
+}
+
 // server/account-deletion.js
-var import_node_crypto3 = require("node:crypto");
-var import_node_fs3 = require("node:fs");
-var import_node_path3 = require("node:path");
-var hash = (s) => (0, import_node_crypto3.createHash)("sha256").update(s).digest("hex");
+var import_node_crypto6 = require("node:crypto");
+var import_node_fs6 = require("node:fs");
+var import_node_path6 = require("node:path");
+var hash2 = (s) => (0, import_node_crypto6.createHash)("sha256").update(s).digest("hex");
 var write = (path, value) => {
-  (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
-  (0, import_node_fs3.renameSync)(path + ".tmp", path);
+  (0, import_node_fs6.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
+  (0, import_node_fs6.renameSync)(path + ".tmp", path);
 };
 function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY, fetcher = fetch } = {}) {
-  const root = (0, import_node_path3.join)(directory, "account-deletions");
-  const files = () => (0, import_node_fs3.existsSync)(root) ? (0, import_node_fs3.readdirSync)(root) : [];
+  const identity = createIdentityCleanup(directory, { authUrl, fetcher });
+  const root = (0, import_node_path6.join)(directory, "account-deletions");
+  const files = () => (0, import_node_fs6.existsSync)(root) ? (0, import_node_fs6.readdirSync)(root) : [];
   const deletedIds = /* @__PURE__ */ new Set();
-  const path = (account) => (0, import_node_path3.join)(root, account + ".json");
-  const read = (account) => (0, import_node_fs3.existsSync)(path(account)) ? JSON.parse((0, import_node_fs3.readFileSync)(path(account), "utf8")) : null;
+  const path = (account) => (0, import_node_path6.join)(root, account + ".json");
+  const read = (account) => (0, import_node_fs6.existsSync)(path(account)) ? JSON.parse((0, import_node_fs6.readFileSync)(path(account), "utf8")) : null;
   function purge(record) {
     const ids = CHARACTER_SLOTS.map((slot) => characterId(record.account, slot));
     ids.forEach((id) => deletedIds.add(id));
     function clean(base) {
+      const commerce = (0, import_node_path6.join)(base, "commerce.json");
+      if ((0, import_node_fs6.existsSync)(commerce)) {
+        const data = JSON.parse((0, import_node_fs6.readFileSync)(commerce, "utf8"));
+        delete data.vaults?.[record.account];
+        delete data.shops?.[record.account];
+        write(commerce, data);
+      }
+      if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(base, "referrals.json"))) createReferrals(base).remove(record.account);
       for (const id of ids) {
-        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(base, id + ".json"), { force: true });
-        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(base, id + ".json.tmp"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(base, id + ".json"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(base, id + ".json.tmp"), { force: true });
       }
-      const trash = (0, import_node_path3.join)(base, "deleted-characters");
-      if ((0, import_node_fs3.existsSync)(trash)) {
-        for (const file of (0, import_node_fs3.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs3.rmSync)((0, import_node_path3.join)(trash, file), { force: true });
+      const trash = (0, import_node_path6.join)(base, "deleted-characters");
+      if ((0, import_node_fs6.existsSync)(trash)) {
+        for (const file of (0, import_node_fs6.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs6.rmSync)((0, import_node_path6.join)(trash, file), { force: true });
       }
-      const accounts = (0, import_node_path3.join)(base, "accounts");
-      if ((0, import_node_fs3.existsSync)(accounts)) {
-        for (const file of (0, import_node_fs3.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
-          const p = (0, import_node_path3.join)(accounts, file), s = JSON.parse((0, import_node_fs3.readFileSync)(p, "utf8"));
-          if (s.account === record.account) (0, import_node_fs3.rmSync)(p);
+      const accounts = (0, import_node_path6.join)(base, "accounts");
+      if ((0, import_node_fs6.existsSync)(accounts)) {
+        for (const file of (0, import_node_fs6.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
+          const p = (0, import_node_path6.join)(accounts, file), s = JSON.parse((0, import_node_fs6.readFileSync)(p, "utf8"));
+          if (s.account === record.account) (0, import_node_fs6.rmSync)(p);
         }
-        (0, import_node_fs3.rmSync)((0, import_node_path3.join)(accounts, "profile-" + hash(record.account) + ".json"), { force: true });
-        if (record.uid) (0, import_node_fs3.rmSync)((0, import_node_path3.join)(accounts, "google-" + hash(record.uid) + ".json"), { force: true });
+        (0, import_node_fs6.rmSync)((0, import_node_path6.join)(accounts, "profile-" + hash2(record.account) + ".json"), { force: true });
+        if (record.uid) (0, import_node_fs6.rmSync)((0, import_node_path6.join)(accounts, "google-" + hash2(record.uid) + ".json"), { force: true });
       }
-      const receipts = (0, import_node_path3.join)(base, "play-receipts");
-      if ((0, import_node_fs3.existsSync)(receipts)) for (const file of (0, import_node_fs3.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
-        const p = (0, import_node_path3.join)(receipts, file), r = JSON.parse((0, import_node_fs3.readFileSync)(p, "utf8"));
+      const receipts = (0, import_node_path6.join)(base, "play-receipts");
+      if ((0, import_node_fs6.existsSync)(receipts)) for (const file of (0, import_node_fs6.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
+        const p = (0, import_node_path6.join)(receipts, file), r = JSON.parse((0, import_node_fs6.readFileSync)(p, "utf8"));
         if (r.owner === record.account) write(p, { product: r.product, gold: r.gold, credited: r.credited, consumed: r.consumed, created: r.created, deleted: true });
       }
     }
     clean(directory);
-    const backups = (0, import_node_path3.join)(directory, "release-backups");
-    if ((0, import_node_fs3.existsSync)(backups)) {
-      for (const item of (0, import_node_fs3.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path3.join)(backups, item.name));
+    const backups = (0, import_node_path6.join)(directory, "release-backups");
+    if ((0, import_node_fs6.existsSync)(backups)) {
+      for (const item of (0, import_node_fs6.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path6.join)(backups, item.name));
     }
     record.localComplete = true;
     write(path(record.account), record);
   }
   function request(account, uid2) {
-    (0, import_node_fs3.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs6.mkdirSync)(root, { recursive: true, mode: 448 });
     const record = read(account) || { account, uid: uid2 || null, requestedAt: Date.now(), localComplete: false, identityComplete: !uid2 };
     write(path(account), record);
     CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(account, slot)));
@@ -5026,7 +5381,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
   }
   function recover() {
     for (const file of files().filter((f) => /^[a-f0-9]{64}\.json$/.test(f))) {
-      const record = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, file), "utf8"));
+      const record = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
       CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(record.account, slot)));
       if (!record.localComplete) purge(record);
     }
@@ -5035,18 +5390,22 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
   async function processPending() {
     if (processing) return;
     recover();
-    if (!adminKey) return;
     processing = true;
     try {
       for (const file of files().filter((f) => f.endsWith(".json"))) {
-        const record = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, file), "utf8"));
+        const record = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
         if (!record.localComplete || record.identityComplete || !record.uid) continue;
         try {
-          const response = await fetcher(authUrl + "/auth/v1/admin/users/" + encodeURIComponent(record.uid), { method: "DELETE", headers: { apikey: adminKey, Authorization: "Bearer " + adminKey }, signal: AbortSignal.timeout(1e4) });
-          if (response.ok || response.status === 404) {
+          let complete;
+          if (!adminKey) complete = await identity.remove(record.uid);
+          else {
+            const response = await fetcher(authUrl + "/auth/v1/admin/users/" + encodeURIComponent(record.uid), { method: "DELETE", headers: { apikey: adminKey, Authorization: "Bearer " + adminKey }, signal: AbortSignal.timeout(1e4) });
+            complete = response.ok || response.status === 404;
+          }
+          if (complete) {
             record.identityComplete = true;
             delete record.uid;
-            write((0, import_node_path3.join)(root, file), record);
+            write((0, import_node_path6.join)(root, file), record);
           }
         } catch {
         }
@@ -5056,33 +5415,34 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
     }
   }
   const identityPending = (uid2) => files().filter((f) => f.endsWith(".json")).some((f) => {
-    const r = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(root, f), "utf8"));
+    const r = JSON.parse((0, import_node_fs6.readFileSync)((0, import_node_path6.join)(root, f), "utf8"));
     return !r.identityComplete && r.uid === uid2;
   });
   recover();
-  return { request, isDeleted: (account) => !!read(account), isCharacterDeleted: (id) => deletedIds.has(id), identityPending, processPending };
+  return { publicKey: identity.publicKey, request, isDeleted: (account) => !!read(account), isCharacterDeleted: (id) => deletedIds.has(id), identityPending, processPending };
 }
 
 // server/accounts.js
-var scrypt = (0, import_node_util.promisify)(import_node_crypto4.scrypt);
-var hash2 = (v) => (0, import_node_crypto4.createHash)("sha256").update(v).digest("hex");
+var scrypt = (0, import_node_util.promisify)(import_node_crypto7.scrypt);
+var hash3 = (v) => (0, import_node_crypto7.createHash)("sha256").update(v).digest("hex");
 var AUTH_URL = "https://kfohckvypopaoogmnjuy.supabase.co";
 var AUTH_KEY = "sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA";
 var AUTH_REDIRECT = "cockronetwork://auth/callback";
 function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY } = {}) {
+  const referrals = createReferrals(directory);
   const deletion = createAccountDeletion(directory, { authUrl: AUTH_URL, fetcher, adminKey });
-  const root = (0, import_node_path4.join)(directory, "accounts");
+  const root = (0, import_node_path7.join)(directory, "accounts");
   const flows = /* @__PURE__ */ new Map(), attempts = /* @__PURE__ */ new Map(), busy = /* @__PURE__ */ new Set();
-  const path = (kind, key) => (0, import_node_path4.join)(root, kind + "-" + hash2(key) + ".json");
+  const path = (kind, key) => (0, import_node_path7.join)(root, kind + "-" + hash3(key) + ".json");
   const read = (kind, key) => {
     const p = path(kind, key);
-    return (0, import_node_fs4.existsSync)(p) ? JSON.parse((0, import_node_fs4.readFileSync)(p, "utf8")) : null;
+    return (0, import_node_fs7.existsSync)(p) ? JSON.parse((0, import_node_fs7.readFileSync)(p, "utf8")) : null;
   };
   const write2 = (kind, key, data) => {
-    (0, import_node_fs4.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs7.mkdirSync)(root, { recursive: true, mode: 448 });
     const p = path(kind, key);
-    (0, import_node_fs4.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs4.renameSync)(p + ".tmp", p);
+    (0, import_node_fs7.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs7.renameSync)(p + ".tmp", p);
   };
   function resolve(token) {
     if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
@@ -5092,7 +5452,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       if (!session.persistent) write2("session", token, { ...session, persistent: true });
       return session.account;
     }
-    const account = hash2(token);
+    const account = hash3(token);
     if (deletion.isDeleted(account)) throw Error("account_deleted");
     if (read("profile", account)?.uid) throw Error("login_required");
     if (!read("profile", account) && !characterRoster(directory, account).length) throw Error("account_missing");
@@ -5111,7 +5471,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const m = meta(account);
     if (!m.password || typeof password !== "string" || password.length > 128) throw Error("wrong_password");
     const key = await scrypt(password, m.salt, 32);
-    if (!(0, import_node_crypto4.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
+    if (!(0, import_node_crypto7.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
     attempts.delete(account);
     return m;
   }
@@ -5121,9 +5481,14 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       write2("session", token, { account, revoked: true });
       return { loggedOut: true };
     }
-    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid, canReset: !!meta(account).uid && Date.now() - (read("session", token)?.reauthAt || 0) < 3e5, accountId: account.slice(0, 12) };
+    if (d.action === "status") return { hasPassword: !!meta(account).password, google: !!meta(account).uid, canReset: !!meta(account).uid && Date.now() - (read("session", token)?.reauthAt || 0) < 3e5, canDelete: !!meta(account).uid && Date.now() - (read("session", token)?.deleteReauthAt || 0) < 3e5, accountId: account.slice(0, 12) };
+    if (d.action === "referralStatus") return referrals.status(account, meta(account).uid);
+    if (d.action === "redeemReferral") return referrals.redeem(account, meta(account).uid, d.code);
     if (d.action === "deleteAccount") {
-      await verifyPassword(account, d.password);
+      if (meta(account).uid) {
+        const proof = read("session", token)?.deleteReauthAt;
+        if (!proof || Date.now() - proof > 3e5) throw Error("reauth_required");
+      } else await verifyPassword(account, d.password);
       if (d.confirmText !== "\u0E25\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35 COCKRO") throw Error("confirmation_mismatch");
       return deletion.request(account, meta(account).uid);
     }
@@ -5134,9 +5499,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       const name = characterName(d.name);
       if (!name) throw Error("invalid_name");
       state.name = name;
-      const p = (0, import_node_path4.join)(directory, characterId(account, d.character) + ".json");
-      (0, import_node_fs4.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
-      (0, import_node_fs4.renameSync)(p + ".tmp", p);
+      const p = (0, import_node_path7.join)(directory, characterId(account, d.character) + ".json");
+      (0, import_node_fs7.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
+      (0, import_node_fs7.renameSync)(p + ".tmp", p);
       return { characters: characterRoster(directory, account) };
     }
     if (d.action === "setPassword") {
@@ -5146,7 +5511,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
         if (!m.uid || !session?.reauthAt || Date.now() - session.reauthAt > 3e5) throw Error("reauth_required");
       } else if (m.password) await verifyPassword(account, d.oldPassword);
       if (typeof d.password !== "string" || d.password.length < 8 || d.password.length > 128) throw Error("weak_password");
-      const salt = (0, import_node_crypto4.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
+      const salt = (0, import_node_crypto7.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
       write2("profile", account, { ...meta(account), salt, password: key.toString("hex") });
       if (d.reset === true) write2("session", token, { ...read("session", token), reauthAt: 0 });
       return { hasPassword: true };
@@ -5158,9 +5523,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       if (!state) throw Error("character_missing");
       if (d.confirmName !== (state.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D")) throw Error("name_mismatch");
       write2("profile", account, meta(account));
-      const trash = (0, import_node_path4.join)(directory, "deleted-characters");
-      (0, import_node_fs4.mkdirSync)(trash, { recursive: true, mode: 448 });
-      (0, import_node_fs4.renameSync)((0, import_node_path4.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path4.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
+      const trash = (0, import_node_path7.join)(directory, "deleted-characters");
+      (0, import_node_fs7.mkdirSync)(trash, { recursive: true, mode: 448 });
+      (0, import_node_fs7.renameSync)((0, import_node_path7.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path7.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
       return { characters: characterRoster(directory, account) };
     }
     throw Error("invalid_request");
@@ -5174,13 +5539,13 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
         if (e.message !== "login_required") throw e;
       }
     }
-    if (purpose === "resetPassword" && (!account || !meta(account).uid)) throw Error("google_required");
+    if (["resetPassword", "deleteAccount"].includes(purpose) && (!account || !meta(account).uid)) throw Error("google_required");
     for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
     if (flows.size >= 100) throw Error("auth_busy");
-    const flow = (0, import_node_crypto4.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto4.randomBytes)(48).toString("base64url");
+    const flow = (0, import_node_crypto7.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto7.randomBytes)(48).toString("base64url");
     flows.set(flow, { account, purpose, verifier, until: Date.now() + 3e5 });
     const u = new URL(AUTH_URL + "/auth/v1/authorize");
-    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto4.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
+    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto7.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
     return { flow, url: u.href };
   }
   async function authFinish(flow, code) {
@@ -5195,20 +5560,20 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const user = await check.json();
     if (typeof user.id !== "string" || !user.identities?.some((i) => i.provider === "google")) throw Error("auth_failed");
     if (deletion.identityPending(user.id)) throw Error("deletion_pending");
-    if (f.purpose === "resetPassword" && meta(f.account).uid !== user.id) throw Error("wrong_google_account");
+    if (["resetPassword", "deleteAccount"].includes(f.purpose) && meta(f.account).uid !== user.id) throw Error("wrong_google_account");
     if (f.account && deletion.isDeleted(f.account)) throw Error("account_deleted");
     const existing = read("google", user.id);
     let account = existing?.account;
     if (!account) {
-      account = f.account || hash2((0, import_node_crypto4.randomBytes)(32));
+      account = f.account || hash3((0, import_node_crypto7.randomBytes)(32));
       const profile = meta(account);
       if (profile.uid && profile.uid !== user.id) throw Error("account_linked");
       write2("profile", account, { ...profile, uid: user.id });
       write2("google", user.id, { account });
     }
-    const token = (0, import_node_crypto4.randomBytes)(32).toString("hex");
-    write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0 });
-    return { token, google: true, passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
+    const token = (0, import_node_crypto7.randomBytes)(32).toString("hex");
+    write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0, deleteReauthAt: f.purpose === "deleteAccount" ? Date.now() : 0 });
+    return { token, google: true, accountDeletionReady: f.purpose === "deleteAccount", passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
   async function manage(token, d) {
     const account = resolve(token);
@@ -5220,7 +5585,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       busy.delete(account);
     }
   }
-  return { resolve, exists, meta, manage, authStart, authFinish, busy, deletion };
+  return { resolve, exists, meta, manage, authStart, authFinish, busy, deletion, referrals };
 }
 
 // server/server.js
@@ -5246,7 +5611,7 @@ function deliverReward(s, t) {
 }
 
 // server/test-rewards.js
-var import_node_crypto5 = require("node:crypto");
+var import_node_crypto8 = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
   const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
@@ -5254,7 +5619,7 @@ function issueTestTicket(s, item, now = Date.now()) {
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
   if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto5.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto8.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -5268,7 +5633,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
 }
 
 // server/rewarded-ads.js
-var import_node_crypto6 = require("node:crypto");
+var import_node_crypto9 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -5276,7 +5641,7 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto6.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const ticket = { nonce: (0, import_node_crypto9.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -5320,7 +5685,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto6.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto9.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -5341,9 +5706,9 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto7 = require("node:crypto");
-var import_node_fs5 = require("node:fs");
-var import_node_path5 = require("node:path");
+var import_node_crypto10 = require("node:crypto");
+var import_node_fs8 = require("node:fs");
+var import_node_path8 = require("node:path");
 
 // web/monster-behavior.js
 var aggressiveMonster = (def) => def.aggressive ?? (!!def.boss || def.id % 3 === 0);
@@ -5692,13 +6057,20 @@ var World = class {
           p.opResult.ok = true;
           break;
         }
+        case "buyExpTicket":
+          p.opResult.ok = buyExpTicket(s, d.id);
+          break;
+        case "useExpTicket":
+          p.opResult.ok = p.hp > 0 && useExpTicket(s, d.id, d.replaceUntil, now * 1e3);
+          break;
         case "townBuff": {
           if (now - (p.lastPvp || -Infinity) < 10) break;
-          const near = p.map === "town" && dist2(p, toWorld(BUFF_NPC_UV, MAPS.town)) <= 120;
+          const near = p.map === "town";
           if (grantTownBuff(p, this.testRewards, near, now * 1e3)) {
             p.hp = maxHP(s);
             p.mp = combatStats(s).mp;
             this.event(p, { kind: "buff" });
+            p.opResult.ok = true;
           }
           break;
         }
@@ -5961,7 +6333,7 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, offline: !!q.offline, name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, offline: !!q.offline, shopTitle: q.offline ? "" : q.shopTitle || "", name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, actionRemaining: Math.max(0, p.actionUntil - now), save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", serverTime: now * 1e3, self, online: this.players.size, loot: this.loot.filter((d) => d.map === p.map && dist2(p, d) < 1700).map((d) => ({ ...d, owner: void 0 })), players: this.actors().filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
@@ -5970,7 +6342,7 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier, billingVerifier } = {}) {
-  (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
+  (0, import_node_fs8.mkdirSync)(directory, { recursive: true, mode: 448 });
   const accounts = createAccounts(directory);
   const world = new World({ maxPlayers, testRewards }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
@@ -5984,12 +6356,13 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     return true;
   }
   const persist = (p) => {
+    if (commerce.failed) throw Error("save_unavailable");
     if (accounts.deletion.isCharacterDeleted(p.id)) throw Error("account_deleted");
     try {
       if (p.map) capturePresence(p);
-      const path = (0, import_node_path5.join)(directory, p.id + ".json");
-      (0, import_node_fs5.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs5.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path8.join)(directory, p.id + ".json");
+      (0, import_node_fs8.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs8.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -5997,9 +6370,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       throw Error("save_unavailable");
     }
   };
-  for (const file of (0, import_node_fs5.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+  const commerce = createCommerce(directory, { players: () => world.players, getActor: (id) => world.getActor(id), capture: capturePresence });
+  for (const file of (0, import_node_fs8.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
     try {
-      const state = validSave(JSON.parse((0, import_node_fs5.readFileSync)((0, import_node_path5.join)(directory, file), "utf8")));
+      const state = validSave(JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path8.join)(directory, file), "utf8")));
       if (state && !accounts.deletion.isCharacterDeleted(file.slice(0, -5))) world.restore(file.slice(0, -5), state);
     } catch {
       diskFailure = true;
@@ -6030,9 +6404,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.getActor(data.user_id), path = (0, import_node_path5.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs5.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8")));
+        const live = world.getActor(data.user_id), path = (0, import_node_path8.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs8.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs8.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -6065,7 +6439,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.30.0", ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.33.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6084,6 +6458,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   });
   const send = (ws, data) => {
     if (ws.readyState === 1 && ws.bufferedAmount < 262144) {
+      if (data.type === "state") data.stalls = data.self.map === "town" ? commerce.stalls().filter((it) => Math.hypot(it.x - data.self.x, it.y - data.self.y) < 1800).slice(0, 64) : [];
       const packet = stateForWire(data, ws.eventCursor || 0);
       ws.send(JSON.stringify(packet));
       if (packet.type === "state") for (const e of packet.events) ws.eventCursor = Math.max(ws.eventCursor || 0, e.id);
@@ -6100,6 +6475,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     let managing = false;
     ws.on("message", async (raw) => {
       if (managing) return;
+      if (commerce.failed) {
+        ws.close(1011);
+        return;
+      }
       try {
         const now = Date.now();
         if (now - since >= 1e3) {
@@ -6129,6 +6508,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
               if (activeAccounts.has(accounts.resolve(d.token))) throw Error("already_online");
               const owner = accounts.resolve(d.token);
               try {
+                if (d.action === "delete" && commerce.ownsListedItems(owner, characterId(owner, d.character))) throw Error("shop_items_pending");
                 result = d.action === "purchaseHistory" ? billing.history(owner, d.offset ?? 0) : await accounts.manage(d.token, d);
                 if (d.action === "purchaseHistory") {
                   const roster = characterRoster(directory, owner);
@@ -6139,6 +6519,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
                   }
                 }
               } finally {
+                if (accounts.deletion.isDeleted(owner)) commerce.removeAccount(owner);
                 if (result && d.action === "delete" || accounts.deletion.isDeleted(owner)) {
                   const ids = d.action === "delete" ? [characterId(owner, d.character)] : CHARACTER_SLOTS.map((slot) => characterId(owner, slot));
                   for (const id of ids) {
@@ -6164,12 +6545,12 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!test) throw Error("login_required");
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs5.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto7.randomBytes)(32).toString("hex");
+            if ((0, import_node_fs8.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            token = (0, import_node_crypto10.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const account = created ? (0, import_node_crypto7.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
+          const account = created ? (0, import_node_crypto10.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
           for (const slot of CHARACTER_SLOTS) {
             const body = world.sleepers.get(characterId(account, slot));
             if (body?.dirty) persist(body);
@@ -6199,7 +6580,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           }
           const id = characterId(account, character);
           if (testRewards && (created || d.newCharacter === true)) state.gold = 1e6;
-          grantTestGold(state, testRewards);
+          accounts.referrals.deliver(account, character, state, (value) => {
+            const file = (0, import_node_path8.join)(directory, id + ".json");
+            (0, import_node_fs8.writeFileSync)(file + ".tmp", JSON.stringify(value));
+            (0, import_node_fs8.renameSync)(file + ".tmp", file);
+          }, { welcome: (created || d.newCharacter === true) && characterRoster(directory, account).length === 0 });
           if (!testRewards) state.townBuffUntil = 0;
           p = world.join(id, state);
           p.account = account;
@@ -6208,12 +6593,30 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.30.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.33.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
+          return;
+        }
+        if (d.type === "commerce") {
+          try {
+            const result = commerce.run(p, d);
+            for (const socket of connections) {
+              const actor = socket.player?.();
+              if (actor) send(socket, world.snapshot(actor));
+            }
+            send(ws, { type: "commerceResult", ok: true, ...result });
+          } catch (e) {
+            send(ws, { type: "commerceResult", ok: false, message: e.message, ...commerce.failed ? {} : commerce.view(p) });
+            if (commerce.failed) {
+              diskFailure = true;
+              for (const socket of connections) socket.close(1011);
+            }
+          }
           return;
         }
         if (d.type === "billingPurchase") {
           managing = true;
+          p.economyBusy = true;
           try {
             const reward2 = await billing.redeem(p, d, persist);
             send(ws, world.snapshot(p));
@@ -6222,6 +6625,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             send(ws, { type: "billingResult", ok: false, message: ["payment_pending", "wrong_account", "wallet_full", "billing_unavailable", "purchase_busy"].includes(e.message) ? e.message : "purchase_not_verified" });
           } finally {
             managing = false;
+            p.economyBusy = false;
             if (ws.readyState !== 1) activeAccounts.delete(p.account);
           }
           return;
@@ -6235,6 +6639,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             const copy = structuredClone(p.s);
             if (d.type === "billingPurchase") {
               managing = true;
+              p.economyBusy = true;
               try {
                 const reward2 = await billing.redeem(p, d, persist);
                 send(ws, world.snapshot(p));
@@ -6243,6 +6648,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
                 send(ws, { type: "billingResult", ok: false, message: ["payment_pending", "wrong_account", "wallet_full", "billing_unavailable", "purchase_busy"].includes(e.message) ? e.message : "purchase_not_verified" });
               } finally {
                 managing = false;
+                p.economyBusy = false;
                 if (ws.readyState !== 1) activeAccounts.delete(p.account);
               }
               return;
@@ -6308,6 +6714,8 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
   let previous = Date.now();
   const ticker = setInterval(() => {
     const now = Date.now();
+    if (commerce.failed) return;
+    commerce.refreshSigns();
     world.tick(Math.min(0.2, (now - previous) / 1e3), now / 1e3);
     previous = now;
     for (const p of world.sleepers.values()) {
@@ -6364,20 +6772,20 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 }
 
 // server/release-backup.js
-var import_node_fs6 = require("node:fs");
-var import_node_path6 = require("node:path");
+var import_node_fs9 = require("node:fs");
+var import_node_path9 = require("node:path");
 function backupBefore416(directory, release = "4.16.0") {
-  (0, import_node_fs6.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path6.join)(directory, "release-backups"), final = (0, import_node_path6.join)(root, "before-" + release);
-  if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(final, "complete.json"))) return false;
-  (0, import_node_fs6.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path6.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
-  (0, import_node_fs6.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs6.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs6.copyFileSync)((0, import_node_path6.join)(directory, name), (0, import_node_path6.join)(stage, name), import_node_fs6.constants.COPYFILE_EXCL);
-  for (const name of ["accounts", "deleted-characters"]) if ((0, import_node_fs6.existsSync)((0, import_node_path6.join)(directory, name))) (0, import_node_fs6.cpSync)((0, import_node_path6.join)(directory, name), (0, import_node_path6.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
-  (0, import_node_fs6.writeFileSync)((0, import_node_path6.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs6.renameSync)(stage, final);
+  (0, import_node_fs9.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path9.join)(directory, "release-backups"), final = (0, import_node_path9.join)(root, "before-" + release);
+  if ((0, import_node_fs9.existsSync)((0, import_node_path9.join)(final, "complete.json"))) return false;
+  (0, import_node_fs9.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path9.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs9.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs9.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs9.copyFileSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), import_node_fs9.constants.COPYFILE_EXCL);
+  for (const name of ["accounts", "deleted-characters", "account-deletions", "commerce.json", "commerce-pending.json", "referrals.json", "play-receipts", "account-cleanup-key.pem"]) if ((0, import_node_fs9.existsSync)((0, import_node_path9.join)(directory, name))) (0, import_node_fs9.cpSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
+  (0, import_node_fs9.writeFileSync)((0, import_node_path9.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs9.renameSync)(stage, final);
   console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
@@ -6390,7 +6798,7 @@ var admob_config_default = {
 };
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.20.0");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.33.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {

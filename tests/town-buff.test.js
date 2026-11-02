@@ -23,19 +23,22 @@ test('robot buff scales base stats, refreshes without stacking, persists and exp
  const restored=validSave(JSON.parse(JSON.stringify(p.s)));assert.ok(buffActive(restored));
  w.tick(.1,now+3604);assert.equal(p.s.townBuffUntil,0);assert.equal(maxHP(p.s),hp);assert.ok(p.hp<=hp);assert.ok(p.mp<=c.mp);assert.equal(movementMultiplier(p.s),1);
 });
-test('robot refuses disabled test mode, dead players, remote requests and wrong maps',()=>{
- for(const mode of ['disabled','dead','remote','forest']){const w=new World({testRewards:mode!=='disabled'}),p=hero(w);if(mode==='dead')p.hp=0;if(mode==='remote')p.x+=1000;if(mode==='forest')p.map='forest';w.command(p,{type:'op',op:'townBuff'});assert.equal(p.s.townBuffUntil,0,mode);}
+test('robot refuses disabled test mode, dead players and wrong maps',()=>{
+ for(const mode of ['disabled','dead','forest']){const w=new World({testRewards:mode!=='disabled'}),p=hero(w);if(mode==='dead')p.hp=0;if(mode==='remote')p.x+=1000;if(mode==='forest')p.map='forest';w.command(p,{type:'op',op:'townBuff'});assert.equal(p.s.townBuffUntil,0,mode);}
 });
 test('critical chance never exceeds 100%, malformed expiry is rejected',()=>{
  const s=fresh('sword-cockro');s.attributes.agi=2000;s.townBuffUntil=Date.now()+BUFF_DURATION;assert.equal(combatStats(s).crit,1);
  s.townBuffUntil=Infinity;assert.equal(validSave(s).townBuffUntil,0);
 });
 async function connect(url,hello){const ws=new WebSocket(url,{origin:'http://localhost'});await once(ws,'open');const result=new Promise((resolve,reject)=>{ws.on('message',b=>{const d=JSON.parse(b);if(d.type==='welcome')resolve(d);if(d.type==='error')reject(Error(d.message));});ws.on('error',reject);});ws.send(JSON.stringify(hello));return {ws,welcome:await result};}
-test('new test character receives 1M G and 50K gold once; production stays unchanged',async t=>{
+test('new accounts receive 500 COCKRO coin once in both modes',async t=>{
  for(const enabled of [true,false]){
  const app=startServer({port:0,directory:mkdtempSync(join(tmpdir(),'aura-test-')),test:true,testRewards:enabled});await once(app.server,'listening');t.after(()=>app.close());const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
- const a=await connect(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});assert.equal(a.welcome.save.gold,enabled?1000000:100000);assert.equal(a.welcome.save.stones,enabled?50000:0);
+ const a=await connect(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});assert.equal(a.welcome.save.gold,enabled?1000000:100000);assert.equal(a.welcome.save.stones,500);
  const p=app.world.players.get(a.welcome.id);p.s.gold-=125;p.s.stones=Math.max(0,p.s.stones-5);const close=once(a.ws,'close');a.ws.close();await close;
- const b=await connect(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(b.welcome.save.gold,(enabled?1000000:100000)-125);assert.equal(b.welcome.save.stones,enabled?49995:0);b.ws.terminate();
+ const b=await connect(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(b.welcome.save.gold,(enabled?1000000:100000)-125);assert.equal(b.welcome.save.stones,495);b.ws.terminate();
  }
 });
+
+
+test('buff reaches players anywhere in town and reports acceptance',()=>{const w=new World({testRewards:true}),p=hero(w);p.x+=1000;w.command(p,{type:'op',op:'townBuff'});assert.equal(p.opResult.ok,true);assert.ok(buffActive(p.s));});

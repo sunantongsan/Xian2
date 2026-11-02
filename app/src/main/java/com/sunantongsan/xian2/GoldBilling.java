@@ -27,7 +27,8 @@ public final class GoldBilling implements PurchasesUpdatedListener {
  activity.runOnUiThread(()->{BillingResult launch=client.launchBillingFlow(activity,BillingFlowParams.newBuilder().setObfuscatedAccountId(owner).setObfuscatedProfileId(profile).setProductDetailsParamsList(Collections.singletonList(itemParams.build())).build());if(launch.getResponseCode()!=0)status("เปิดหน้าชำระเงินไม่ได้ กรุณาลองใหม่");});
  });}));}
  private void restore(){client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),(r,ps)->{if(r.getResponseCode()==0)for(Purchase p:ps)purchase(p);});}
- private void purchase(Purchase p){if(p.getPurchaseState()==Purchase.PurchaseState.PENDING){status("รอการชำระเงิน เมื่อสำเร็จระบบจะเติมทองให้");return;}if(p.getPurchaseState()!=Purchase.PurchaseState.PURCHASED)return;for(String id:p.getProducts())if(IDS.contains(id)){JSONObject d=event("purchase");try{d.put("productId",id).put("token",p.getPurchaseToken());}catch(JSONException ignored){}emit(d);}}
- @Override public void onPurchasesUpdated(BillingResult r,List<Purchase> ps){if(r.getResponseCode()==0&&ps!=null)for(Purchase p:ps)purchase(p);else if(r.getResponseCode()==BillingClient.BillingResponseCode.USER_CANCELED)status("ยกเลิกการซื้อแล้ว");else status("ยังยืนยันการซื้อไม่ได้ กดตรวจรายการค้างเพื่อรับทอง");}
+ private void purchase(Purchase p){if(p.getPurchaseState()==Purchase.PurchaseState.PENDING){status("รอการชำระเงิน เมื่อสำเร็จระบบจะเติม COCKRO coin ให้");return;}if(p.getPurchaseState()!=Purchase.PurchaseState.PURCHASED)return;for(String id:p.getProducts())if(IDS.contains(id)){JSONObject d=event("purchase");try{d.put("productId",id).put("token",p.getPurchaseToken());}catch(JSONException ignored){}emit(d);}}
+ @Override public void onPurchasesUpdated(BillingResult r,List<Purchase> ps){if(r.getResponseCode()==0&&ps!=null)for(Purchase p:ps)purchase(p);else if(r.getResponseCode()==BillingClient.BillingResponseCode.USER_CANCELED)status("ยกเลิกการซื้อแล้ว");else status("ยังยืนยันการซื้อไม่ได้ กดตรวจรายการค้างเพื่อรับ COCKRO coin");}
  public void destroy(){web=null;client.endConnection();}
 }
+

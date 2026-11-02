@@ -40,6 +40,7 @@ test('Google password recovery binds to same identity and grants one short-lived
 test('identity deletion stays pending without admin access and retries server-side without reviving game data',async t=>{
  let deleted=false;const fetcher=async(u,options)=>{if(options.method==='DELETE'){deleted=true;return {ok:true};}return {ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:'qa-google',identities:[{provider:'google'}]}};};
  const f=setup(t,{fetcher,adminKey:''});const begin=await f.api.authStart(f.token),session=await f.api.authFinish(begin.flow,'code');f.token=session.token;await password(f);
+ const proofFlow=await f.api.authStart(f.token,'deleteAccount');f.token=(await f.api.authFinish(proofFlow.flow,'code')).token;
  const result=await f.api.manage(f.token,{action:'deleteAccount',password:'safe-pass-429',confirmText:'ลบบัญชี COCKRO'});assert(result.identityCleanupPending);
  await f.api.deletion.processPending();assert(!deleted);const again=await f.api.authStart();await assert.rejects(f.api.authFinish(again.flow,'code'),/deletion_pending/);
  const retry=createAccounts(f.dir,{fetcher,adminKey:'server-only-test-key'});await retry.deletion.processPending();assert(deleted);
@@ -50,4 +51,22 @@ test('history is account-scoped, paginated, preserves verified order/test status
  for(let i=0;i<21;i++)await api.redeem(actor,{productId:'cockro_gold_5000',token:'verified-test-token-'+i},()=>{});
  assert.equal(api.history('different').purchases.length,0);assert.equal(api.history(f.account).purchases.length,20);assert.equal(api.history(f.account).nextOffset,20);const next=api.history(f.account,20);assert.equal(next.purchases.length,1);assert.equal(next.nextOffset,null);assert.equal(next.purchases[0].orderId,'GPA.test');assert(next.purchases[0].test);assert.equal(next.purchases[0].purchasedAt,123456789);assert(!JSON.stringify(next).includes('verified-test-token'));
  assert.throws(()=>api.history(f.account,-1));
+});
+
+test('Google account deletion uses recent same-account proof without a separate game password',async t=>{
+ let uid='delete-qa';const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:uid,identities:[{provider:'google'}]}});
+ const f=setup(t,{fetcher,adminKey:''});let flow=await f.api.authStart(f.token);f.token=(await f.api.authFinish(flow.flow,'code')).token;
+ assert.equal((await f.api.manage(f.token,{action:'status'})).hasPassword,false);
+ await assert.rejects(f.api.manage(f.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);
+ flow=await f.api.authStart(f.token,'deleteAccount');uid='someone-else';await assert.rejects(f.api.authFinish(flow.flow,'code'),/wrong_google_account/);
+ uid='delete-qa';flow=await f.api.authStart(f.token,'resetPassword');const reset=await f.api.authFinish(flow.flow,'code');await assert.rejects(f.api.manage(reset.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);
+ flow=await f.api.authStart(f.token,'deleteAccount');const proof=await f.api.authFinish(flow.flow,'code');assert(proof.accountDeletionReady);assert((await f.api.manage(proof.token,{action:'status'})).canDelete);
+ await assert.rejects(f.api.manage(proof.token,{action:'deleteAccount',confirmText:'wrong'}),/confirmation_mismatch/);assert(existsSync(join(f.dir,f.account+'.json')));
+ const result=await f.api.manage(proof.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'});assert(result.deleted);assert(result.identityCleanupPending);assert.throws(()=>f.api.resolve(proof.token));
+});
+test('expired Google deletion proof leaves account and game data intact',async t=>{
+ const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:'expiry-qa',identities:[{provider:'google'}]}});
+ const f=setup(t,{fetcher});let flow=await f.api.authStart(f.token);f.token=(await f.api.authFinish(flow.flow,'code')).token;flow=await f.api.authStart(f.token,'deleteAccount');const proof=await f.api.authFinish(flow.flow,'code');
+ const file=join(f.dir,'accounts','session-'+hash(proof.token)+'.json'),session=JSON.parse(readFileSync(file));session.deleteReauthAt=Date.now()-300001;writeFileSync(file,JSON.stringify(session));assert.equal((await f.api.manage(proof.token,{action:'status'})).canDelete,false);
+ await assert.rejects(f.api.manage(proof.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);assert(existsSync(join(f.dir,f.account+'.json')));
 });

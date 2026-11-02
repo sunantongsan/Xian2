@@ -17,7 +17,7 @@ test('all ten-level weapons grow, reject underlevel and malformed purchase, pres
  for(const tier of [-1,NaN,1.5,999,'1'])assert.equal(buyShopGear(s,'weapon',tier),false);
 });
 test('merchant counter opens remotely in town but forest cannot spend currency',()=>{
- const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(MERCHANT_UV[0]<.2);
+ const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(MERCHANT_UV[0]>.2&&MERCHANT_UV[0]<.3);
  p.s.stones=10000;p.map='forest';const before=JSON.stringify(p.s);w.command(p,{type:'op',op:'buy'},100);assert.equal(p.opResult.ok,false);assert.equal(JSON.stringify(p.s),before);
  p.map='town';w.command(p,{type:'op',op:'buy'},101);assert.equal(p.opResult.ok,true);assert.equal(p.s.potions,11);
 });
@@ -27,3 +27,4 @@ test('interpolation smooths visual motion without altering combat position and s
 test('wire cursor avoids repeated effects and does not mutate shared events',()=>{
  const d={type:'state',events:[{id:1},{id:2}]};assert.equal(stateForWire(d,0).events.length,2);assert.equal(stateForWire(d,2).events.length,0);assert.equal(d.events.length,2);assert.equal(stateForWire({...d,events:[...d.events,{id:3}]},2).events[0].id,3);
 });
+

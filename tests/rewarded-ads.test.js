@@ -49,6 +49,7 @@ test('console verification requires signed fresh probe and never writes accounts
  const app=startServer({directory,port:0,test:true,adUnit:unit,ssvVerifier:verifier()});
  try{
   await new Promise(ok=>app.server.once('listening',ok));
+  const initialFiles=readdirSync(directory);
   const base='http://127.0.0.1:'+app.server.address().port+'/online/ads/ssv?';
   const p=callback({nonce:'0'.repeat(48)},{user_id:'0'.repeat(64)}),raw=signed(p);
   assert.equal((await fetch(base+raw)).status,200);
@@ -58,7 +59,7 @@ test('console verification requires signed fresh probe and never writes accounts
   assert.equal((await fetch(base+signed({...p,timestamp:String(Date.now()-360000)}))).status,400);
   assert.equal((await fetch(base+signed({...p,user_id:user}))).status,400);
   assert.equal((await fetch(base+new URLSearchParams(p))).status,400);
-  assert.deepEqual(readdirSync(directory),[]);
+  assert.deepEqual(readdirSync(directory),initialFiles);
   assert.equal(app.world.players.size,0);
  }finally{await app.close();rmSync(directory,{recursive:true,force:true});}
 });
@@ -79,4 +80,5 @@ test('HTTP SSV verifies, persists offline, and replay cannot double-grant after 
  reconnect.ws.close();
  }finally{if(app)await app.close();rmSync(directory,{recursive:true,force:true});}
 });
+
 

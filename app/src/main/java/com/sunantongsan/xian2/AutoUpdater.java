@@ -14,7 +14,7 @@ final class AutoUpdater {
  private volatile HttpURLConnection active;
  AutoUpdater(){this(url->(HttpURLConnection)url.openConnection());}
  AutoUpdater(Connections connections){this.connections=connections;}
- void cancel(){cancelled.set(true);HttpURLConnection c=active;if(c!=null)c.disconnect();}
+ void cancel(){cancelled.set(true);HttpURLConnection c=active;if(c!=null){Thread cleanup=new Thread(c::disconnect,"cockro-cancel-update");cleanup.setDaemon(true);cleanup.start();}}
  void checkCancelled()throws IOException{if(cancelled.get()||Thread.currentThread().isInterrupted())throw new IOException("ยกเลิกการอัปเดต");}
  private HttpURLConnection open(String path)throws IOException{
   checkCancelled();HttpURLConnection c=connections.open(new URL(BASE+path));active=c;
@@ -41,4 +41,5 @@ final class AutoUpdater {
  }
  static String hex(byte[] bytes){StringBuilder s=new StringBuilder();for(byte b:bytes)s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}
 }
+
 
