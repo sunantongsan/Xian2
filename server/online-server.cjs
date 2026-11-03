@@ -2263,7 +2263,7 @@ var require_websocket = __commonJS({
     var http2 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes5, createHash: createHash7 } = require("crypto");
+    var { randomBytes: randomBytes6, createHash: createHash7 } = require("crypto");
     var { Duplex, Readable } = require("stream");
     var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2814,7 +2814,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes5(16).toString("base64");
+      const key = randomBytes6(16).toString("base64");
       const request = isSecure ? https.request : http2.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -4120,6 +4120,28 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
   }
   if ((0, import_node_fs.existsSync)(walPath)) apply(JSON.parse((0, import_node_fs.readFileSync)(walPath, "utf8")));
   let ledger = (0, import_node_fs.existsSync)(ledgerPath) ? JSON.parse((0, import_node_fs.readFileSync)(ledgerPath, "utf8")) : { revision: 0, vaults: {}, shops: {} };
+  const grants = /* @__PURE__ */ new WeakMap(), attempts = /* @__PURE__ */ new Map();
+  const unlocked2 = (p) => {
+    const g = grants.get(p), v = ledger.vaults[p.account];
+    return !!(g && g.until > Date.now() && v?.pinHash && g.hash === v.pinHash);
+  };
+  const lockVault = (p) => grants.delete(p);
+  function verifyPin(p, pin) {
+    const now = Date.now();
+    for (const [key, a2] of attempts) if (now - a2.at > 3e5) attempts.delete(key);
+    const a = attempts.get(p.account) || { count: 0, at: now };
+    need(a.count < 5, "vault_rate_limit");
+    a.count++;
+    a.at = now;
+    attempts.set(p.account, a);
+    const v = ledger.vaults[p.account];
+    need(v?.pinHash, "vault_setup_required");
+    need(typeof pin === "string" && /^\d{6}$/.test(pin), "invalid_pin");
+    const hash4 = (0, import_node_crypto2.scryptSync)(pin, v.pinSalt, 32);
+    need((0, import_node_crypto2.timingSafeEqual)(hash4, Buffer.from(v.pinHash, "hex")), "wrong_pin");
+    attempts.delete(p.account);
+    grants.set(p, { hash: v.pinHash, until: now + 3e5 });
+  }
   const vault = (l, account) => l.vaults[account] ??= { gold: 0, stones: 0, items: [] };
   function ready(p) {
     need(!failed, "save_unavailable");
@@ -4131,12 +4153,21 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
     return shop.open;
   }
   function view(p) {
-    const own = ledger.shops[p.account];
-    return { revision: ledger.revision, vault: structuredClone(ledger.vaults[p.account] || { gold: 0, stones: 0, items: [] }), ownShop: structuredClone(own || { open: false, title: "", listings: [] }), shops: Object.values(ledger.shops).filter(active).map((shop) => ({ character: shop.character, title: shop.title, promotion: shop.promotion || "", name: shop.name, x: shop.x, y: shop.y, listings: structuredClone(shop.listings) })) };
+    const own = ledger.shops[p.account], v = ledger.vaults[p.account] || { gold: 0, stones: 0, items: [] };
+    return { revision: ledger.revision, vaultSecurity: { supported: true, configured: !!v.pinHash, locked: !unlocked2(p) }, vault: unlocked2(p) ? structuredClone({ gold: v.gold, stones: v.stones, items: v.items }) : null, ownShop: structuredClone(own || { open: false, title: "", listings: [] }), shops: Object.values(ledger.shops).filter(active).map((shop) => ({ character: shop.character, title: shop.title, promotion: shop.promotion || "", name: shop.name, x: shop.x, y: shop.y, listings: structuredClone(shop.listings) })) };
   }
   function run(p, d) {
     ready(p);
     if (d.action === "view") return view(p);
+    if (d.action === "lockVault") {
+      lockVault(p);
+      return view(p);
+    }
+    if (d.action === "unlockVault") {
+      verifyPin(p, d.pin);
+      return view(p);
+    }
+    if (["depositMoney", "withdrawMoney", "depositItem", "withdrawItem"].includes(d.action)) need(unlocked2(p), "vault_locked");
     need(d.revision === ledger.revision, "stale_market");
     const next = structuredClone(ledger), changed = /* @__PURE__ */ new Map();
     const state = (actor) => {
@@ -4149,6 +4180,17 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
     const s = state(p), v = vault(next, p.account);
     let shop = next.shops[p.account];
     switch (d.action) {
+      case "setVaultPin":
+      case "changeVaultPin": {
+        if (v.pinHash) {
+          need(d.action === "changeVaultPin", "vault_already_configured");
+          verifyPin(p, d.oldPin);
+        } else need(d.action === "setVaultPin", "vault_setup_required");
+        need(typeof d.pin === "string" && /^\d{6}$/.test(d.pin), "invalid_pin");
+        v.pinSalt = (0, import_node_crypto2.randomBytes)(16).toString("hex");
+        v.pinHash = (0, import_node_crypto2.scryptSync)(d.pin, v.pinSalt, 32).toString("hex");
+        break;
+      }
       case "depositMoney":
       case "withdrawMoney": {
         need(Object.hasOwn(CAPS, d.currency), "invalid_currency");
@@ -4248,6 +4290,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
       throw Error("save_unavailable");
     }
     ledger = next;
+    if (["setVaultPin", "changeVaultPin"].includes(d.action)) grants.set(p, { hash: v.pinHash, until: Date.now() + 3e5 });
     for (const [actor, save] of changed) {
       actor.s = save;
       actor.dirty = false;
@@ -4278,7 +4321,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
   }
   const stalls = () => Object.values(ledger.shops).filter(active).map((x) => ({ character: x.character, title: x.title, promotion: x.promotion || "", name: x.name, x: x.x, y: x.y, count: x.listings.length }));
   const ownsListedItems = (account, id) => ledger.shops[account]?.character === id && ledger.shops[account].listings.length > 0;
-  return { run, view, refreshSigns, stalls, removeAccount, ownsListedItems, get failed() {
+  return { run, view, lockVault, refreshSigns, stalls, removeAccount, ownsListedItems, get failed() {
     return failed;
   } };
 }
@@ -5086,10 +5129,6 @@ var toWorld = ([u, v], scene) => {
   const { width, height } = mapSize(scene), a = (u - 0.5) * width / 0.8, b = (v - 0.6) * height / 0.4;
   return { x: (a + b) / 2, y: (b - a) / 2 };
 };
-var toUV = ({ x, y }, scene) => {
-  const { width, height } = mapSize(scene);
-  return [0.5 + 0.8 * (x - y) / width, 0.6 + 0.4 * (x + y) / height];
-};
 var rect = (l, t, r, b) => [[l, t], [r, t], [r, b], [l, b]];
 var FOREST_COLS = 9;
 var FOREST_ROWS = 6;
@@ -5118,7 +5157,7 @@ var MAPS = {
     rect(0.7, 0.17, 0.75, 0.34),
     rect(0.88, 0.195, 0.96, 0.255),
     rect(0.73, 0.245, 0.92, 0.29)
-  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: MERCHANT_UV, name: "MERC-01 \u2022 \u0E2B\u0E38\u0E48\u0E19\u0E1E\u0E48\u0E2D\u0E04\u0E49\u0E32", action: "shop" }, { uv: [0.73, 0.54], name: "\u0E42\u0E23\u0E07\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
+  ], pois: [{ uv: BUFF_NPC_UV, name: "AURA-01 \u2022 \u0E23\u0E31\u0E1A\u0E1A\u0E31\u0E1F 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07", action: "buff" }, { uv: MERCHANT_UV, name: "MERC-01 \u2022 \u0E2B\u0E38\u0E48\u0E19\u0E1E\u0E48\u0E2D\u0E04\u0E49\u0E32", action: "shop" }, { uv: [0.73, 0.54], name: "FORGE-09 \u2022 \u0E2B\u0E38\u0E48\u0E19\u0E2D\u0E31\u0E1B\u0E40\u0E01\u0E23\u0E14", action: "forge" }, { uv: [0.5, 0.37], name: "\u0E28\u0E39\u0E19\u0E22\u0E4C\u0E1D\u0E36\u0E01\u0E2E\u0E35\u0E42\u0E23\u0E48", action: "skills" }, { uv: [0.5, 0.94], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", action: "road", road: "forest" }, { uv: [0.94, 0.54], name: "\u0E16\u0E19\u0E19\u0E2A\u0E39\u0E48\u0E40\u0E02\u0E15\u0E2E\u0E35\u0E42\u0E23\u0E48 \u2022 Lv.61\u2013120", action: "road", road: "star" }] },
   forest: { id: "forest", name: "\u0E1B\u0E48\u0E32\u0E0A\u0E35\u0E27\u0E30\u0E41\u0E2A\u0E07 \u2022 Lv.1\u201360", image: "maps/biolume-tile.webp", tiled: true, cols: FOREST_COLS, rows: FOREST_ROWS, width: 14400, height: 9600, spawn: [1 / 6, 0.935], walk: forestWalk, pois: [{ uv: [1 / 6, 0.95], name: "\u0E16\u0E19\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E2D\u0E2D\u0E42\u0E23\u0E23\u0E32", action: "road", road: "town" }, ...REGIONS.map((r) => ({ uv: r.entry, name: r.name + " \u2022 " + r.min + "\u2013" + r.max, action: "waypoint", region: r.id }))] }
 };
 function inside(u, v, poly) {
@@ -5129,11 +5168,31 @@ function inside(u, v, poly) {
   }
   return hit;
 }
+var walkBounds = /* @__PURE__ */ new WeakMap();
+var FOOT_OFFSETS = [[0, 0], [15e-4, 0], [-15e-4, 0], [0, 15e-4], [0, -15e-4]];
+function geometry(scene) {
+  let entry = walkBounds.get(scene);
+  if (entry?.source === scene.walk) return entry.polys;
+  const polys = scene.walk.map((poly) => ({ poly, l: Math.min(...poly.map((p) => p[0])), r: Math.max(...poly.map((p) => p[0])), t: Math.min(...poly.map((p) => p[1])), b: Math.max(...poly.map((p) => p[1])) }));
+  walkBounds.set(scene, { source: scene.walk, polys });
+  return polys;
+}
 function walkable(scene, point) {
   if (scene?.type === "tiles") return tileWalkable(scene, point);
   if (!scene) return Math.abs(point.x) <= 850 && Math.abs(point.y) <= 850;
-  const [u, v] = toUV(point, scene);
-  return [[0, 0], [15e-4, 0], [-15e-4, 0], [0, 15e-4], [0, -15e-4]].every(([du, dv]) => scene.walk.some((poly) => inside(u + du, v + dv, poly)));
+  const u = 0.5 + 0.8 * (point.x - point.y) / (scene.width || MAP_W), v = 0.6 + 0.4 * (point.x + point.y) / (scene.height || MAP_H), polys = geometry(scene);
+  for (const [du, dv] of FOOT_OFFSETS) {
+    const x = u + du, y = v + dv;
+    let hit = false;
+    for (const p of polys) {
+      if (x >= p.l && x <= p.r && y >= p.t && y <= p.b && inside(x, y, p.poly)) {
+        hit = true;
+        break;
+      }
+    }
+    if (!hit) return false;
+  }
+  return true;
 }
 function traceStep(scene, from, to) {
   const d = Math.hypot(to.x - from.x, to.y - from.y), steps = Math.max(1, Math.ceil(d / 10));
@@ -6610,7 +6669,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.36.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, roamingCharacters: world.roamers.size, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.37.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, roamingCharacters: world.roamers.size, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6765,7 +6824,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.36.0", id, character, chatEnabled: true, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.37.0", id, character, chatEnabled: true, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
           return;
         }
@@ -6881,6 +6940,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       clearTimeout(timer);
       connections.delete(ws);
       if (p) {
+        commerce.lockVault(p);
         world.disconnect(p);
         try {
           persist(p);

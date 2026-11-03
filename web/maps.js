@@ -30,13 +30,22 @@ export const MAPS={
  // Walk around the two landing pads without crossing parked craft or building roofs.
  rect(.12,.225,.31,.275),rect(.25,.17,.30,.34),rect(.04,.195,.12,.255),rect(.08,.245,.27,.29),
  rect(.69,.225,.88,.275),rect(.70,.17,.75,.34),rect(.88,.195,.96,.255),rect(.73,.245,.92,.29)
- ],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:MERCHANT_UV,name:'MERC-01 • หุ่นพ่อค้า',action:'shop'},{uv:[.73,.54],name:'โรงอัปเกรด',action:'forge'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.94],name:'ถนนสู่ป่าชีวะแสง • Lv.1–60',action:'road',road:'forest'},{uv:[.94,.54],name:'ถนนสู่เขตฮีโร่ • Lv.61–120',action:'road',road:'star'}]},
+ ],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:MERCHANT_UV,name:'MERC-01 • หุ่นพ่อค้า',action:'shop'},{uv:[.73,.54],name:'FORGE-09 • หุ่นอัปเกรด',action:'forge'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.94],name:'ถนนสู่ป่าชีวะแสง • Lv.1–60',action:'road',road:'forest'},{uv:[.94,.54],name:'ถนนสู่เขตฮีโร่ • Lv.61–120',action:'road',road:'star'}]},
  forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],name:'ถนนกลับสถานีออโรรา',action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
 
 };
 export function regionAt(point){const [u,v]=toUV(point,MAPS.forest);return REGIONS.reduce((best,r)=>Math.hypot(u-r.center[0],v-r.center[1])<Math.hypot(u-best.center[0],v-best.center[1])?r:best,REGIONS[0]);}
 function inside(u,v,poly){let hit=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>v)!==(b[1]>v)&&u<(b[0]-a[0])*(v-a[1])/(b[1]-a[1])+a[0])hit=!hit;}return hit;}
-export function walkable(scene,point){if(scene?.type==='tiles')return tileWalkable(scene,point);if(!scene)return Math.abs(point.x)<=850&&Math.abs(point.y)<=850;const [u,v]=toUV(point,scene);return [[0,0],[.0015,0],[-.0015,0],[0,.0015],[0,-.0015]].every(([du,dv])=>scene.walk.some(poly=>inside(u+du,v+dv,poly)));}
+// Broad-phase bounds avoid testing every polygon for each movement sample.
+const walkBounds=new WeakMap();
+const FOOT_OFFSETS=[[0,0],[.0015,0],[-.0015,0],[0,.0015],[0,-.0015]];
+function geometry(scene){let entry=walkBounds.get(scene);if(entry?.source===scene.walk)return entry.polys;const polys=scene.walk.map(poly=>({poly,l:Math.min(...poly.map(p=>p[0])),r:Math.max(...poly.map(p=>p[0])),t:Math.min(...poly.map(p=>p[1])),b:Math.max(...poly.map(p=>p[1]))}));walkBounds.set(scene,{source:scene.walk,polys});return polys;}
+export function walkable(scene,point){
+ if(scene?.type==='tiles')return tileWalkable(scene,point);
+ if(!scene)return Math.abs(point.x)<=850&&Math.abs(point.y)<=850;
+ const u=.5+.8*(point.x-point.y)/(scene.width||MAP_W),v=.6+.4*(point.x+point.y)/(scene.height||MAP_H),polys=geometry(scene);
+ for(const [du,dv]of FOOT_OFFSETS){const x=u+du,y=v+dv;let hit=false;for(const p of polys){if(x>=p.l&&x<=p.r&&y>=p.t&&y<=p.b&&inside(x,y,p.poly)){hit=true;break;}}if(!hit)return false;}return true;
+}
 export function traceStep(scene,from,to){const d=Math.hypot(to.x-from.x,to.y-from.y),steps=Math.max(1,Math.ceil(d/10));let p={x:from.x,y:from.y};for(let i=1;i<=steps;i++){const q={x:from.x+(to.x-from.x)*i/steps,y:from.y+(to.y-from.y)*i/steps};if(!walkable(scene,q))break;p=q;}return p;}
 const COLS=120,ROWS=80,cache=new WeakMap();
 function grid(scene){if(cache.has(scene))return cache.get(scene);const cells=[];for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)cells.push(walkable(scene,toWorld([(x+.5)/COLS,(y+.5)/ROWS],scene)));cache.set(scene,cells);return cells;}
@@ -45,6 +54,7 @@ function nearest(scene,p){const [u,v]=toUV(p,scene),g=grid(scene);let best=-1,di
 export function routeTo(scene,from,to,limit){if(!scene)return[to];if(scene.type==='tiles')return tileRoute(scene,from,to,limit,traceStep);const direct=traceStep(scene,from,to);if(walkable(scene,to)&&Math.hypot(direct.x-to.x,direct.y-to.y)<.5)return[to];const g=grid(scene),start=nearest(scene,from),goal=nearest(scene,to);if(start<0||goal<0)return[];const open=[start],cost=new Map([[start,0]]),parent=new Map(),closed=new Set();const heuristic=id=>Math.hypot(id%COLS-goal%COLS,Math.floor(id/COLS)-Math.floor(goal/COLS));while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(cost.get(open[i])+heuristic(open[i])<cost.get(open[bi])+heuristic(open[bi]))bi=i;const cur=open.splice(bi,1)[0];if(cur===goal){const ids=[goal];while(ids[0]!==start)ids.unshift(parent.get(ids[0]));const route=ids.map(id=>cellWorld(id,scene));if(walkable(scene,to)&&Math.hypot(traceStep(scene,route.at(-1),to).x-to.x,traceStep(scene,route.at(-1),to).y-to.y)<1)route.push(to);return route;}
  closed.add(cur);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const x=cur%COLS+dx,y=Math.floor(cur/COLS)+dy,n=y*COLS+x;if(x<0||x>=COLS||y<0||y>=ROWS||!g[n]||closed.has(n))continue;if(dx&&dy&&(!g[cur+dx]||!g[cur+dy*COLS]))continue;const next=cellWorld(n,scene),end=traceStep(scene,cellWorld(cur,scene),next);if(Math.hypot(end.x-next.x,end.y-next.y)>.5)continue;const c=cost.get(cur)+Math.hypot(dx,dy);if(c<(cost.get(n)??Infinity)){cost.set(n,c);parent.set(n,cur);if(!open.includes(n))open.push(n);}}
  }return[];}
+
 
 
 

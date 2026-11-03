@@ -428,3 +428,28 @@ body #modal:has(#chatPanel){position:fixed;inset:auto;left:50%;top:calc(var(--vi
 .short-viewport #chatPanel .chat-heading>div{display:none}
 .short-viewport #chatPanel #chatMinimize{min-height:36px;padding:4px 7px;font-size:11px}
 .short-viewport #chatPanel .chat-tabs{padding-right:53px}
+
+
+/* Compact bridge HUD: the tray opens above its trigger, outside combat controls. */
+#hud #quickMenuToggle{position:fixed;right:max(10px,env(safe-area-inset-right));top:145px;width:34px;height:32px;min-width:34px;min-height:32px;font-size:20px}
+#quickMenuTray{position:fixed;right:max(10px,env(safe-area-inset-right));top:auto;bottom:calc(100dvh - 139px);width:auto;padding:5px;max-height:120px;transform:translateY(9px);overflow:auto;border-radius:10px;background:linear-gradient(145deg,#193649f5,#071523f5)}
+#quickMenuTray.open{transform:translateY(0)}
+#hud .quick-menu{display:grid;grid-template-columns:repeat(4,34px);gap:4px}
+#hud .quick-menu button{width:34px;height:34px;min-height:34px;flex-direction:column;justify-content:center;gap:1px;padding:2px;font-size:16px}
+#hud .quick-menu small{font-size:8px;line-height:1.15}
+#hud .right .direct-shortcut{width:36px;min-width:36px;height:43px;min-height:43px;padding:3px}
+#hud .direct-shortcut svg{width:24px;height:24px}
+#hud #chatToggle{display:none}
+#chatDock{position:fixed;z-index:8;bottom:max(5px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(380px,calc(100vw - 360px));min-width:180px;padding:4px;border:1px solid #618a9c99;border-radius:12px;background:linear-gradient(130deg,#163347ef,#091925f5);box-shadow:0 4px 14px #0006;pointer-events:auto}
+#chatDock form{display:flex;gap:4px;align-items:center}
+#chatDock input,#chatDock select,#chatDock button{margin:0;min-height:32px;height:32px;border-radius:8px;font-size:12px;padding:4px 6px}
+#chatDock select{width:64px;color:#92e5ff;background:#17354a;border:1px solid #588398}
+#chatDock input{width:0;flex:1;min-width:0;color:#ecfaff;background:#061724aa;border:1px solid #496d7e}
+#chatDock button{min-width:32px;color:#ffe5ac;background:#264455;border:1px solid #8ba4a755}
+#dockStatus{display:block;font-size:9px;color:#c1d7de;line-height:1.4;min-height:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+body.welcome-screen #chatDock{display:none}
+html.chat-typing #chatDock{bottom:calc(100dvh - var(--visible-height,100dvh) - var(--visible-top,0px) + 5px);width:min(520px,calc(100vw - 24px))}
+html.chat-typing #controls{visibility:hidden}
+@media(max-width:600px) and (orientation:portrait){#chatDock{width:calc(100vw - 28px);bottom:190px}#hud .panel.right{max-width:calc(100vw - 130px);flex-wrap:wrap}#hud #quickMenuToggle{top:170px}#quickMenuTray{bottom:calc(100dvh - 164px)}}
+.vault-lock{max-width:340px;margin:16px auto;padding:20px;border:1px solid #64899b;border-radius:16px;background:linear-gradient(145deg,#203f52,#0a1b2c);text-align:center}
+.vault-lock input{box-sizing:border-box;width:100%;letter-spacing:5px;text-align:center;margin:8px 0}
