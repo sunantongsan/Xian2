@@ -17,7 +17,8 @@ public class MainActivity extends ComponentActivity {
  private static final String ORIGIN="https://appassets.androidplatform.net";
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
- private final AutoUpdater updater=new AutoUpdater();
+ private AutoUpdater updater=new AutoUpdater();
+ private boolean updating;
  private GoldBilling billing;private RewardedAds ads;private GoogleLogin googleLogin;
  private WebView web;private FrameLayout root;private StartupScreen loading;private TextView status;private ProgressBar progress;private boolean destroyed,gameLoaded,startedCheck,foreground,forceBundled;
  @Override public void onCreate(Bundle state){
@@ -25,25 +26,33 @@ public class MainActivity extends ComponentActivity {
   getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
   billing=new GoldBilling(this);googleLogin=new GoogleLogin(this);googleLogin.callback(getIntent());ads=new RewardedAds(this);ads.start();
   loading=new StartupScreen(this);status=loading.status;progress=loading.progress;
+  loading.resume.setOnClickListener(v->{if(updating){loading.resume.setEnabled(false);status.setText("กำลังพัก เก็บไฟล์ที่โหลดไว้…");updater.cancel();}else checkUpdate();});
   loading.skip.setOnClickListener(v->openBundledGame());root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){openBundledGame();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
  }
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();if(googleLogin!=null)handler.postDelayed(()->googleLogin.resume(),400);}if(!startedCheck){startedCheck=true;checkUpdate();}}
- private void openBundledGame(){if(destroyed)return;forceBundled=true;updater.cancel();loading.skip.setEnabled(true);status.setText("กำลังเปิดเกม…");if(web!=null){root.removeView(web);web.destroy();web=null;}gameLoaded=false;loadGame();}
- private void checkUpdate(){handler.postDelayed(()->{if(!destroyed&&!gameLoaded)openBundledGame();},15000);worker.execute(()->{
-  File archive=null;String message=null;File[] stale=getCacheDir().listFiles();if(stale!=null)for(File file:stale)if(file.getName().startsWith("cockro-update-")&&file.getName().endsWith(".zip"))file.delete();
-  try{
-   if(GamePatch.recover(this))message="แพตช์ก่อนหน้าเปิดไม่สำเร็จ กลับไปใช้รุ่นเดิมแล้ว";
-   UpdateManifest m=updater.latest();int nativeVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionCode;
-   if(m.minApp>nativeVersion)message="มีอัปเดตตัวแอป กรุณาอัปเดตจากแหล่งที่ติดตั้ง";
-   else if(UpdateManifest.compare(m.version,GamePatch.version(this))>0&&!m.version.equals(GamePatch.blocked(this))){
-    archive=updater.download(m,getCacheDir(),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลดแพตช์ "+m.version+" • "+(done*100/total)+"%");}));
-    runOnUiThread(()->{if(!destroyed&&!gameLoaded){progress.setIndeterminate(true);status.setText("กำลังตรวจสอบไฟล์แพตช์…");}});
-    GamePatch.installDownloaded(this,archive,m.version,updater);message="อัปเดตเป็น "+m.version+" แล้ว";
+ private void openBundledGame(){if(destroyed)return;forceBundled=false;updater.cancel();loading.skip.setEnabled(true);status.setText("กำลังเปิดเกม…");if(web!=null){root.removeView(web);web.destroy();web=null;}gameLoaded=false;loadGame();}
+ private void checkUpdate(){
+  if(destroyed||gameLoaded||updating)return;updating=true;updater=new AutoUpdater();loading.resume.setEnabled(true);loading.resume.setText("พักดาวน์โหลด");progress.setVisibility(View.VISIBLE);progress.setIndeterminate(true);status.setText("กำลังตรวจสอบอัปเดต…");
+  worker.execute(()->{
+   File archive=null;String message=null;boolean ready=false,installed=false;
+   try{
+    if(GamePatch.recover(this))message="กลับไปใช้รุ่นก่อนหน้าแล้ว";
+    UpdateManifest m=updater.latest();int nativeVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionCode;
+    if(m.minApp>nativeVersion)throw new IOException("กรุณาอัปเดตตัวแอปจาก Google Play");
+    if(UpdateManifest.compare(m.version,GamePatch.version(this))>0&&!m.version.equals(GamePatch.blocked(this))){
+     archive=updater.download(m,new File(getFilesDir(),"patch-downloads"),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลด "+m.version+" • "+(done*100/total)+"% • "+String.format(java.util.Locale.ROOT,"%.1f / %.1f MB",done/1048576.0,total/1048576.0));}));
+     runOnUiThread(()->{if(!destroyed&&!gameLoaded){progress.setIndeterminate(true);status.setText("กำลังตรวจสอบและติดตั้ง…");}});
+     GamePatch.installDownloaded(this,archive,m.version,updater);installed=true;message="อัปเดตเป็น "+m.version+" แล้ว";
+    }
+    ready=true;
+   }catch(Exception e){message=(e.getMessage()==null?"การเชื่อมต่อขัดข้อง":e.getMessage())+" • กดโหลดต่อ / ลองใหม่";}
+   finally{
+    if(installed&&archive!=null)archive.delete();final String text=message;final boolean complete=ready;
+    runOnUiThread(()->{updating=false;if(destroyed||gameLoaded)return;if(complete){if(text!=null)Toast.makeText(this,text,Toast.LENGTH_LONG).show();loadGame();}else{progress.setIndeterminate(false);status.setText(text);loading.resume.setText("โหลดต่อ / ลองใหม่");loading.resume.setEnabled(true);}});
    }
-  }catch(Exception e){message="ตรวจอัปเดตไม่ได้หรือถูกยกเลิก เปิดเกมรุ่นเดิม";}
-  finally{if(archive!=null)archive.delete();final String text=message;runOnUiThread(()->{if(destroyed||gameLoaded)return;if(text!=null)Toast.makeText(this,text,Toast.LENGTH_LONG).show();loadGame();});}
- });}
+  });
+ }
  private void loadGame(){if(destroyed||gameLoaded)return;gameLoaded=true;for(int i=root.getChildCount()-1;i>=0;i--)if(root.getChildAt(i)!=loading)root.removeViewAt(i);web=new WebView(this);root.addView(web,0,new FrameLayout.LayoutParams(-1,-1));
   // Clear only resource cache, preserving localStorage and online account tokens.
   web.clearCache(true);
@@ -69,6 +78,7 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+
 
 
 
