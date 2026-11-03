@@ -1,4 +1,4 @@
-name: Verify COCKRO 4.34 candidate
+name: Verify COCKRO 4.35 mobile chat patch
 on:
   push:
     branches: [cockro/4.34-mobile-shops-pets]
@@ -22,6 +22,7 @@ jobs:
           npx playwright install --with-deps chromium --only-shell
           node tools/review-432.mjs
           node tools/review-commerce.mjs
+          node tools/review-chat.mjs
           node tools/review-startup.mjs
       - uses: actions/setup-java@v4
         with:

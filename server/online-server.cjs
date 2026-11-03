@@ -3707,8 +3707,46 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// server/commerce.js
+// server/chat.js
 var import_node_crypto = require("node:crypto");
+function createChat({ connections, send, clock = Date.now }) {
+  const limits = /* @__PURE__ */ new Map();
+  function handle(player, data) {
+    const fail = (message) => {
+      throw Error(message);
+    };
+    if (!["world", "map", "whisper"].includes(data.channel)) fail("invalid_channel");
+    if (typeof data.text !== "string" || data.text.length > 1e3) fail("invalid_text");
+    const text = data.text.normalize("NFC").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, " ").replace(/\s+/gu, " ").trim();
+    if (!text || Array.from(text).length > 200) fail("invalid_text");
+    const now = clock(), key = player.account || player.id;
+    for (const [id, v] of limits) if (now - v.at > 6e4) limits.delete(id);
+    const rate = limits.get(key) || { at: 0, times: [] };
+    rate.times = rate.times.filter((t) => now - t < 1e4);
+    if (rate.times.length >= 5 || rate.times.length && now - rate.at < 700) fail("chat_rate_limit");
+    rate.at = now;
+    rate.times.push(now);
+    limits.set(key, rate);
+    const peers = [...connections].filter((ws) => ws.readyState === 1 && ws.player?.());
+    let recipient = null;
+    if (data.channel === "whisper") {
+      const matches = peers.map((ws) => ws.player()).filter((p) => data.to ? p.id === data.to : p.s.name === data.toName);
+      if (matches.length !== 1) fail(matches.length > 1 ? "ambiguous_name" : "player_offline");
+      recipient = matches[0];
+      if (recipient.id === player.id) fail("self_whisper");
+    }
+    const packet = { type: "chat", id: (0, import_node_crypto.randomUUID)(), channel: data.channel, text, at: now, from: player.id, name: player.s.name, to: recipient?.id, toName: recipient?.s.name };
+    for (const ws of peers) {
+      const p = ws.player();
+      if (data.channel === "world" || data.channel === "map" && p.map === player.map || data.channel === "whisper" && (p.id === player.id || p.id === recipient.id)) send(ws, packet);
+    }
+    return packet;
+  }
+  return { handle };
+}
+
+// server/commerce.js
+var import_node_crypto2 = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 
@@ -4124,7 +4162,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
       }
       case "depositItem":
         need(v.items.length < 120, "vault_full");
-        v.items.push({ ...take(s, d.kind, d.id, d.quantity), key: (0, import_node_crypto.randomUUID)() });
+        v.items.push({ ...take(s, d.kind, d.id, d.quantity), key: (0, import_node_crypto2.randomUUID)() });
         break;
       case "withdrawItem": {
         const i = v.items.findIndex((it) => it.key === d.key);
@@ -4160,7 +4198,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
         need(shop?.character === p.id, "shop_missing");
         need(shop.listings.length < 12, "shop_full");
         need(Object.hasOwn(CAPS, d.currency) && integer(d.price, CAPS[d.currency]), "invalid_price");
-        shop.listings.push({ key: (0, import_node_crypto.randomUUID)(), cargo: take(s, d.kind, d.id, d.quantity), currency: d.currency, price: d.price });
+        shop.listings.push({ key: (0, import_node_crypto2.randomUUID)(), cargo: take(s, d.kind, d.id, d.quantity), currency: d.currency, price: d.price });
         break;
       }
       case "cancelListing": {
@@ -4246,7 +4284,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
 }
 
 // server/play-billing.js
-var import_node_crypto2 = require("node:crypto");
+var import_node_crypto3 = require("node:crypto");
 var import_node_fs2 = require("node:fs");
 var import_node_path2 = require("node:path");
 
@@ -4277,7 +4315,7 @@ function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTI
     if (cached && cached.until > Date.now()) return cached.token;
     const now = Math.floor(Date.now() / 1e3), enc = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
     const base = enc({ alg: "RS256", typ: "JWT" }) + "." + enc({ iss: credentials.client_email, scope: "https://www.googleapis.com/auth/androidpublisher", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 });
-    const assertion = base + "." + (0, import_node_crypto2.createSign)("RSA-SHA256").update(base).sign(credentials.private_key, "base64url");
+    const assertion = base + "." + (0, import_node_crypto3.createSign)("RSA-SHA256").update(base).sign(credentials.private_key, "base64url");
     const r = await fetcher("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }), signal: AbortSignal.timeout(15e3) });
     if (!r.ok) throw Error("billing_unavailable");
     const d = await r.json();
@@ -4310,7 +4348,7 @@ function createBillingService(directory, verifier = createPlayVerifier()) {
     (0, import_node_fs2.mkdirSync)(dir, { recursive: true, mode: 448 });
     const product = GOLD_PRODUCTS.find((x) => x.id === productId);
     if (!product || typeof token !== "string" || token.length < 10 || token.length > 2048) throw Error("invalid_purchase");
-    const hash4 = (0, import_node_crypto2.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path2.join)(dir, hash4 + ".json");
+    const hash4 = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path2.join)(dir, hash4 + ".json");
     if (locks.has(hash4)) throw Error("purchase_busy");
     locks.add(hash4);
     try {
@@ -5251,10 +5289,10 @@ function tickPvp(world, dt, now) {
 }
 
 // server/referrals.js
-var import_node_crypto3 = require("node:crypto");
+var import_node_crypto4 = require("node:crypto");
 var import_node_fs3 = require("node:fs");
 var import_node_path3 = require("node:path");
-var hash = (s) => (0, import_node_crypto3.createHash)("sha256").update(s).digest("hex");
+var hash = (s) => (0, import_node_crypto4.createHash)("sha256").update(s).digest("hex");
 function createReferrals(directory) {
   const path = (0, import_node_path3.join)(directory, "referrals.json");
   const read = () => (0, import_node_fs3.existsSync)(path) ? JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8")) : { members: {}, claims: {}, awards: {} };
@@ -5313,19 +5351,19 @@ function createReferrals(directory) {
 }
 
 // server/accounts.js
-var import_node_crypto7 = require("node:crypto");
+var import_node_crypto8 = require("node:crypto");
 var import_node_util = require("node:util");
 var import_node_fs7 = require("node:fs");
 var import_node_path7 = require("node:path");
 
 // server/characters.js
-var import_node_crypto4 = require("node:crypto");
+var import_node_crypto5 = require("node:crypto");
 var import_node_fs4 = require("node:fs");
 var import_node_path4 = require("node:path");
 var CHARACTER_SLOTS = ["main", "slot2", "slot3", "slot4"];
 function characterId(account, slot = "main") {
   if (!CHARACTER_SLOTS.includes(slot)) throw Error("character_missing");
-  return slot === "main" ? account : (0, import_node_crypto4.createHash)("sha256").update(account + ":" + slot).digest("hex");
+  return slot === "main" ? account : (0, import_node_crypto5.createHash)("sha256").update(account + ":" + slot).digest("hex");
 }
 function readCharacter(directory, account, slot = "main") {
   const path = (0, import_node_path4.join)(directory, characterId(account, slot) + ".json");
@@ -5342,22 +5380,22 @@ function characterRoster(directory, account) {
 }
 
 // server/identity-cleanup.js
-var import_node_crypto5 = require("node:crypto");
+var import_node_crypto6 = require("node:crypto");
 var import_node_fs5 = require("node:fs");
 var import_node_path5 = require("node:path");
 function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
   (0, import_node_fs5.mkdirSync)(directory, { recursive: true, mode: 448 });
   const path = (0, import_node_path5.join)(directory, "account-cleanup-key.pem");
   if (!(0, import_node_fs5.existsSync)(path)) {
-    const { privateKey } = (0, import_node_crypto5.generateKeyPairSync)("ed25519");
+    const { privateKey } = (0, import_node_crypto6.generateKeyPairSync)("ed25519");
     (0, import_node_fs5.writeFileSync)(path + ".tmp", privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 384 });
     (0, import_node_fs5.renameSync)(path + ".tmp", path);
   }
   const key = (0, import_node_fs5.readFileSync)(path, "utf8");
-  const publicKey = (0, import_node_crypto5.createPublicKey)(key).export({ type: "spki", format: "der" }).toString("base64");
+  const publicKey = (0, import_node_crypto6.createPublicKey)(key).export({ type: "spki", format: "der" }).toString("base64");
   async function remove(uid2) {
     const body = JSON.stringify({ uid: uid2, timestamp: Date.now() });
-    const signature = (0, import_node_crypto5.sign)(null, Buffer.from(body), key).toString("base64");
+    const signature = (0, import_node_crypto6.sign)(null, Buffer.from(body), key).toString("base64");
     const response = await fetcher(authUrl + "/functions/v1/cockro-account-cleanup", { method: "POST", headers: { "Content-Type": "application/json", "X-Cockro-Signature": signature }, body, signal: AbortSignal.timeout(15e3) });
     if (!response.ok) return false;
     const result = await response.json();
@@ -5367,10 +5405,10 @@ function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
 }
 
 // server/account-deletion.js
-var import_node_crypto6 = require("node:crypto");
+var import_node_crypto7 = require("node:crypto");
 var import_node_fs6 = require("node:fs");
 var import_node_path6 = require("node:path");
-var hash2 = (s) => (0, import_node_crypto6.createHash)("sha256").update(s).digest("hex");
+var hash2 = (s) => (0, import_node_crypto7.createHash)("sha256").update(s).digest("hex");
 var write = (path, value) => {
   (0, import_node_fs6.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
   (0, import_node_fs6.renameSync)(path + ".tmp", path);
@@ -5477,8 +5515,8 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
 }
 
 // server/accounts.js
-var scrypt = (0, import_node_util.promisify)(import_node_crypto7.scrypt);
-var hash3 = (v) => (0, import_node_crypto7.createHash)("sha256").update(v).digest("hex");
+var scrypt = (0, import_node_util.promisify)(import_node_crypto8.scrypt);
+var hash3 = (v) => (0, import_node_crypto8.createHash)("sha256").update(v).digest("hex");
 var AUTH_URL = "https://kfohckvypopaoogmnjuy.supabase.co";
 var AUTH_KEY = "sb_publishable_t64SUKWO3J2UGkhsqnrgsQ_VljJquXA";
 var AUTH_REDIRECT = "cockronetwork://auth/callback";
@@ -5525,7 +5563,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const m = meta(account);
     if (!m.password || typeof password !== "string" || password.length > 128) throw Error("wrong_password");
     const key = await scrypt(password, m.salt, 32);
-    if (!(0, import_node_crypto7.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
+    if (!(0, import_node_crypto8.timingSafeEqual)(key, Buffer.from(m.password, "hex"))) throw Error("wrong_password");
     attempts.delete(account);
     return m;
   }
@@ -5565,7 +5603,7 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
         if (!m.uid || !session?.reauthAt || Date.now() - session.reauthAt > 3e5) throw Error("reauth_required");
       } else if (m.password) await verifyPassword(account, d.oldPassword);
       if (typeof d.password !== "string" || d.password.length < 8 || d.password.length > 128) throw Error("weak_password");
-      const salt = (0, import_node_crypto7.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
+      const salt = (0, import_node_crypto8.randomBytes)(16).toString("hex"), key = await scrypt(d.password, salt, 32);
       write2("profile", account, { ...meta(account), salt, password: key.toString("hex") });
       if (d.reset === true) write2("session", token, { ...read("session", token), reauthAt: 0 });
       return { hasPassword: true };
@@ -5596,10 +5634,10 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     if (["resetPassword", "deleteAccount"].includes(purpose) && (!account || !meta(account).uid)) throw Error("google_required");
     for (const [id, f] of flows) if (f.until < Date.now()) flows.delete(id);
     if (flows.size >= 100) throw Error("auth_busy");
-    const flow = (0, import_node_crypto7.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto7.randomBytes)(48).toString("base64url");
+    const flow = (0, import_node_crypto8.randomBytes)(32).toString("hex"), verifier = (0, import_node_crypto8.randomBytes)(48).toString("base64url");
     flows.set(flow, { account, purpose, verifier, until: Date.now() + 3e5 });
     const u = new URL(AUTH_URL + "/auth/v1/authorize");
-    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto7.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
+    u.search = new URLSearchParams({ provider: "google", redirect_to: AUTH_REDIRECT, code_challenge: (0, import_node_crypto8.createHash)("sha256").update(verifier).digest("base64url"), code_challenge_method: "s256", prompt: "select_account" }).toString();
     return { flow, url: u.href };
   }
   async function authFinish(flow, code) {
@@ -5619,13 +5657,13 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
     const existing = read("google", user.id);
     let account = existing?.account;
     if (!account) {
-      account = f.account || hash3((0, import_node_crypto7.randomBytes)(32));
+      account = f.account || hash3((0, import_node_crypto8.randomBytes)(32));
       const profile = meta(account);
       if (profile.uid && profile.uid !== user.id) throw Error("account_linked");
       write2("profile", account, { ...profile, uid: user.id });
       write2("google", user.id, { account });
     }
-    const token = (0, import_node_crypto7.randomBytes)(32).toString("hex");
+    const token = (0, import_node_crypto8.randomBytes)(32).toString("hex");
     write2("session", token, { account, persistent: true, createdAt: Date.now(), reauthAt: f.purpose === "resetPassword" ? Date.now() : 0, deleteReauthAt: f.purpose === "deleteAccount" ? Date.now() : 0 });
     return { token, google: true, accountDeletionReady: f.purpose === "deleteAccount", passwordReset: f.purpose === "resetPassword", characters: characterRoster(directory, account), loadedExisting: !!existing && f.account !== account };
   }
@@ -5665,7 +5703,7 @@ function deliverReward(s, t) {
 }
 
 // server/test-rewards.js
-var import_node_crypto8 = require("node:crypto");
+var import_node_crypto9 = require("node:crypto");
 function issueTestTicket(s, item, now = Date.now()) {
   const restore = rewardTarget(s, item);
   s.adTickets = (s.adTickets || []).filter((t2) => t2.created > now - 864e5);
@@ -5673,7 +5711,7 @@ function issueTestTicket(s, item, now = Date.now()) {
   const pending = recent.find((t2) => !t2.transaction && t2.item === item && now - t2.created < 36e5);
   if (pending && JSON.stringify(pending.restore) === JSON.stringify(restore)) return pending;
   if (recent.length >= 20) throw Error("test_limit");
-  const t = { kind: "demo", nonce: (0, import_node_crypto8.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const t = { kind: "demo", nonce: (0, import_node_crypto9.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets.push(t);
   return t;
 }
@@ -5687,7 +5725,7 @@ function completeTestTicket(s, nonce, now = Date.now()) {
 }
 
 // server/rewarded-ads.js
-var import_node_crypto9 = require("node:crypto");
+var import_node_crypto10 = require("node:crypto");
 var TTL = 36e5;
 var RETENTION = 864e5;
 function issueRewardTicket(s, item, now = Date.now()) {
@@ -5695,7 +5733,7 @@ function issueRewardTicket(s, item, now = Date.now()) {
   const tickets = (s.adTickets || []).filter((t) => t.created > now - RETENTION);
   if (tickets.some((t) => !t.transaction && t.created > now - 9e4)) throw Error("ad_pending");
   if (tickets.length >= 100) throw Error("ad_limit");
-  const ticket = { nonce: (0, import_node_crypto9.randomBytes)(24).toString("hex"), item, restore, created: now };
+  const ticket = { nonce: (0, import_node_crypto10.randomBytes)(24).toString("hex"), item, restore, created: now };
   s.adTickets = [...tickets, ticket];
   return ticket;
 }
@@ -5739,7 +5777,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
     }
     if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
     const key = cache.get(keyId);
-    if (!key || !(0, import_node_crypto9.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
+    if (!key || !(0, import_node_crypto10.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
     if (p.ad_unit !== unit.split("/").at(-1) && p.ad_unit !== unit) throw Error("wrong_ad_unit");
@@ -5760,7 +5798,7 @@ var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
-var import_node_crypto10 = require("node:crypto");
+var import_node_crypto11 = require("node:crypto");
 var import_node_fs8 = require("node:fs");
 var import_node_path8 = require("node:path");
 
@@ -6500,7 +6538,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.34.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.35.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6525,6 +6563,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       if (packet.type === "state") for (const e of packet.events) ws.eventCursor = Math.max(ws.eventCursor || 0, e.id);
     } else ws.close(1013, "slow_connection");
   };
+  const chat = createChat({ connections, send });
   wss.on("connection", (ws) => {
     connections.add(ws);
     let p = null, count = 0, since = Date.now();
@@ -6607,11 +6646,11 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
             if (!test) throw Error("login_required");
             if (!HEROES2.includes(d.hero)) throw Error("invalid_hero");
             if ((0, import_node_fs8.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
-            token = (0, import_node_crypto10.randomBytes)(32).toString("hex");
+            token = (0, import_node_crypto11.randomBytes)(32).toString("hex");
             created = true;
           }
           if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
-          const account = created ? (0, import_node_crypto10.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
+          const account = created ? (0, import_node_crypto11.createHash)("sha256").update(token).digest("hex") : accounts.resolve(token);
           for (const slot of CHARACTER_SLOTS) {
             const body = world.sleepers.get(characterId(account, slot));
             if (body?.dirty) persist(body);
@@ -6654,8 +6693,16 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.34.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.35.0", id, character, chatEnabled: true, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
+          return;
+        }
+        if (d.type === "chat") {
+          try {
+            chat.handle(p, d);
+          } catch (e) {
+            send(ws, { type: "chatError", message: e.message });
+          }
           return;
         }
         if (d.type === "commerce") {

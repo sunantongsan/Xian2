@@ -369,3 +369,62 @@ dialog:has(.compact-sheet){width:min(860px,96vw);padding:10px;max-height:94dvh;b
 #commercePanel>header{display:flex;align-items:center;gap:8px;padding-right:38px}
 #modal #commercePanel>header h2{flex:1;min-width:0;margin:0;padding:12px 0;font-size:16px;background:none;line-height:1.4;letter-spacing:0}
 #modal #commercePanel>header h2::before,#modal #commercePanel>header h2::after{display:none}
+
+/* 4.35 — phone chat: pinned composer, independently scrolling conversation. */
+#hud #chatToggle{position:fixed;left:max(10px,env(safe-area-inset-left));top:max(154px,calc(env(safe-area-inset-top) + 145px));display:flex;align-items:center;gap:6px;min-height:44px;padding:8px 11px;border:1px solid #7faaa6;border-radius:14px;background:linear-gradient(135deg,#183c48ed,#091b29ed);color:#d9fff2;pointer-events:auto;font-size:12px;box-shadow:0 3px 14px #0006}
+#chatUnread{position:absolute;right:-6px;top:-7px;min-width:20px;padding:2px 4px;border-radius:10px;background:#ca6256;color:#fff;font-size:10px;border:1px solid #ffb4a2}
+#chatUnread[hidden]{display:none}
+body #modal:has(#chatPanel){position:fixed;inset:auto;left:50%;top:calc(var(--visible-top,0px) + var(--visible-height,100dvh)/2);transform:translate(-50%,-50%);margin:0;width:min(520px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:min(540px,calc(var(--visible-height,100dvh) - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));max-height:none;box-sizing:border-box;padding:0;border:1px solid #648f9b;border-radius:18px;background:linear-gradient(150deg,#163341,#091925 65%);box-shadow:0 18px 65px #0009;overflow:hidden}
+#modal:has(#chatPanel)::before,#modal:has(#chatPanel)::after,#modal:has(#chatPanel) #windowClose{display:none}
+#modal:has(#chatPanel) #modalContent{height:100%;min-height:0}
+#chatPanel{height:100%;display:flex;flex-direction:column;min-height:0;padding:10px;box-sizing:border-box;gap:7px;color:#e6f1f4}
+#chatPanel .chat-heading{display:flex;align-items:center;justify-content:space-between;flex:none;gap:8px;padding:0 4px}
+#chatPanel .chat-heading small{font-size:9px;letter-spacing:1.5px;color:#84b1b5}
+#chatPanel h2{position:static;background:none;box-shadow:none;border:0;padding:0;margin:0;text-align:left;font-size:19px;line-height:1.3;letter-spacing:0;color:#f4e5ba;text-shadow:none}
+#chatPanel h2::before,#chatPanel h2::after{display:none}
+#chatPanel button{min-height:44px;border-radius:9px;font-size:13px;padding:7px 12px;margin:0;touch-action:manipulation}
+#chatPanel .chat-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;flex:none}
+#chatPanel .chat-tabs button{background:#102635;border-color:#385666;color:#a9c4ce}
+#chatPanel .chat-tabs button[aria-pressed=true]{color:#d8fff0;border-color:#70c9b3;background:#234e50}
+#chatRecipient{display:flex;gap:6px;flex:none}#chatRecipient[hidden]{display:none}
+#chatPanel input{font:16px GameThai,sans-serif;min-width:0;width:100%;min-height:44px;padding:8px 10px;box-sizing:border-box;border:1px solid #54737f;border-radius:9px;background:#071724;color:#fff;touch-action:manipulation}
+#chatPanel input:focus{outline:2px solid #8ce2c8;outline-offset:-2px}
+#chatTo{flex:1}#chatMute{flex:none}
+#chatLog{flex:1;min-height:40px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;border-radius:10px;background:#06141e99;padding:8px 10px;scrollbar-width:thin;font-size:13px;line-height:1.6}
+#chatPanel .chat-row{padding:5px 0;border-bottom:1px solid #27434d66;overflow-wrap:anywhere}
+#chatPanel .chat-row small{color:#84b6c8;font-size:10px}
+#chatPanel .chat-whisper small,#chatPanel .chat-whisper .chat-name{color:#e2b3f6}
+#chatPanel .chat-map small{color:#9ad8a5}
+#chatPanel .chat-name{background:none;border:0;box-shadow:none;color:#f0d39b;font-size:12px;padding:3px 6px 3px 0;text-align:left;min-height:32px;text-shadow:none;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+#chatPanel .chat-name:disabled{opacity:1;filter:none}
+#chatPanel .chat-empty{font-size:12px;text-align:center;color:#8ba7b7;margin:20px 0}
+#chatForm{display:flex;gap:6px;flex:none;margin:0}
+#chatForm input{flex:1}#chatPanel #chatSend{flex:none;min-width:64px;background:linear-gradient(#388775,#20514f);border-color:#7dd6be;color:#fff}
+#chatPanel .chat-footer{display:flex;align-items:center;gap:6px;justify-content:space-between;flex:none;font-size:10px;line-height:1.4;color:#95b0bd}
+#chatPanel #chatUnmute{min-height:32px;padding:2px 6px;font-size:10px;background:none;border-color:transparent;color:#b8cdd3;flex:none}
+@media(max-height:450px){#chatPanel{gap:4px;padding:7px}#chatPanel .chat-heading small{display:none}#chatPanel h2{font-size:15px}#chatPanel .chat-footer{font-size:9px}#chatPanel .chat-name{min-height:28px}}
+/* Phone windows: readable fields and a single scroll surface for the bag. */
+@media(max-width:700px),(max-height:500px){
+ body:not(.welcome-screen) #modal:not(:has(#chatPanel)){position:fixed;box-sizing:border-box;max-height:calc(var(--visible-height,100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));top:calc(var(--visible-top,0px) + var(--visible-height,100dvh)/2);bottom:auto;transform:translateY(-50%);margin:0 auto;max-width:calc(100vw - 24px);overscroll-behavior:contain;scroll-padding:52px 10px 16px}
+ #modal input,#modal select,#modal textarea{font-size:16px;max-width:100%;box-sizing:border-box}
+ body:not(.welcome-screen) #modal #windowClose{width:40px;height:40px;min-height:40px;margin-right:0;right:5px;top:5px}
+ #modal .inventory-detail button,#modal .inventory-tabs button{min-height:44px}
+}
+@media(max-width:560px){
+ #modal .inventory-layout{grid-template-columns:1fr;max-height:none;gap:10px}
+ #modal .inventory-hero{display:grid;grid-template-columns:85px minmax(0,1fr);gap:6px}
+ #modal .inventory-hero>canvas{width:80px;height:80px;grid-row:span 2}
+ #modal .inventory-hero>button{min-height:40px}
+ #modal .inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr));max-height:none;overflow:visible}
+ #modal .inventory-detail{position:sticky;bottom:0;box-shadow:0 -5px 16px #0008}
+}
+/* Very short visual viewports occur when a landscape keyboard is open. */
+.short-viewport #chatPanel .chat-heading,.short-viewport #chatPanel .chat-footer{display:none}
+.short-viewport #chatPanel{gap:4px;padding:6px}
+.short-viewport #chatPanel #chatLog{min-height:16px;padding:2px 7px}
+.short-viewport #chatPanel .chat-tabs button{min-height:36px;padding:4px}
+.short-viewport #chatRecipient input,.short-viewport #chatRecipient button{min-height:36px;padding:4px 8px}
+.short-viewport #chatPanel .chat-heading{display:flex;position:absolute;right:7px;top:6px;padding:0;z-index:2}
+.short-viewport #chatPanel .chat-heading>div{display:none}
+.short-viewport #chatPanel #chatMinimize{min-height:36px;padding:4px 7px;font-size:11px}
+.short-viewport #chatPanel .chat-tabs{padding-right:53px}
