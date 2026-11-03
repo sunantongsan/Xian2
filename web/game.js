@@ -58,7 +58,7 @@ let pvpAuto=true,pvpNextSkill=0,pvpActionUntil=0,pvpManualSkill=null;
 let onlineMode=false,onlineEvent=0,onlineView=null,onlinePaint=0;
 const onlineBadge=document.createElement('button');onlineBadge.id='onlineStatus';onlineBadge.hidden=true;onlineBadge.setAttribute('aria-live','polite');document.body.appendChild(onlineBadge);
 onlineBadge.onclick=()=>toast('PvP ทุกพื้นที่ • ออกจากเกมแล้วตัวละครยังอยู่และป้องกันตัวอัตโนมัติ');
-const net=new OnlineClient(applyOnlineState,text=>{onlineBadge.textContent=text;onlineBadge.hidden=!onlineMode;});
+const net=new OnlineClient(applyOnlineState,text=>{onlineBadge.textContent=text;onlineBadge.hidden=!onlineMode||!text;});
 const commerceUI=createCommerceView({net,show,state:()=>s,toast,escapeHTML:v=>escapeHTML(v),art:inventoryArt});
 function openCommerce(which='vault',seller=null){if(!onlineMode||!town){toast('กลับเมืองเพื่อใช้คลังและร้านค้า');return;}commerceUI.open(which,seller);}
 net.onReconnect=()=>{goldStore?.resume();onlineEvent=0;reportShown=false;if(onlineMode&&p&&net.latestState)loadRoadScene(net.latestState);};
