@@ -1,13 +1,13 @@
-const CHANNELS={world:'ทั้งหมด',map:'แผนที่',whisper:'กระซิบ'};
+const CHANNELS={world:'ตะโกน',map:'พูด',whisper:'กระซิบ'};
 const ERRORS={chat_rate_limit:'ส่งเร็วไปนิด รอสักครู่แล้วลองใหม่',invalid_text:'พิมพ์ข้อความ 1–200 ตัวอักษร',player_offline:'ไม่พบผู้เล่นออนไลน์ชื่อนี้',ambiguous_name:'ชื่อนี้ซ้ำกัน กรุณาแตะชื่อจากข้อความหรือแตะตัวละคร',self_whisper:'เลือกผู้เล่นคนอื่นเพื่อกระซิบ',invalid_channel:'กรุณาเลือกช่องแชท'};
 export function createChatView({net,show,close,toast}){
- let channel='world',peer=null,unread=0,history=[],draft='',pending=false,pendingText='',timer,mutedOwner;
- const muted=new Set();
+ let channel='map',peer=null,unread=0,history=[],draft='',pending=false,pendingText='',timer,mutedOwner;
+ const muted=new Set(),bubbles=new Map();
  const $=id=>document.getElementById(id),isOpen=()=>$('chatPanel')?.closest('dialog')?.open;
  function badge(){const b=$('chatUnread');if(b){b.hidden=!unread;b.textContent=unread>99?'99+':String(unread);}}
  function loadMuted(){if(mutedOwner===net.billingOwner)return;mutedOwner=net.billingOwner;muted.clear();try{for(const id of JSON.parse(localStorage.getItem('cockro-muted-'+net.billingOwner)||'[]').slice(0,100))if(typeof id==='string')muted.add(id);}catch{}}
  function saveMuted(){try{localStorage.setItem('cockro-muted-'+net.billingOwner,JSON.stringify([...muted]));}catch{}}
- function status(text){if($('chatStatus'))$('chatStatus').textContent=text;}
+ function status(text){if($('dockStatus'))$('dockStatus').textContent=text;if($('chatStatus'))$('chatStatus').textContent=text;}
  function render(){
   const log=$('chatLog');if(!log)return;
   const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<70,oldTop=log.scrollTop;
@@ -49,13 +49,37 @@ export function createChatView({net,show,close,toast}){
    timer=setTimeout(()=>{pending=false;if($('chatSend'))$('chatSend').disabled=false;status('ยังไม่ได้รับการยืนยัน ตรวจข้อความก่อนส่งซ้ำ');},8000);
   };render();$('chatLog').scrollTop=$('chatLog').scrollHeight;
  }
+
+ function mount(){
+  if($('chatDock'))return;
+  const dock=document.createElement('section');dock.id='chatDock';dock.setAttribute('aria-label','แถบพูดคุย');
+  dock.innerHTML='<form id="dockForm"><select id="dockChannel" aria-label="รูปแบบข้อความ"><option value="map">พูด</option><option value="world">ตะโกน</option></select><input id="dockInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="พิมพ์ข้อความ"><button type="submit" id="dockSend" aria-label="ส่งข้อความ">➤</button><button type="button" id="dockHistory" aria-label="ประวัติแชท">⋯</button></form><small id="dockStatus" role="status">พูดในแผนที่ • ตะโกนถึงทุกแผนที่</small>';
+  document.body.append(dock);
+  const input=$('dockInput');input.addEventListener('focus',()=>{document.documentElement.classList.add('chat-typing');window.dispatchEvent(new Event('blur'));});input.addEventListener('blur',()=>document.documentElement.classList.remove('chat-typing'));
+  $('dockChannel').onchange=()=>{$('dockChannel').style.color=$('dockChannel').value==='world'?'#ffd477':'#92e5ff';};
+  $('dockHistory').onclick=()=>open();
+  $('dockForm').onsubmit=e=>{e.preventDefault();if(pending)return;const text=input.value.trim();if(!text||Array.from(text).length>200){status(ERRORS.invalid_text);return;}if(!net.ready||!net.chatEnabled||!net.send({type:'chat',channel:$('dockChannel').value,text})){status('การเชื่อมต่อขาด ข้อความยังไม่ถูกส่ง');return;}pending=true;pendingText=text;$('dockSend').disabled=true;status('กำลังส่ง…');input.blur();timer=setTimeout(()=>{pending=false;if($('dockSend'))$('dockSend').disabled=false;status('ยังไม่ได้รับการยืนยัน ตรวจประวัติก่อนส่งซ้ำ');},8000);};
+ }
+ function drawBubbles(g,position,now=performance.now()){
+  for(const [id,b]of bubbles){if(now>=b.until){bubbles.delete(id);continue;}const q=position(id);if(!q)continue;
+   g.save();g.font='bold 13px GameThai, sans-serif';g.textAlign='center';
+   const lines=[];let line='';for(const ch of Array.from(b.text)){if(g.measureText(line+ch).width>220){lines.push(line);line='';}line+=ch;}if(line)lines.push(line);
+   const shown=lines.slice(0,3);if(lines.length>3)shown[2]=shown[2].slice(0,-2)+'…';
+   const width=Math.max(54,...shown.map(x=>g.measureText(x).width))+20,height=shown.length*18+12;
+   const x=Math.max(width/2+4,Math.min(innerWidth-width/2-4,q.x)),y=Math.max(height+4,q.y);
+   g.globalAlpha=Math.min(1,(b.until-now)/500);g.fillStyle=b.channel==='world'?'#493017ed':'#102f43ed';g.strokeStyle=b.channel==='world'?'#ffcf72':'#7ddfff';g.lineWidth=1;
+   g.beginPath();g.roundRect(x-width/2,y-height,width,height,9);g.fill();g.stroke();g.beginPath();g.moveTo(x-5,y);g.lineTo(x,y+6);g.lineTo(x+5,y);g.fill();
+   g.fillStyle=b.channel==='world'?'#ffe0a0':'#bcf1ff';shown.forEach((line,i)=>g.fillText(line,x,y-height+20+i*18));g.restore();
+  }
+ }
  net.onChat=m=>{
   loadMuted();
   if(!CHANNELS[m.channel]||typeof m.text!=='string'||history.some(x=>x.id===m.id))return;
-  if(m.from===net.selfId){clearTimeout(timer);pending=false;if(draft.trim()===pendingText){draft='';if($('chatInput'))$('chatInput').value='';}if($('chatSend'))$('chatSend').disabled=false;status('ส่งแล้ว');}
-  if(muted.has(m.from))return;history.push(m);history=history.slice(-120);
+  if(m.from===net.selfId){if($('dockInput')?.value.trim()===pendingText)$('dockInput').value='';if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if(draft.trim()===pendingText){draft='';if($('chatInput'))$('chatInput').value='';}if($('chatSend'))$('chatSend').disabled=false;status('ส่งแล้ว');}
+  if(muted.has(m.from))return;if(m.channel!=='whisper'){bubbles.set(m.from,{text:m.text,channel:m.channel,until:performance.now()+5500});if(bubbles.size>64)bubbles.delete(bubbles.keys().next().value);}history.push(m);history=history.slice(-120);
   if(!isOpen()&&m.from!==net.selfId){unread++;badge();}render();
  };
- net.onChatError=code=>{clearTimeout(timer);pending=false;if($('chatSend'))$('chatSend').disabled=false;status(ERRORS[code]||'ส่งข้อความไม่ได้ กรุณาลองใหม่');};
- return {open,reset(){clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
+ net.onChatError=code=>{if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if($('chatSend'))$('chatSend').disabled=false;status(ERRORS[code]||'ส่งข้อความไม่ได้ กรุณาลองใหม่');};
+ return {open,mount,drawBubbles,reset(){bubbles.clear();$('chatDock')?.remove?.();document.documentElement?.classList.remove('chat-typing');clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
 }
+

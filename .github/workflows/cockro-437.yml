@@ -1,0 +1,29 @@
+name: Verify COCKRO 4.37 HUD chat and vault
+on:
+  push:
+    branches: [cockro/4.37-hud-chat-vault]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci && npm test && npm run check && npm run build:server
+      - run: python3 tools/build_update_feed.py
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium --only-shell
+      - run: node tools/review-437.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cockro-4.37-reviewed-patch-and-server
+          path: |
+            patch-public/latest.json
+            patch-public/patches/*.zip
+            server/online-server.cjs
+            review/cockro-437-*.png
