@@ -56,9 +56,7 @@ const SAVE='road-to-immortality-v1';
 let serverTimeOffset=0,pvpTarget=null,groundDrops=[],reportShown=false;
 let pvpAuto=true,pvpNextSkill=0,pvpActionUntil=0,pvpManualSkill=null;
 let onlineMode=false,onlineEvent=0,onlineView=null,onlinePaint=0;
-const onlineBadge=document.createElement('button');onlineBadge.id='onlineStatus';onlineBadge.hidden=true;onlineBadge.setAttribute('aria-live','polite');document.body.appendChild(onlineBadge);
-onlineBadge.onclick=()=>toast('PvP ทุกพื้นที่ • ออกจากเกมแล้วตัวละครยังอยู่และป้องกันตัวอัตโนมัติ');
-const net=new OnlineClient(applyOnlineState,text=>{onlineBadge.textContent=text;onlineBadge.hidden=!onlineMode||!text;});
+const net=new OnlineClient(applyOnlineState,()=>{});
 const commerceUI=createCommerceView({net,show,state:()=>s,toast,escapeHTML:v=>escapeHTML(v),art:inventoryArt});
 function openCommerce(which='vault',seller=null){if(!onlineMode||!town){toast('กลับเมืองเพื่อใช้คลังและร้านค้า');return;}commerceUI.open(which,seller);}
 net.onReconnect=()=>{goldStore?.resume();onlineEvent=0;reportShown=false;if(onlineMode&&p&&net.latestState)loadRoadScene(net.latestState);};
@@ -241,7 +239,7 @@ async function passwordScreen(reset=false){let status;try{status=await net.accou
 async function deleteCharacterScreen(c){let status;try{status=await net.account('status');}catch(e){toast(accountError(e));return;}if(!status.hasPassword)return passwordScreen();show(`<h2>ลบตัวละคร</h2><p>${escapeHTML(c.name||'กรุณาตั้งชื่อ')} • Lv.${c.level}</p><p>ตัวละครและไอเท็มจะถูกนำออกจากบัญชี</p><label>พิมพ์ชื่อตัวละครเพื่อยืนยัน<input id="deleteName" autocomplete="off"></label><label>รหัสรักษาความปลอดภัย<input id="deleteSecret" type="password" autocomplete="current-password" maxlength="128"></label><p id="deleteError" role="status"></p>${button('confirmDeleteCharacter','ยืนยันลบตัวละคร')}${button('cancelDeleteCharacter','ยกเลิก')}`);$('cancelDeleteCharacter').onclick=title;$('confirmDeleteCharacter').onclick=async()=>{$('confirmDeleteCharacter').disabled=true;try{await net.account('delete',{character:c.id,confirmName:$('deleteName').value,password:$('deleteSecret').value});title();toast('ลบตัวละครแล้ว');}catch(e){$('confirmDeleteCharacter').disabled=false;$('deleteError').textContent=accountError(e);}};}
 let titleRequest=0;
 async function title(){gameAudio.setScene('welcome');gameAudio.sync(soundEnabled());reportShown=false;pvpTarget=null;pvpManualSkill=null;pvpActionUntil=0;
- const request=++titleRequest;await net.disconnect();if(request!==titleRequest)return;onlineMode=false;p=null;resetControls();$('hud').hidden=true;$('controls').hidden=true;$('hint').hidden=true;$('onlineStatus').hidden=true;document.body.classList.add('welcome-screen');
+ const request=++titleRequest;await net.disconnect();if(request!==titleRequest)return;onlineMode=false;p=null;resetControls();$('hud').hidden=true;$('controls').hidden=true;$('hint').hidden=true;document.body.classList.add('welcome-screen');
  if(!net.hasAccount){show(`<h1>COCKRO</h1><h2>ยินดีต้อนรับ</h2><p>สมัครหรือเข้าสู่ระบบก่อนสร้างตัวละคร<br>บัญชีของคุณจะถูกจำไว้บนเครื่องนี้จนกว่าจะออกจากระบบ</p>${googleButton()}`);bindAccountButtons([]);return;}
  show('<h1>COCKRO</h1><h2>กำลังโหลดตัวละคร…</h2><button id="choose" disabled>เล่น</button>');
  let owned;try{owned=await net.roster();}catch(error){if(request!==titleRequest)return;show(`<h1>COCKRO</h1><p>${escapeHTML(error.message)}</p>${button('choose','ลองใหม่')}${googleButton(true)}`);$('choose').onclick=title;bindAccountButtons([]);return;}
