@@ -30,18 +30,21 @@ public class MainActivity extends ComponentActivity {
  }
  @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();if(googleLogin!=null)handler.postDelayed(()->googleLogin.resume(),400);}if(!startedCheck){startedCheck=true;checkUpdate();}}
  private void openBundledGame(){if(destroyed)return;forceBundled=true;updater.cancel();loading.skip.setEnabled(true);status.setText("กำลังเปิดเกม…");if(web!=null){root.removeView(web);web.destroy();web=null;}gameLoaded=false;loadGame();}
- private void checkUpdate(){handler.postDelayed(()->{if(!destroyed&&!gameLoaded)openBundledGame();},15000);worker.execute(()->{
+ // Do not race a healthy download with a wall-clock UI fallback. AutoUpdater
+ // bounds network inactivity; errors still open the installed game
+ // in finally, and the explicit Skip/Back actions remain available throughout.
+ private void checkUpdate(){worker.execute(()->{
   File archive=null;String message=null;File[] stale=getCacheDir().listFiles();if(stale!=null)for(File file:stale)if(file.getName().startsWith("cockro-update-")&&file.getName().endsWith(".zip"))file.delete();
   try{
    if(GamePatch.recover(this))message="แพตช์ก่อนหน้าเปิดไม่สำเร็จ กลับไปใช้รุ่นเดิมแล้ว";
    UpdateManifest m=updater.latest();int nativeVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionCode;
    if(m.minApp>nativeVersion)message="มีอัปเดตตัวแอป กรุณาอัปเดตจากแหล่งที่ติดตั้ง";
    else if(UpdateManifest.compare(m.version,GamePatch.version(this))>0&&!m.version.equals(GamePatch.blocked(this))){
-    archive=updater.download(m,getCacheDir(),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลดแพตช์ "+m.version+" • "+(done*100/total)+"%");}));
+    archive=updater.download(m,new File(getFilesDir(),"patch-downloads"),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลดแพตช์ "+m.version+" • "+(done*100/total)+"%");}));
     runOnUiThread(()->{if(!destroyed&&!gameLoaded){progress.setIndeterminate(true);status.setText("กำลังตรวจสอบไฟล์แพตช์…");}});
     GamePatch.installDownloaded(this,archive,m.version,updater);message="อัปเดตเป็น "+m.version+" แล้ว";
    }
-  }catch(Exception e){message="ตรวจอัปเดตไม่ได้หรือถูกยกเลิก เปิดเกมรุ่นเดิม";}
+  }catch(Exception e){message="อัปเดตยังไม่สำเร็จ เปิดเกมรุ่นเดิม • เปิดแอปใหม่เพื่อโหลดต่อ";}
   finally{if(archive!=null)archive.delete();final String text=message;runOnUiThread(()->{if(destroyed||gameLoaded)return;if(text!=null)Toast.makeText(this,text,Toast.LENGTH_LONG).show();loadGame();});}
  });}
  private void loadGame(){if(destroyed||gameLoaded)return;gameLoaded=true;for(int i=root.getChildCount()-1;i>=0;i--)if(root.getChildAt(i)!=loading)root.removeViewAt(i);web=new WebView(this);root.addView(web,0,new FrameLayout.LayoutParams(-1,-1));
@@ -69,6 +72,7 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+
 
 
 

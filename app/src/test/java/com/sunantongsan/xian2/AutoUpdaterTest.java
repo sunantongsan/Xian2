@@ -20,7 +20,7 @@ public class AutoUpdaterTest {
  }
  @Test public void verifiesDownloadedBytesAndSize()throws Exception{byte[] bytes="valid archive bytes".getBytes(StandardCharsets.UTF_8);UpdateManifest m=new UpdateManifest(manifest(bytes));Response[] response=new Response[1];AutoUpdater u=new AutoUpdater(url->response[0]=new Response(url,bytes,200,bytes.length));long[] progress={0};File f=u.download(m,cache,(done,total)->progress[0]=done);assertArrayEquals(bytes,java.nio.file.Files.readAllBytes(f.toPath()));assertEquals(bytes.length,progress[0]);assertTrue(response[0].closed);assertFalse(response[0].getInstanceFollowRedirects());}
  @Test public void rejectsCorruptionAndRemovesPartialFile()throws Exception{byte[] bytes={1,2,3};AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1,2,4},200,3));try{u.download(new UpdateManifest(manifest(bytes)),cache,(a,b)->{});fail();}catch(IOException expected){}assertEquals(0,cache.list().length);}
- @Test public void rejectsTruncatedDownloadWithoutLengthHeader()throws Exception{AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1},200,-1));try{u.download(new UpdateManifest(manifest(new byte[]{1,2,3})),cache,(a,b)->{});fail();}catch(IOException expected){}assertEquals(0,cache.list().length);}
+ @Test public void retainsTruncatedDownloadWithoutLengthHeaderForResume()throws Exception{AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1},200,-1));try{u.download(new UpdateManifest(manifest(new byte[]{1,2,3})),cache,(a,b)->{});fail();}catch(IOException expected){}assertEquals(1,cache.list().length);assertEquals(1,cache.listFiles()[0].length());}
  @Test public void cancellationDoesNotActivateOrKeepDownload()throws Exception{AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1,2,3},200,3));u.cancel();try{u.download(new UpdateManifest(manifest(new byte[]{1,2,3})),cache,(a,b)->{});fail();}catch(IOException expected){}assertEquals(0,cache.list().length);}
  @Test public void rejectsRedirectAndServerFailure()throws Exception{for(int code:new int[]{302,401,500}){AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[]{1},code,1));try{u.latest();fail();}catch(IOException expected){}}}
  @Test public void boundsManifestAndPreventsForeignDownloadUrl()throws Exception{AutoUpdater u=new AutoUpdater(url->new Response(url,new byte[32769],200,32769));try{u.latest();fail();}catch(IOException expected){}JSONObject m=new JSONObject(manifest(new byte[]{1}));m.put("path","https://untrusted.example/update.zip");try{new UpdateManifest(m.toString());fail();}catch(IOException expected){}}
@@ -37,5 +37,6 @@ public class AutoUpdaterTest {
   finally{release.countDown();download.join(2000);}
  }
 }
+
 
 
