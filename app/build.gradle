@@ -13,8 +13,8 @@ android {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 111
-        versionName '4.34.0'
+        versionCode 112
+        versionName '4.36.0'
     }
     signingConfigs {
         release {
@@ -59,6 +59,7 @@ tasks.register('validateProductionAds') {
  }
 }
 tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'validateProductionAds' }
+
 
 
 

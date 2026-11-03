@@ -1,4 +1,4 @@
-name: Verify COCKRO 4.35 mobile chat patch
+name: Verify COCKRO 4.36 resumable updates
 on:
   push:
     branches: [cockro/4.34-mobile-shops-pets]
@@ -39,7 +39,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:bundleRelease :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: COCKRO-111-candidate-unsigned
+          name: COCKRO-112-candidate-unsigned
           path: |
             app/build/outputs/bundle/release/app-release.aab
             patch-public/latest.json
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: COCKRO-111-validation
+          name: COCKRO-112-validation
           path: |
             review/*.png
             app/build/reports/tests

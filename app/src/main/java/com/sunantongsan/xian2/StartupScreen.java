@@ -14,7 +14,7 @@ import java.io.InputStream;
 final class StartupScreen extends FrameLayout {
  final TextView status;
  final ProgressBar progress;
- final Button skip;
+ final Button skip,resume;
  StartupScreen(Context context) {
   super(context);setBackgroundColor(0xff08263e);
   ImageView art=new ImageView(context);art.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -26,10 +26,12 @@ final class StartupScreen extends FrameLayout {
   panel.addView(text(context,"กำเนิดฮีโร่แมลง",13,0xffd7f7ff));
   status=text(context,"กำลังตรวจสอบแพตช์…",13,0xffffffff);status.setPadding(0,dp(6),0,dp(5));panel.addView(status);
   progress=new ProgressBar(context,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);progress.setIndeterminate(true);progress.setProgressTintList(ColorStateList.valueOf(0xff53e7ff));progress.setIndeterminateTintList(ColorStateList.valueOf(0xff53e7ff));panel.addView(progress,new LinearLayout.LayoutParams(-1,dp(8)));
+  resume=new Button(context);resume.setText("พักดาวน์โหลด");resume.setTextSize(12);panel.addView(resume,new LinearLayout.LayoutParams(-2,dp(44)));
   skip=new Button(context);skip.setText("เล่นรุ่นที่ติดตั้งอยู่");skip.setTextSize(11);skip.setTextColor(0xffd7f7ff);skip.setBackgroundTintList(ColorStateList.valueOf(0xff14384d));LinearLayout.LayoutParams button=new LinearLayout.LayoutParams(-2,dp(40));button.topMargin=dp(6);panel.addView(skip,button);
   LayoutParams layout=new LayoutParams(-1,-2,Gravity.BOTTOM);layout.leftMargin=dp(40);layout.rightMargin=dp(40);addView(panel,layout);
  }
  private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
  private TextView text(Context context,String value,int size,int color){TextView t=new TextView(context);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setGravity(Gravity.CENTER);t.setShadowLayer(4,0,2,0xff001020);return t;}
 }
+
 
