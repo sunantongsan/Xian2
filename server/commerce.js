@@ -34,13 +34,14 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  const vault=(l,account)=>l.vaults[account]??={gold:0,stones:0,items:[]};
  function ready(p){need(!failed,'save_unavailable');need(p&&players().get(p.id)===p&&!p.offline,'seller_offline');need(!p.economyBusy,'account_busy');need(p.map==='town'&&p.hp>0&&Date.now()/1000-(p.lastPvp??-Infinity)>=10,'town_only');}
  function active(shop){return shop.open;}
- function view(p){const own=ledger.shops[p.account];return {revision:ledger.revision,vault:structuredClone(ledger.vaults[p.account]||{gold:0,stones:0,items:[]}),ownShop:structuredClone(own||{open:false,title:'',listings:[]}),shops:Object.values(ledger.shops).filter(active).map(shop=>({character:shop.character,title:shop.title,name:shop.name,x:shop.x,y:shop.y,listings:structuredClone(shop.listings)}))};}
+ function view(p){const own=ledger.shops[p.account];return {revision:ledger.revision,vault:structuredClone(ledger.vaults[p.account]||{gold:0,stones:0,items:[]}),ownShop:structuredClone(own||{open:false,title:'',listings:[]}),shops:Object.values(ledger.shops).filter(active).map(shop=>({character:shop.character,title:shop.title,promotion:shop.promotion||'',name:shop.name,x:shop.x,y:shop.y,listings:structuredClone(shop.listings)}))};}
  function run(p,d){ready(p);if(d.action==='view')return view(p);need(d.revision===ledger.revision,'stale_market');const next=structuredClone(ledger),changed=new Map();const state=actor=>{if(!changed.has(actor)){capture(actor);changed.set(actor,structuredClone(actor.s));}return changed.get(actor);};const s=state(p),v=vault(next,p.account);let shop=next.shops[p.account];
  switch(d.action){
  case 'depositMoney':case 'withdrawMoney':{need(Object.hasOwn(CAPS,d.currency),'invalid_currency');need(integer(d.amount,CAPS[d.currency]),'invalid_quantity');const [from,to]=d.action==='depositMoney'?[s,v]:[v,s];need(from[d.currency]>=d.amount,'insufficient_funds');need(to[d.currency]+d.amount<=CAPS[d.currency],'wallet_full');from[d.currency]-=d.amount;to[d.currency]+=d.amount;break;}
  case 'depositItem':need(v.items.length<120,'vault_full');v.items.push({...take(s,d.kind,d.id,d.quantity),key:randomUUID()});break;
  case 'withdrawItem':{const i=v.items.findIndex(it=>it.key===d.key);need(i>=0,'item_missing');give(s,v.items[i]);v.items.splice(i,1);break;}
- case 'openShop':{need(typeof d.title==='string'&&d.title.trim().length>=2&&d.title.trim().length<=32,'invalid_title');shop??={listings:[]};shop.title=d.title.trim();shop.open=true;shop.character=p.id;shop.name=p.name;shop.x=p.x;shop.y=p.y;next.shops[p.account]=shop;break;}
+ case 'openShop':{need(typeof d.title==='string'&&d.title.trim().length>=2&&d.title.trim().length<=32,'invalid_title');shop??={listings:[]};need(d.promotion===undefined||(typeof d.promotion==='string'&&d.promotion.trim().length<=120),'invalid_promotion');shop.promotion=(d.promotion??shop.promotion??'').trim();shop.title=d.title.trim();shop.open=true;shop.character=p.id;shop.name=p.name;shop.x=p.x;shop.y=p.y;next.shops[p.account]=shop;break;}
+ case 'updatePromotion':need(shop,'shop_missing');need(typeof d.promotion==='string'&&d.promotion.trim().length<=120,'invalid_promotion');shop.promotion=d.promotion.trim();break;
  case 'closeShop':need(shop,'shop_missing');shop.open=false;break;
  case 'listItem':{need(shop?.character===p.id,'shop_missing');need(shop.listings.length<12,'shop_full');need(Object.hasOwn(CAPS,d.currency)&&integer(d.price,CAPS[d.currency]),'invalid_price');shop.listings.push({key:randomUUID(),cargo:take(s,d.kind,d.id,d.quantity),currency:d.currency,price:d.price});break;}
  case 'cancelListing':{need(shop,'shop_missing');const i=shop.listings.findIndex(it=>it.key===d.key);need(i>=0,'item_missing');give(s,shop.listings[i].cargo);shop.listings.splice(i,1);break;}
@@ -51,7 +52,8 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  }
  function refreshSigns(){for(const p of players().values()){const shop=ledger.shops[p.account];p.shopTitle=shop?.character===p.id&&active(shop)?shop.title:'';}}
  function removeAccount(account){const next=structuredClone(ledger);delete next.vaults[account];delete next.shops[account];next.revision++;try{write(walPath,{ledger:next,characters:{}});apply({ledger:next,characters:{}});ledger=next;}catch{failed=true;throw Error('save_unavailable');}}
- const stalls=()=>Object.values(ledger.shops).filter(active).map(x=>({character:x.character,title:x.title,name:x.name,x:x.x,y:x.y,count:x.listings.length}));
+ const stalls=()=>Object.values(ledger.shops).filter(active).map(x=>({character:x.character,title:x.title,promotion:x.promotion||'',name:x.name,x:x.x,y:x.y,count:x.listings.length}));
  const ownsListedItems=(account,id)=>ledger.shops[account]?.character===id&&ledger.shops[account].listings.length>0;
  return {run,view,refreshSigns,stalls,removeAccount,ownsListedItems,get failed(){return failed;}};
 }
+

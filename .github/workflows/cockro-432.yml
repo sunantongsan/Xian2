@@ -1,7 +1,7 @@
-name: Verify COCKRO 4.33 candidate
+name: Verify COCKRO 4.34 candidate
 on:
   push:
-    branches: [cockro/4.32-coins-referrals-mobile]
+    branches: [cockro/4.34-mobile-shops-pets]
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:bundleRelease :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: COCKRO-110-candidate-unsigned
+          name: COCKRO-111-candidate-unsigned
           path: |
             app/build/outputs/bundle/release/app-release.aab
             patch-public/latest.json
@@ -47,8 +47,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: COCKRO-110-validation
+          name: COCKRO-111-validation
           path: |
             review/*.png
             app/build/reports/tests
             app/build/reports/lint-results-debug.html
+

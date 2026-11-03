@@ -1,6 +1,6 @@
 export const MERCHANT_UV=[.235,.48];
 export const MERCHANT_RANGE=150;
-export const MERCHANT_OPS=new Set(['buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear','exchangeGold']);
+export const MERCHANT_OPS=new Set(['buyPet','buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear','exchangeGold']);
 
 export function buyMerchantStack(s,op,id,quantity=1,items){
  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>100)return false;
@@ -11,4 +11,5 @@ export function buyMerchantStack(s,op,id,quantity=1,items){
  if(!inventory||!Number.isFinite(s[currency])||s[currency]<price*quantity||(inventory[key]||0)+quantity>99999)return false;
  s[currency]-=price*quantity;inventory[key]=(inventory[key]||0)+quantity;return true;
 }
+
 

@@ -17,6 +17,7 @@ final class GoogleLogin {
   WebViewCompat.addWebMessageListener(view,"CockroAuth",Collections.singleton("https://appassets.androidplatform.net"),(v,message,origin,mainFrame,reply)->{
    if(!mainFrame||!"https://appassets.androidplatform.net".equals(origin.toString()))return;
    try{JSONObject msg=new JSONObject(message.getData());String action=msg.optString("action");
+    if("exit".equals(action)){activity.finishAndRemoveTask();return;}
     if("ready".equals(action)){ready=true;resume();return;}
     Uri uri=Uri.parse(msg.getString("url"));
     if(!"https".equals(uri.getScheme())||!"kfohckvypopaoogmnjuy.supabase.co".equals(uri.getHost())||!"/auth/v1/authorize".equals(uri.getPath())||!"google".equals(uri.getQueryParameter("provider"))||!"cockronetwork://auth/callback".equals(uri.getQueryParameter("redirect_to"))||!"s256".equals(uri.getQueryParameter("code_challenge_method"))||uri.getQueryParameter("code_challenge")==null)return;
@@ -39,3 +40,4 @@ final class GoogleLogin {
   web.evaluateJavascript("window.cockroReceiveGoogle?window.cockroReceiveGoogle("+detail+"):false",value->{delivering=false;if("true".equals(value))state.edit().clear().commit();});
  }
 }
+
