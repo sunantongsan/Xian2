@@ -3973,8 +3973,9 @@ function gearShopPrice(slot, tier) {
 function buyShopGear(s, slot, tier = tierForLevel(s.level)) {
   if (!ENHANCE_SLOTS.includes(slot) || s.bag.length >= BAG_SIZE || !Number.isInteger(tier) || !TIERS[tier] || s.level < TIERS[tier].level) return false;
   const cost = gearShopPrice(slot, tier);
-  if (s.stones < cost) return false;
-  s.stones -= cost;
+  const currency = slot === "weapon" ? "gold" : "stones";
+  if (!Number.isFinite(s[currency]) || s[currency] < cost) return false;
+  s[currency] -= cost;
   s.bag.push(makeItem(slot, tier, 2));
   return true;
 }
@@ -4093,7 +4094,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
   }
   function view(p) {
     const own = ledger.shops[p.account];
-    return { revision: ledger.revision, vault: structuredClone(ledger.vaults[p.account] || { gold: 0, stones: 0, items: [] }), ownShop: structuredClone(own || { open: false, title: "", listings: [] }), shops: Object.values(ledger.shops).filter(active).map((shop) => ({ character: shop.character, title: shop.title, name: shop.name, x: shop.x, y: shop.y, listings: structuredClone(shop.listings) })) };
+    return { revision: ledger.revision, vault: structuredClone(ledger.vaults[p.account] || { gold: 0, stones: 0, items: [] }), ownShop: structuredClone(own || { open: false, title: "", listings: [] }), shops: Object.values(ledger.shops).filter(active).map((shop) => ({ character: shop.character, title: shop.title, promotion: shop.promotion || "", name: shop.name, x: shop.x, y: shop.y, listings: structuredClone(shop.listings) })) };
   }
   function run(p, d) {
     ready(p);
@@ -4135,6 +4136,8 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
       case "openShop": {
         need(typeof d.title === "string" && d.title.trim().length >= 2 && d.title.trim().length <= 32, "invalid_title");
         shop ??= { listings: [] };
+        need(d.promotion === void 0 || typeof d.promotion === "string" && d.promotion.trim().length <= 120, "invalid_promotion");
+        shop.promotion = (d.promotion ?? shop.promotion ?? "").trim();
         shop.title = d.title.trim();
         shop.open = true;
         shop.character = p.id;
@@ -4144,6 +4147,11 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
         next.shops[p.account] = shop;
         break;
       }
+      case "updatePromotion":
+        need(shop, "shop_missing");
+        need(typeof d.promotion === "string" && d.promotion.trim().length <= 120, "invalid_promotion");
+        shop.promotion = d.promotion.trim();
+        break;
       case "closeShop":
         need(shop, "shop_missing");
         shop.open = false;
@@ -4230,7 +4238,7 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
       throw Error("save_unavailable");
     }
   }
-  const stalls = () => Object.values(ledger.shops).filter(active).map((x) => ({ character: x.character, title: x.title, name: x.name, x: x.x, y: x.y, count: x.listings.length }));
+  const stalls = () => Object.values(ledger.shops).filter(active).map((x) => ({ character: x.character, title: x.title, promotion: x.promotion || "", name: x.name, x: x.x, y: x.y, count: x.listings.length }));
   const ownsListedItems = (account, id) => ledger.shops[account]?.character === id && ledger.shops[account].listings.length > 0;
   return { run, view, refreshSigns, stalls, removeAccount, ownsListedItems, get failed() {
     return failed;
@@ -4353,6 +4361,50 @@ function createBillingService(directory, verifier = createPlayVerifier()) {
 function stateForWire(data, cursor = 0) {
   if (data.type !== "state") return data;
   return { ...data, events: data.events.filter((e) => e.id > cursor) };
+}
+
+// web/loot-pets.js
+var PET_PRICE = 2e4;
+var PET_SEARCH_RADIUS = 400;
+var PET_PICKUP_RADIUS = 45;
+var LOOT_PETS = Object.freeze({ dog: { name: "\u0E2B\u0E21\u0E32", tile: 0 }, cat: { name: "\u0E41\u0E21\u0E27", tile: 1 }, chicken: { name: "\u0E44\u0E01\u0E48", tile: 2 }, tiger: { name: "\u0E40\u0E2A\u0E37\u0E2D", tile: 3 }, buffalo: { name: "\u0E04\u0E27\u0E32\u0E22", tile: 4 } });
+function normalizePets(s, v = s) {
+  const old = v.lootPets || {};
+  const owned = Array.isArray(old.owned) ? [...new Set(old.owned.filter((id) => typeof id === "string" && Object.hasOwn(LOOT_PETS, id)))] : [];
+  s.lootPets = { owned, active: owned.includes(old.active) ? old.active : null };
+}
+function buyPet(s, id) {
+  if (typeof id !== "string" || !Object.hasOwn(LOOT_PETS, id)) return false;
+  normalizePets(s);
+  if (s.lootPets.owned.includes(id) || !Number.isFinite(s.gold) || s.gold < PET_PRICE) return false;
+  s.gold -= PET_PRICE;
+  s.lootPets.owned.push(id);
+  s.lootPets.active = id;
+  return true;
+}
+function equipPet(s, id) {
+  normalizePets(s);
+  if (id !== null && !s.lootPets.owned.includes(id)) return false;
+  s.lootPets.active = id;
+  return true;
+}
+function stepPet(p, loot, dt, now, trace) {
+  const id = p.s.lootPets?.active;
+  if (!id || !Object.hasOwn(LOOT_PETS, id) || p.hp <= 0 || p.offline) {
+    p.pet = null;
+    return;
+  }
+  if (!p.pet || p.pet.id !== id || p.pet.map !== p.map || Math.hypot(p.pet.x - p.x, p.pet.y - p.y) > 650) p.pet = { id, map: p.map, x: p.x, y: p.y, face: 1, moving: false };
+  const pet = p.pet, targets = loot.filter((d2) => d2.owner === p.id && d2.map === p.map && now < d2.expires && now - d2.created >= 0.35 && Math.hypot(d2.x - p.x, d2.y - p.y) <= PET_SEARCH_RADIUS).sort((a, b) => Math.hypot(a.x - pet.x, a.y - pet.y) - Math.hypot(b.x - pet.x, b.y - pet.y));
+  const target = targets.find((d2) => Math.hypot(trace(pet, d2).x - d2.x, trace(pet, d2).y - d2.y) < 1) || p;
+  const dx = target.x - pet.x, dy = target.y - pet.y, d = Math.hypot(dx, dy), stop = target === p ? 65 : 8, step = Math.min(Math.max(0, d - stop), Math.max(0, Math.min(dt, 0.25)) * 360);
+  pet.moving = step > 1;
+  if (step) {
+    const pos = trace(pet, { x: pet.x + dx / d * step, y: pet.y + dy / d * step });
+    pet.face = dx - dy < 0 ? -1 : 1;
+    pet.x = pos.x;
+    pet.y = pos.y;
+  }
 }
 
 // web/world-save.js
@@ -4732,6 +4784,7 @@ function grantTownBuff(p, enabled, near, now = Date.now()) {
 var VERSION = 1;
 function fresh(hero) {
   const s = { version: VERSION, name: "", townBuffUntil: 0, enhancementVersion: 2, balanceVersion: BALANCE_VERSION, mpPotions: 5, adTickets: [], accountRewardReceipts: [], playReceipts: [], pvpReports: [], hero, level: 1, xp: 0, gold: 1e5, potions: 10, stones: 0, upgrade: 0, zone: 0, kills: 0, seen: [], bosses: [], sound: true, quality: "auto", attributes: { vit: 0, str: 0, int: 0, agi: 0 }, statPoints: 0, skillPoints: 0, skillRanks: {}, reputation: 0, autoAttack: false };
+  normalizePets(s);
   normalizeExpTickets(s);
   normalizeSkills(s);
   normalizeUpgradeItems(s);
@@ -4783,6 +4836,7 @@ function validSave(v) {
   normalizeTownBuff(s, v);
   normalizeExpTickets(s, v);
   normalizeWorldSave(s, v);
+  normalizePets(s, v);
   normalizeActivities(s, v);
   if (v.testGoldGrant) s.testGoldGrant = v.testGoldGrant;
   for (const [k, max] of Object.entries({ level: 210, xp: 1e8, gold: 1e10, potions: 99999, stones: 1e7, upgrade: 20, zone: 9, kills: 1e9 })) {
@@ -4883,7 +4937,7 @@ function combatStats(s) {
 
 // web/merchant.js
 var MERCHANT_UV = [0.235, 0.48];
-var MERCHANT_OPS = /* @__PURE__ */ new Set(["buyExpTicket", "buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
+var MERCHANT_OPS = /* @__PURE__ */ new Set(["buyPet", "buyExpTicket", "buy", "buyMP", "buyUpgradeItem", "buyShopGear", "exchangeGold"]);
 function buyMerchantStack(s, op, id, quantity = 1, items) {
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) return false;
   let currency, key, price, inventory;
@@ -5941,7 +5995,7 @@ var World = class {
       if (now >= d.expires) return false;
       if (now - d.created < 0.35) return true;
       const p = this.players.get(d.owner);
-      if (p && p.hp > 0 && p.map === d.map && dist2(p, d) <= LOOT_RADIUS && dist2(traceStep(this.maps[p.map], p, d), d) < 1 && collectLoot(p.s, d)) {
+      if (p && p.hp > 0 && p.map === d.map && (dist2(p, d) <= LOOT_RADIUS && dist2(traceStep(this.maps[p.map], p, d), d) < 1 || p.pet && dist2(p.pet, d) <= PET_PICKUP_RADIUS && dist2(p, d) <= 400 && dist2(traceStep(this.maps[p.map], p.pet, d), d) < 1) && collectLoot(p.s, d)) {
         p.dirty = true;
         this.event(p, { kind: "lootPickup", loot: d });
         return false;
@@ -6057,6 +6111,12 @@ var World = class {
           p.opResult.ok = true;
           break;
         }
+        case "buyPet":
+          p.opResult.ok = buyPet(s, d.id);
+          break;
+        case "equipPet":
+          p.opResult.ok = equipPet(s, d.id === "none" ? null : d.id);
+          break;
         case "buyExpTicket":
           p.opResult.ok = buyExpTicket(s, d.id);
           break;
@@ -6228,6 +6288,7 @@ var World = class {
   }
   tick(dt, now = Date.now() / 1e3) {
     tickPvp(this, dt, now);
+    for (const p of this.players.values()) stepPet(p, this.loot, dt, now, (a, b) => traceStep(this.maps[p.map], a, b));
     this.collectGround(now);
     for (const p of this.actors()) {
       if (p.offline && (!p.defender || now - (p.lastPvp || 0) > 10)) continue;
@@ -6333,7 +6394,7 @@ var World = class {
     }
   }
   snapshot(p, now = Date.now() / 1e3) {
-    const actor = (q) => ({ id: q.id, offline: !!q.offline, shopTitle: q.offline ? "" : q.shopTitle || "", name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
+    const actor = (q) => ({ id: q.id, pet: q.pet ? { ...q.pet } : null, offline: !!q.offline, shopTitle: q.offline ? "" : q.shopTitle || "", name: q.name, hero: q.s.hero, townBuffUntil: q.s.townBuffUntil || 0, auraLevel: auraLevel(q.s), appearance: appearance(q.s), level: q.s.level, x: q.x, y: q.y, hp: q.hp, maxHp: maxHP(q.s), face: q.face, anim: q.hp <= 0 ? "dead" : q.anim, animTime: q.animTime, walkDX: q.walkDX, walkDY: q.walkDY, walkDistance: q.walkDistance, back: q.back, castId: q.castId });
     const self = { ...actor(p), map: p.map, mp: p.mp, actionRemaining: Math.max(0, p.actionUntil - now), save: p.s, correction: !!p.entered, cooldowns: Object.fromEntries(Object.entries(p.cd).map(([k, v]) => [k, Math.max(0, v - now)])) };
     p.entered = false;
     return { type: "state", serverTime: now * 1e3, self, online: this.players.size, loot: this.loot.filter((d) => d.map === p.map && dist2(p, d) < 1700).map((d) => ({ ...d, owner: void 0 })), players: this.actors().filter((q) => q !== p && q.map === p.map && dist2(p, q) < 1800).sort((a, b) => dist2(p, a) - dist2(p, b)).slice(0, 32).map(actor), monsters: this.mobs[p.map].filter((e) => dist2(p, e) < 1700).map((e) => ({ id: e.id, x: e.x, y: e.y, def: e.def, hp: e.hp, state: e.state, clock: e.clock, angle: e.angle, aimX: e.aimX, aimY: e.aimY, face: e.face, flash: e.flash, moving: e.moving, walkDistance: e.walkDistance })), events: this.events.filter((e) => e.map === p.map && dist2(p, e) < 1800) };
@@ -6439,7 +6500,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.33.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.34.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -6593,7 +6654,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", release: "4.33.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
+          send(ws, { type: "welcome", release: "4.34.0", id, character, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account });
           send(ws, world.snapshot(p));
           return;
         }
@@ -6798,7 +6859,7 @@ var admob_config_default = {
 };
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.33.0");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.34.0");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {
