@@ -555,7 +555,7 @@ html.chat-typing #controls{visibility:hidden}
 .armory-stage.cockro-stage{background:#0c1823 url(items/armory-stage.webp) center/auto 100% no-repeat}
 .armory-stage canvas{display:block;width:100%;height:100%;object-fit:contain}
 .cockro-stage canvas{visibility:hidden}
-#modal .armory-stage .inventory-equipped{position:absolute;inset:3% 3%;display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,minmax(0,1fr));grid-template-columns:repeat(2,clamp(28px,4vw,46px));justify-content:space-between;align-items:center;gap:2px;pointer-events:none}
+#modal .armory-stage .inventory-equipped{position:absolute;inset:3% 3%;width:auto;display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,minmax(0,1fr));grid-template-columns:repeat(2,clamp(28px,4vw,46px));justify-content:space-between;align-items:center;gap:2px;pointer-events:none}
 #modal .inventory-equipped button{height:auto;width:100%;min-height:0;max-height:100%;aspect-ratio:1;pointer-events:auto;border:1px solid #a28859;background:linear-gradient(135deg,#0c1a28ed,#1c2b39e8)}
 #modal .inventory-equipped button.empty svg{width:58%;height:58%;color:#c3ac7c}
 .armory-actions{display:flex;gap:4px;justify-content:center}
