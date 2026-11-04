@@ -179,8 +179,9 @@ function readSave(){try{return validSave(JSON.parse(localStorage.getItem(SAVE)))
 function beep(freq=440){if(!soundEnabled())return;if(freq>=700)gameAudio.success();else if(freq<300)gameAudio.hit();else gameAudio.tap();}
 function rewardFanfare(){gameAudio.sync(s?.sound===true);gameAudio.success();}
 
-function show(html){onlineView=null;setQuickMenu(false);paused=true;resetControls();move=null;target=null;route=[];pendingPoi=null;$('modalContent').innerHTML=html;$('windowClose').hidden=!p||travelBusy;if(!modal.open)modal.showModal();}
-function close(){onlineView=null;bookRequest++;modal.close();paused=travelBusy||document.hidden;}
+function rosterBanner(visible){ads.send({type:"rosterBanner",visible});}
+function show(html){rosterBanner(false);onlineView=null;setQuickMenu(false);paused=true;resetControls();move=null;target=null;route=[];pendingPoi=null;$('modalContent').innerHTML=html;$('windowClose').hidden=!p||travelBusy;if(!modal.open)modal.showModal();}
+function close(){rosterBanner(false);onlineView=null;bookRequest++;modal.close();paused=travelBusy||document.hidden;}
 modal.addEventListener('cancel',e=>{if(!p||travelBusy){e.preventDefault();return}bookRequest++;paused=document.hidden});
 const button=(id,text)=>`<button id="${id}">${text}</button>`;
 function atlas(g,im,col,row,cols,rows,x,y,w,h,flip=false){if(!im)return;const cw=im.width/cols,ch=im.height/rows;g.save();g.translate(x,y);if(flip)g.scale(-1,1);g.drawImage(im,col*cw,row*ch,cw,ch,-w/2,-h,w,h);g.restore();}
@@ -255,6 +256,7 @@ async function title(){chatUI.reset();gameAudio.setScene('welcome');gameAudio.sy
  if(!owned.length)return createCharacterScreen(owned);
  let selected=owned[0].id;
  show(`<h2>เลือกตัวละคร <small>${owned.length} / 4</small></h2><div class="hero-grid welcome-roster">${owned.map(c=>{const h=heroIdentity(c.hero);return `<button class="card hero-card" data-character="${c.id}" aria-pressed="${c.id===selected}">${uiArt(h.icon,'hero-art')}<b>${escapeHTML(c.name||'กรุณาตั้งชื่อ')}</b><small>${h.name} • Lv. ${c.level}</small></button>`;}).join('')}${Array.from({length:4-owned.length},()=>'<button class="hero-card roster-empty" data-create-character aria-label="สร้างตัวละคร"><span>+</span><small>สร้างตัวละคร</small></button>').join('')}</div><div class="roster-actions">${button('choose','เล่น')}${owned.length<4?button('createCharacter','สร้างตัวละคร'):''}${button('deleteCharacter','ลบตัวละคร')}${button('accountCenter','จัดการบัญชี')}${googleButton()}</div><p class="sub">4.36.0 • ออนไลน์<br>ต่อสู้ผู้เล่นได้ทุกพื้นที่ • ออฟไลน์แล้วตัวละครยังอยู่และใช้ยาป้องกันตัว</p>`);
+ rosterBanner(true);
  document.querySelectorAll('[data-character]').forEach(b=>b.onclick=()=>{selected=b.dataset.character;document.querySelectorAll('[data-character]').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.character===selected)));});
  $('choose').onclick=()=>{const c=owned.find(c=>c.id===selected);if(c){if(!c.name)return requireCharacterName(c);++titleRequest;start({hero:c.hero,character:c.id});}};
  bindAccountButtons(owned,()=>owned.find(c=>c.id===selected));const create=()=>createCharacterScreen(owned);if($('createCharacter'))$('createCharacter').onclick=create;document.querySelectorAll('[data-create-character]').forEach(b=>b.onclick=create);

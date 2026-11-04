@@ -453,3 +453,47 @@ html.chat-typing #controls{visibility:hidden}
 @media(max-width:600px) and (orientation:portrait){#chatDock{width:calc(100vw - 28px);bottom:190px}#hud .panel.right{max-width:calc(100vw - 130px);flex-wrap:wrap}#hud #quickMenuToggle{top:170px}#quickMenuTray{bottom:calc(100dvh - 164px)}}
 .vault-lock{max-width:340px;margin:16px auto;padding:20px;border:1px solid #64899b;border-radius:16px;background:linear-gradient(145deg,#203f52,#0a1b2c);text-align:center}
 .vault-lock input{box-sizing:border-box;width:100%;letter-spacing:5px;text-align:center;margin:8px 0}
+
+/* Upper corners share a frame size. Keep the center clear for the minimap. */
+#hud {
+  --card-width: 180px;
+  --rail-limit: calc(100dvh - 225px);
+  display: grid;
+  grid-template-columns: var(--card-width) 1fr var(--card-width);
+  gap: 6px;
+  align-items: stretch;
+}
+#hud .player-panel, #hud .sector-card {box-sizing:border-box;width:var(--card-width);min-width:0;max-width:none}
+#hud .sector-card {
+  grid-column:3;grid-row:1;display:grid;align-content:center;gap:2px;
+  padding:5px 9px;color:#ecf6ff;border:1px solid #aa905c;border-radius:10px;
+  background:linear-gradient(120deg,#18384aee,#091b29f2);
+}
+.sector-card>small {font:700 8px/1.2 system-ui;letter-spacing:.16em;color:#8ddbe1}
+#hud .sector-card #zoneName {display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+#hud .sector-card #money {margin:0;padding:0;line-height:1.25;background:none;gap:5px}
+#hud .field-wire {
+  grid-row:2;grid-column:2 / 4;justify-self:end;align-self:start;
+  display:flex;align-items:center;max-width:300px;width:100%;height:19px;overflow:hidden;
+  border-radius:5px;background:#0b1c29dc;border:1px solid #3f6472;
+  font:10px/1.3 system-ui;color:#d4e7ec;pointer-events:none;
+}
+.field-wire strong {color:#f0ce89;padding:0 7px;border-right:1px solid #56747b}
+.field-wire>div {min-width:0;overflow:hidden;flex:1}
+.field-wire span {display:inline-block;white-space:nowrap;padding-left:100%;animation:cockro-wire 20s linear infinite}
+@keyframes cockro-wire {to {transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){.field-wire span{animation:none;padding-left:4px;white-space:normal}.field-wire>div{overflow:auto}.field-wire strong{flex-shrink:0}}
+#hud .panel.right {
+  grid-column:1;grid-row:2;display:flex;flex-flow:column;align-items:flex-start;
+  gap:3px;width:40px;max-width:none;align-self:start;position:relative;
+}
+#hud #quickMenuToggle {order:-1;position:static;width:40px;height:32px;margin:0}
+#hud .shortcut-stack {display:grid;gap:3px;max-height:max(38px,calc(var(--rail-limit) - 110px));overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;scrollbar-width:thin}
+#hud .right .direct-shortcut {width:40px;min-width:40px;height:38px;min-height:38px;margin:0}
+#hud .right .direct-shortcut svg {height:20px}
+#hud #quickMenuTray {position:absolute;left:45px;right:auto;top:0;bottom:auto;width:auto;max-height:max(64px,calc(var(--rail-limit) - 70px));transform:none}
+#hud .quick-menu {grid-template-columns:repeat(2,40px)}
+#hud .quick-menu button {width:40px}
+@media(max-height:450px){#hud{--card-width:166px;--rail-limit:calc(100dvh - 164px)}}
+@media(max-width:450px){#hud{--card-width:min(42vw,166px)}}
+#hud[hidden]{display:none}

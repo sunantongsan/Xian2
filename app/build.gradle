@@ -28,12 +28,14 @@ android {
     }
     buildTypes {
         debug {
+            buildConfigField 'String', 'ADMOB_BANNER_UNIT_ID', '"ca-app-pub-3940256099942544/6300978111"' 
             buildConfigField 'boolean', 'TEST_ADS', 'true'
             applicationIdSuffix '.adstest'; versionNameSuffix '-adstest'
             manifestPlaceholders = [appLabel: 'COCKRO Ads Test', admobAppId: 'ca-app-pub-3940256099942544~3347511713']
             buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"ca-app-pub-3940256099942544/5224354917"'
         }
         release {
+            buildConfigField 'String', 'ADMOB_BANNER_UNIT_ID', '"' + (internalTestAds ? 'ca-app-pub-3940256099942544/6300978111' : adsConfig.bannerUnitId) + '"'
             buildConfigField 'boolean', 'TEST_ADS', internalTestAds.toString()
             manifestPlaceholders = [appLabel: 'COCKRO', admobAppId: internalTestAds ? 'ca-app-pub-3940256099942544~3347511713' : adsApp]
             buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"' + (internalTestAds ? 'ca-app-pub-3940256099942544/5224354917' : adsUnit) + '"'

@@ -30,7 +30,7 @@ public class MainActivity extends ComponentActivity {
   loading.skip.setOnClickListener(v->openBundledGame());root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
   getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(web==null){openBundledGame();return;}web.evaluateJavascript("(()=>{const d=document.getElementById('modal');if(d&&d.open){const e=new Event('cancel',{cancelable:true});if(d.dispatchEvent(e))d.close();}else document.getElementById('menuBtn')?.click();})()",null);}});
  }
- @Override protected void onResume(){super.onResume();foreground=true;if(web!=null){web.onResume();if(googleLogin!=null)handler.postDelayed(()->googleLogin.resume(),400);}if(!startedCheck){startedCheck=true;checkUpdate();}}
+ @Override protected void onResume(){super.onResume();foreground=true;if(ads!=null)ads.setForeground(true);if(web!=null){web.onResume();if(googleLogin!=null)handler.postDelayed(()->googleLogin.resume(),400);}if(!startedCheck){startedCheck=true;checkUpdate();}}
  private void openBundledGame(){if(destroyed)return;forceBundled=false;updater.cancel();loading.skip.setEnabled(true);status.setText("กำลังเปิดเกม…");if(web!=null){root.removeView(web);web.destroy();web=null;}gameLoaded=false;loadGame();}
  private void checkUpdate(){
   if(destroyed||gameLoaded||updating)return;updating=true;updater=new AutoUpdater();loading.resume.setEnabled(true);loading.resume.setText("พักดาวน์โหลด");progress.setVisibility(View.VISIBLE);progress.setIndeterminate(true);status.setText("กำลังตรวจสอบอัปเดต…");
@@ -75,7 +75,7 @@ public class MainActivity extends ComponentActivity {
   loading.setVisibility(View.VISIBLE);status.setText("กำลังตรวจสอบแพตช์…");android.net.Uri uri=data.getData();worker.execute(()->{try{GamePatch.install(this,uri);runOnUiThread(()->{if(!destroyed){gameLoaded=false;if(web!=null){root.removeView(web);web.destroy();web=null;}loadGame();}});}catch(Exception e){runOnUiThread(()->{if(!destroyed){loading.setVisibility(View.GONE);Toast.makeText(this,"ติดตั้งแพตช์ไม่ได้: "+e.getMessage(),Toast.LENGTH_LONG).show();}});}});
  }
  @Override protected void onNewIntent(android.content.Intent intent){super.onNewIntent(intent);setIntent(intent);if(googleLogin!=null)googleLogin.callback(intent);}
- @Override protected void onPause(){foreground=false;if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
+ @Override protected void onPause(){foreground=false;if(ads!=null)ads.setForeground(false);if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
 

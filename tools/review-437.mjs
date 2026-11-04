@@ -9,7 +9,7 @@ await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFun
 for(const [width,height]of [[844,390],[640,360],[390,844]]){
  await page.setViewportSize({width,height});await page.evaluate(()=>{qa.resize();qa.draw();qa.setQuickMenu(true)});await page.waitForTimeout(250);
  const rect=id=>page.locator(id).evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom}});
- const tray=await rect('#quickMenuTray'),trigger=await rect('#quickMenuToggle'),skill=await rect('.combat');assert(tray.y>=0&&tray.x>=0&&tray.right<=width+1);assert(tray.bottom<=trigger.y);assert(tray.bottom<=skill.y||tray.right<=skill.x);const dock=await rect('#chatDock');assert(dock.x>=0&&dock.right<=width+1&&dock.bottom<=height+1);
+ const tray=await rect('#quickMenuTray'),trigger=await rect('#quickMenuToggle'),skill=await rect('.combat');assert(tray.y>=0&&tray.x>=0&&tray.right<=width+1);assert(tray.x>=trigger.right);assert(tray.bottom<=skill.y||tray.right<=skill.x);const dock=await rect('#chatDock');assert(dock.x>=0&&dock.right<=width+1&&dock.bottom<=height+1);
  await page.evaluate(()=>{qa.net.onChat({id:'hello'+innerWidth,channel:'world',from:'self',name:'ฮีโร่แมงสาบ',text:'พร้อมอัปเกรดอาวุธ ไปผจญภัยกัน!'});const g=document.getElementById('game').getContext('2d');qa.chatUI.drawBubbles(g,()=>({x:innerWidth*.5,y:innerHeight*.5-70}));});
  await page.screenshot({path:`review/cockro-437-${width}.png`});
 }
