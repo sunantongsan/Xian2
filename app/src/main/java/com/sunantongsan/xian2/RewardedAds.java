@@ -2,6 +2,9 @@ package com.sunantongsan.xian2;
 
 import android.app.Activity;
 import android.webkit.WebView;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import com.google.android.gms.ads.*;
@@ -16,6 +19,9 @@ final class RewardedAds {
  private final ConsentInformation consent;
  private WebView web;
  private boolean initialized,initializing,busy,dead;
+ private AdView banner;
+ private boolean rosterVisible, foreground;
+ private int bannerInset;
  private String failure="";
  private final android.os.Handler handler=new android.os.Handler(android.os.Looper.getMainLooper());
  private int requestId;
@@ -29,17 +35,55 @@ final class RewardedAds {
  }
  private void initialize(){
   if(dead||!canLoadAds()||initialized||initializing)return;
-  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;emit("status");}));
+  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;syncBanner();emit("status");}));
  }
  void attach(WebView view){web=view;if(!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))return;
   WebViewCompat.addWebMessageListener(view,"CockroAds",Collections.singleton(ORIGIN),(v,message,origin,mainFrame,reply)->{
    if(!mainFrame||!ORIGIN.equals(origin.toString())||dead)return;
    try{JSONObject data=new JSONObject(message.getData());String type=data.optString("type");
-    if("status".equals(type))emit("status");
+    if("rosterBanner".equals(type)){rosterVisible=data.optBoolean("visible");syncBanner();}
+    else if("status".equals(type))emit("status");
     else if("privacy".equals(type)&&!busy){UserMessagingPlatform.showPrivacyOptionsForm(activity,error->{initialize();emit("status");});}
     else if("show".equals(type))show(data.optString("nonce"),data.optString("user"));
    }catch(Exception ignored){emit("error");}
   });
+ }
+ // The roster gets a separate row outside the WebView, so an ad cannot cover its buttons.
+ void setForeground(boolean value){foreground=value;syncBanner();}
+ private void syncBanner(){
+  if(dead||!foreground||!rosterVisible||!initialized||!canLoadAds()||web==null){
+   clearBanner();return;
+  }
+  if(banner!=null||!(web.getParent() instanceof FrameLayout))return;
+  FrameLayout host=(FrameLayout)web.getParent();
+  int width=AdSize.BANNER.getWidthInPixels(activity);
+  int height=AdSize.BANNER.getHeightInPixels(activity);
+  int gap=Math.round(8*activity.getResources().getDisplayMetrics().density);
+  if(host.getWidth()<width+2*gap||host.getHeight()<height*4)return;
+  AdView view=new AdView(activity);
+  banner=view;view.setAdSize(AdSize.BANNER);view.setAdUnitId(BuildConfig.ADMOB_BANNER_UNIT_ID);
+  FrameLayout.LayoutParams params=new FrameLayout.LayoutParams(width,height,Gravity.BOTTOM|Gravity.LEFT);
+  params.leftMargin=gap;params.bottomMargin=gap;
+  view.setVisibility(View.INVISIBLE);host.addView(view,params);
+  view.setAdListener(new AdListener(){
+   @Override public void onAdLoaded(){
+    if(banner!=view)return;
+    setBannerInset(height+2*gap);view.setVisibility(View.VISIBLE);
+   }
+   @Override public void onAdFailedToLoad(LoadAdError error){if(banner==view)clearBanner();}
+  });
+  view.loadAd(new AdRequest.Builder().build());
+ }
+ private void setBannerInset(int pixels){
+  if(bannerInset==pixels||web==null)return;
+  FrameLayout.LayoutParams layout=(FrameLayout.LayoutParams)web.getLayoutParams();
+  layout.bottomMargin+=pixels-bannerInset;bannerInset=pixels;web.setLayoutParams(layout);
+ }
+ private void clearBanner(){
+  if(banner==null)return;
+  AdView old=banner;banner=null;
+  if(old.getParent() instanceof FrameLayout)((FrameLayout)old.getParent()).removeView(old);
+  old.destroy();setBannerInset(0);
  }
  private void fail(String stage,AdError error){failure=stage+" • "+error.getDomain()+" / "+error.getCode()+" • "+error.getMessage();emit("unavailable");}
  private void emit(String status){
@@ -71,6 +115,6 @@ final class RewardedAds {
    }
   });
  }
- void destroy(){dead=true;requestId++;handler.removeCallbacksAndMessages(null);web=null;}
+ void destroy(){dead=true;clearBanner();requestId++;handler.removeCallbacksAndMessages(null);web=null;}
 }
 

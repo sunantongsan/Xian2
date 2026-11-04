@@ -53,8 +53,13 @@ export function createChatView({net,show,close,toast}){
  function mount(){
   if($('chatDock'))return;
   const dock=document.createElement('section');dock.id='chatDock';dock.setAttribute('aria-label','แถบพูดคุย');
-  dock.innerHTML='<form id="dockForm"><select id="dockChannel" aria-label="รูปแบบข้อความ"><option value="map">พูด</option><option value="world">ตะโกน</option></select><input id="dockInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="พิมพ์ข้อความ"><button type="submit" id="dockSend" aria-label="ส่งข้อความ">➤</button><button type="button" id="dockHistory" aria-label="ประวัติแชท">⋯</button></form><small id="dockStatus" role="status">พูดในแผนที่ • ตะโกนถึงทุกแผนที่</small>';
+  dock.innerHTML='<button type="button" id="dockToggle" aria-label="เปิดหรือพับช่องพูด" aria-controls="dockForm" aria-expanded="false">💬</button><form id="dockForm"><select id="dockChannel" aria-label="รูปแบบข้อความ"><option value="map">พูด</option><option value="world">ตะโกน</option></select><input id="dockInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="พิมพ์ข้อความ"><button type="submit" id="dockSend" aria-label="ส่งข้อความ">➤</button><button type="button" id="dockHistory" aria-label="ประวัติแชท">⋯</button></form><small id="dockStatus" role="status">พูดในแผนที่ • ตะโกนถึงทุกแผนที่</small>';
   document.body.append(dock);
+  $('dockToggle').onclick=()=>{
+   const open=dock.classList.toggle('expanded');
+   $('dockToggle').setAttribute('aria-expanded',String(open));
+   if(open)$('dockInput').focus();else $('dockInput').blur();
+  };
   const input=$('dockInput');input.addEventListener('focus',()=>{document.documentElement.classList.add('chat-typing');window.dispatchEvent(new Event('blur'));});input.addEventListener('blur',()=>document.documentElement.classList.remove('chat-typing'));
   $('dockChannel').onchange=()=>{$('dockChannel').style.color=$('dockChannel').value==='world'?'#ffd477':'#92e5ff';};
   $('dockHistory').onclick=()=>open();

@@ -453,3 +453,115 @@ html.chat-typing #controls{visibility:hidden}
 @media(max-width:600px) and (orientation:portrait){#chatDock{width:calc(100vw - 28px);bottom:190px}#hud .panel.right{max-width:calc(100vw - 130px);flex-wrap:wrap}#hud #quickMenuToggle{top:170px}#quickMenuTray{bottom:calc(100dvh - 164px)}}
 .vault-lock{max-width:340px;margin:16px auto;padding:20px;border:1px solid #64899b;border-radius:16px;background:linear-gradient(145deg,#203f52,#0a1b2c);text-align:center}
 .vault-lock input{box-sizing:border-box;width:100%;letter-spacing:5px;text-align:center;margin:8px 0}
+
+/* Upper corners share a frame size. Keep the center clear for the minimap. */
+#hud {
+  --card-width: 180px;
+  --rail-room: max(64px,calc(100dvh - 295px));
+  display: grid;
+  grid-template-columns: var(--card-width) 1fr var(--card-width);
+  gap: 6px;
+  align-items: stretch;
+}
+#hud .player-panel, #hud .sector-card {box-sizing:border-box;width:var(--card-width);min-width:0;max-width:none}
+#hud .sector-card {
+  grid-column:3;grid-row:1;display:grid;align-content:center;gap:2px;
+  padding:5px 9px;color:#ecf6ff;border:1px solid #aa905c;border-radius:10px;
+  background:linear-gradient(120deg,#18384aee,#091b29f2);
+}
+.sector-card>small {font:700 8px/1.2 system-ui;letter-spacing:.16em;color:#8ddbe1}
+#hud .sector-card #zoneName {display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+#hud .sector-card #money {margin:0;padding:0;line-height:1.25;background:none;gap:5px}
+#hud .field-wire {
+  grid-row:2;grid-column:2 / 4;justify-self:end;align-self:start;
+  display:flex;align-items:center;max-width:300px;width:100%;height:19px;overflow:hidden;
+  border-radius:5px;background:#0b1c29dc;border:1px solid #3f6472;
+  font:10px/1.3 system-ui;color:#d4e7ec;pointer-events:none;
+}
+.field-wire strong {color:#f0ce89;padding:0 7px;border-right:1px solid #56747b}
+.field-wire>div {min-width:0;overflow:hidden;flex:1}
+.field-wire span {display:inline-block;white-space:nowrap;padding-left:100%;animation:cockro-wire 20s linear infinite}
+@keyframes cockro-wire {to {transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){.field-wire span{animation:none;padding-left:4px;white-space:normal}.field-wire>div{overflow:auto}.field-wire strong{flex-shrink:0}}
+#hud .panel.right {
+  grid-column:1;grid-row:2;display:flex;flex-flow:column;align-items:flex-start;
+  gap:3px;width:40px;max-width:none;align-self:start;position:relative;
+}
+#hud #quickMenuToggle {order:-1;position:static;width:40px;height:32px;margin:0}
+#hud .shortcut-stack {display:grid;gap:3px;max-height:max(0px,calc(var(--rail-room) - 35px));overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;scrollbar-width:thin}
+#hud .right .direct-shortcut {width:40px;min-width:40px;height:38px;min-height:38px;margin:0}
+#hud .right .direct-shortcut svg {height:20px}
+#hud #quickMenuTray {position:absolute;left:45px;right:auto;top:0;bottom:auto;width:auto;max-height:var(--rail-room);transform:none}
+#hud .quick-menu {grid-template-columns:repeat(2,40px)}
+#hud .quick-menu button {width:40px}
+@media(max-height:450px){#hud{--card-width:166px}}
+@media(max-width:450px){#hud{--card-width:min(42vw,166px)}}
+#hud[hidden]{display:none}
+
+/* Field HUD: two compact end cards leave the play area unobstructed. */
+#hud {--card-width:min(20vw,174px);grid-template-rows:auto auto}
+#hud .player-panel {grid-area:1/1;align-self:stretch}
+#hud .sector-card {grid-area:1/3;background:#102331 url(items/cockro-sector.webp) center/cover no-repeat;overflow:hidden}
+#hud .sector-card>* {visibility:hidden}
+#hud #money {position:static;justify-content:flex-end;gap:5px;flex-wrap:nowrap;padding:3px 0 0;background:none;font-size:9px;line-height:12px}
+#hud .field-wire {grid-area:1/2;align-self:start;margin-left:40px;width:calc(100% - 40px);max-width:none;background:none;border:none;color:#ffe5ad;text-shadow:0 1px 3px #081018,0 0 2px #000;font-weight:bold}
+#hud .buff-readout {grid-area:2/1;line-height:1.2;color:#ffe6a9;font-size:10px;text-shadow:0 1px 3px #000;pointer-events:none}
+#hud .buff-readout small:not([hidden]) {display:block}
+#hud .panel.right {grid-area:1/2;align-self:start;width:34px;z-index:3}
+#hud #quickMenuToggle {width:34px;min-width:34px;height:32px;border-color:#dfb95d;color:#f3cb74}
+#hud #quickMenuTray {left:0;top:37px;bottom:auto;max-height:none;max-width:calc(100vw - var(--card-width) - 36px);overflow-x:auto;overscroll-behavior:contain;padding:4px}
+#hud #quickMenuTray nav {display:flex;gap:3px;flex-flow:row nowrap;width:max-content}
+#hud #quickMenuTray nav button {position:static;flex:0 0 38px;width:38px;height:38px;min-height:38px;margin:0;color:#ffe0a2;border:1px solid #887347;border-radius:8px;background:linear-gradient(#26485c,#0a1724)}
+#hud #quickMenuTray svg {width:17px;height:17px}
+#hud #quickMenuTray small {font-size:8px}
+#hud [hidden] {display:none!important}
+#chatDock:not(.expanded) {width:auto;min-width:0;padding:0;border:0;background:none;box-shadow:none;bottom:max(5px,env(safe-area-inset-bottom))}
+#chatDock:not(.expanded) :is(#dockForm,#dockStatus) {display:none}
+#chatDock #dockToggle {border:1px solid #cfaa57;background:#102435;color:#ffe5ad;min-width:36px}
+#chatDock.expanded {display:grid;grid-template-columns:auto 1fr;gap:3px}
+#chatDock.expanded #dockStatus {grid-column:2}
+#controls .combat #autoBtn {position:absolute;left:auto;right:209px;bottom:122px;width:60px!important;border-radius:9px!important;padding:4px!important}
+#controls .combat #autoBtn[aria-pressed="false"] {background:#505960!important;color:#eee!important;border-color:#828c92!important}
+#controls .combat #autoBtn[aria-pressed="true"] {background:#206e3a!important;color:#dbffd7!important;border-color:#9be18b!important}
+#pickupFeed {position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;width:max-content;max-width:58vw;pointer-events:none;font:bold 12px/1.5 system-ui;color:#80cbff;text-shadow:0 1px 2px #071a37,0 0 3px #082b57}
+#pickupFeed div {transition:opacity .55s}
+#pickupFeed .fading {opacity:0}
+.gear-preview {display:grid;gap:4px;width:100%;padding:6px 0}
+.compare-line {display:flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}
+.compare-line b {margin-left:auto}
+.compare-line em {font-style:normal;min-width:36px}
+.inventory-detail .gain,.gear-preview .gain {color:#96efa9}
+.inventory-detail .loss,.gear-preview .loss {color:#f6a29a}
+.inventory-cell[data-usable="true"]::after,.inventory-cell[data-usable="false"]::after {position:absolute;bottom:2px;left:3px;font-size:10px;line-height:1;color:#9aefb1;content:'✓';text-shadow:0 1px 2px #000}
+.inventory-cell[data-usable="false"]::after {content:'×';color:#f4a297}
+@media(max-width:540px){#hud {--card-width:min(34vw,145px)}}
+#hud .sector-card {background-size:contain;background-repeat:no-repeat;background-color:#081b29}
+#hud #money .coin-balance img {width:15px;height:15px}
+#portraitTotals {display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 5px;width:100%;grid-column:1/-1;color:#e5d8b0;font-size:11px;line-height:1.25;font-variant-numeric:tabular-nums}
+#portraitTotals b {text-align:right;color:#fff3cc}
+#portraitTotals .gain,#modal .gear-preview .gain {color:#96efa9}
+#portraitTotals .loss,#modal .gear-preview .loss {color:#f6a29a}
+#modal .inventory-detail:has(.gear-preview) {display:flex;max-height:35%;min-height:44px;overflow:auto;gap:4px 8px}
+#modal .gear-preview {display:block;width:auto;padding:0;line-height:1.4}
+#modal .gear-preview small {margin-right:5px}
+#modal .inventory-detail>span:empty {display:none}
+
+/* Armory: keep the live values and equipment slots independent of the portrait art. */
+#modal:has(.inventory-layout){width:min(980px,98vw);max-width:98vw;background:linear-gradient(115deg,#132a3a,#09131e 60%,#102537);border:1px solid #bb9757}
+#modal .inventory-layout{display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);gap:7px;height:min(500px,calc(95dvh - 51px));min-height:0}
+#modal .inventory-hero{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:4px;gap:3px;background:#081824;border:1px solid #675b43}
+#modal #portraitTotals{display:grid;grid-template-columns:auto auto auto auto;justify-content:center;gap:3px 5px;padding:3px 0;color:#f7ddb0}
+.armory-stage{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:7px;background:radial-gradient(ellipse at 50% 75%,#3e596e,#101d2a 72%)}
+.armory-stage.cockro-stage{background:#0c1823 url(items/armory-stage.webp) center/auto 100% no-repeat}
+.armory-stage canvas{display:block;width:100%;height:100%;object-fit:contain}
+.cockro-stage canvas{visibility:hidden}
+#modal .armory-stage .inventory-equipped{position:absolute;inset:3% 3%;width:auto;display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,minmax(0,1fr));grid-template-columns:repeat(2,clamp(28px,4vw,46px));justify-content:space-between;align-items:center;gap:2px;pointer-events:none}
+#modal .inventory-equipped button{height:auto;width:100%;min-height:0;max-height:100%;aspect-ratio:1;pointer-events:auto;border:1px solid #a28859;background:linear-gradient(135deg,#0c1a28ed,#1c2b39e8)}
+#modal .inventory-equipped button.empty svg{width:58%;height:58%;color:#c3ac7c}
+.armory-actions{display:flex;gap:4px;justify-content:center}
+#modal .armory-actions button{min-height:26px;margin:0;padding:2px 8px;font-size:11px}
+#modal .inventory-content{min-width:0;padding:5px;border:1px solid #876e45;border-radius:8px;background:linear-gradient(120deg,#172839,#0a1621)}
+#modal .inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(36px,5.2vw,65px),1fr));grid-auto-rows:max-content;overflow:auto;gap:4px;max-height:none}
+#modal .inventory-grid .inventory-cell{min-height:0;aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#162735,#0b1720);border:1px solid #59616a}
+#modal .inventory-grid .inventory-cell.selected{border-color:#ffda7a;box-shadow:inset 0 0 0 1px #e7ad52,0 0 5px #ffc96266}
+@media(orientation:portrait) and (max-width:540px){#modal .inventory-layout{grid-template-columns:1fr;grid-template-rows:minmax(180px,40%) minmax(0,1fr);height:calc(93dvh - 53px)}#modal .inventory-detail{position:static}}
