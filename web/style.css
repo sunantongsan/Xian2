@@ -545,3 +545,23 @@ html.chat-typing #controls{visibility:hidden}
 #modal .gear-preview {display:block;width:auto;padding:0;line-height:1.4}
 #modal .gear-preview small {margin-right:5px}
 #modal .inventory-detail>span:empty {display:none}
+
+/* Armory: keep the live values and equipment slots independent of the portrait art. */
+#modal:has(.inventory-layout){width:min(980px,98vw);max-width:98vw;background:linear-gradient(115deg,#132a3a,#09131e 60%,#102537);border:1px solid #bb9757}
+#modal .inventory-layout{display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);gap:7px;height:min(500px,calc(95dvh - 51px));min-height:0}
+#modal .inventory-hero{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:4px;gap:3px;background:#081824;border:1px solid #675b43}
+#modal #portraitTotals{display:grid;grid-template-columns:auto auto auto auto;justify-content:center;gap:3px 5px;padding:3px 0;color:#f7ddb0}
+.armory-stage{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:7px;background:radial-gradient(ellipse at 50% 75%,#3e596e,#101d2a 72%)}
+.armory-stage.cockro-stage{background:#0c1823 url(items/armory-stage.webp) center/auto 100% no-repeat}
+.armory-stage canvas{display:block;width:100%;height:100%;object-fit:contain}
+.cockro-stage canvas{visibility:hidden}
+#modal .armory-stage .inventory-equipped{position:absolute;inset:3% 3%;display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,minmax(0,1fr));grid-template-columns:repeat(2,clamp(28px,4vw,46px));justify-content:space-between;align-items:center;gap:2px;pointer-events:none}
+#modal .inventory-equipped button{height:auto;width:100%;min-height:0;max-height:100%;aspect-ratio:1;pointer-events:auto;border:1px solid #a28859;background:linear-gradient(135deg,#0c1a28ed,#1c2b39e8)}
+#modal .inventory-equipped button.empty svg{width:58%;height:58%;color:#c3ac7c}
+.armory-actions{display:flex;gap:4px;justify-content:center}
+#modal .armory-actions button{min-height:26px;margin:0;padding:2px 8px;font-size:11px}
+#modal .inventory-content{min-width:0;padding:5px;border:1px solid #876e45;border-radius:8px;background:linear-gradient(120deg,#172839,#0a1621)}
+#modal .inventory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(36px,5.2vw,65px),1fr));grid-auto-rows:max-content;overflow:auto;gap:4px;max-height:none}
+#modal .inventory-grid .inventory-cell{min-height:0;aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#162735,#0b1720);border:1px solid #59616a}
+#modal .inventory-grid .inventory-cell.selected{border-color:#ffda7a;box-shadow:inset 0 0 0 1px #e7ad52,0 0 5px #ffc96266}
+@media(orientation:portrait) and (max-width:540px){#modal .inventory-layout{grid-template-columns:1fr;grid-template-rows:minmax(180px,40%) minmax(0,1fr);height:calc(93dvh - 53px)}#modal .inventory-detail{position:static}}

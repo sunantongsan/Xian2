@@ -39,7 +39,7 @@ const totals=page.locator('#portraitTotals');
 assert.match(await totals.innerText(),/ป้องกัน[\s\S]*2.45 → 3.95/);
 assert.match(await page.locator('.gear-preview').innerText(),/ป้องกัน \+1.5.*HP \+28/);
 assert(await page.evaluate(()=>!qa.state().equip.helm),'preview must not equip');
-assert(await totals.evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('#inventoryPortrait').getBoundingClientRect().top+1),'totals above portrait');
+assert(await totals.evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('.armory-stage').getBoundingClientRect().top+1),'totals above portrait');
 await page.screenshot({path:'review/cockro-437-equipment.png'});
 await page.evaluate(()=>qa.close());
 await page.locator('#quickMenuToggle').click();await page.locator('#vaultShortcut').click();await page.evaluate(()=>qa.net.onCommerceResult({ok:true,revision:1,vaultSecurity:{supported:true,configured:false,locked:true},vault:null,ownShop:{open:false,listings:[]},shops:[]}));await page.fill('#vaultPin','123456');await page.fill('#vaultPinConfirm','123456');await page.locator('#vaultPinForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.action),'setVaultPin');
