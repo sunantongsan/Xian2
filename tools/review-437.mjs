@@ -33,7 +33,11 @@ for(const [width,height]of [[844,390],[640,360],[390,844]]){
 }
 await page.setViewportSize({width:844,height:390});await page.evaluate(()=>qa.setQuickMenu(false));await page.locator('#dockToggle').click();await page.locator('#dockInput').fill('สวัสดีเพื่อน');await page.locator('#dockForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.channel),'map');await page.evaluate(()=>qa.net.onChat({id:'ack',from:'self',name:'เรา',channel:'map',text:'สวัสดีเพื่อน'}));assert.equal(await page.locator('#dockInput').inputValue(),'');
 await page.selectOption('#dockChannel','world');await page.locator('#dockInput').fill('<script>ไม่ใช่โค้ด</script>');await page.locator('#dockForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.channel),'world');await page.evaluate(()=>qa.net.onChatError('chat_rate_limit'));assert.equal(await page.locator('#dockInput').inputValue(),'<script>ไม่ใช่โค้ด</script>');
-await page.locator('#quickMenuToggle').click();await page.locator('#inventoryShortcut').click();await page.locator('#inventoryGrid').waitFor();await page.evaluate(()=>qa.close());
+await page.locator('#quickMenuToggle').click();await page.locator('#inventoryShortcut').click();await page.locator('#inventoryGrid').waitFor();
+await page.locator('#inventoryGrid [data-usable="true"]').first().click();
+await page.getByText('เมื่อเปลี่ยนจากชิ้นปัจจุบัน').waitFor();
+await page.screenshot({path:'review/cockro-437-equipment.png'});
+await page.evaluate(()=>qa.close());
 await page.locator('#quickMenuToggle').click();await page.locator('#vaultShortcut').click();await page.evaluate(()=>qa.net.onCommerceResult({ok:true,revision:1,vaultSecurity:{supported:true,configured:false,locked:true},vault:null,ownShop:{open:false,listings:[]},shops:[]}));await page.fill('#vaultPin','123456');await page.fill('#vaultPinConfirm','123456');await page.locator('#vaultPinForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.action),'setVaultPin');
 await page.evaluate(()=>qa.net.onCommerceResult({ok:true,revision:2,vaultSecurity:{supported:true,configured:true,locked:false},vault:{gold:0,stones:0,items:[]},ownShop:{open:false,listings:[]},shops:[]}));await page.fill('#vaultAmount','10');await page.click('#depositMoney');assert.equal(await page.evaluate(()=>lastCommand.amount),10);
 assert.deepEqual(errors,[]);console.log('PASS: 3 phone sizes, upward menu clear of skills, dock send/ack/errors, inventory shortcut, PIN setup and deposit.');

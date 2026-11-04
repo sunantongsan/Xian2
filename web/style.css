@@ -510,7 +510,7 @@ html.chat-typing #controls{visibility:hidden}
 #hud .panel.right {grid-area:1/2;align-self:start;width:34px;z-index:3}
 #hud #quickMenuToggle {width:34px;min-width:34px;height:32px;border-color:#dfb95d;color:#f3cb74}
 #hud #quickMenuTray {left:0;top:37px;bottom:auto;max-height:none;max-width:calc(100vw - var(--card-width) - 36px);overflow-x:auto;overscroll-behavior:contain;padding:4px}
-#hud #quickMenuTray nav {display:flex;gap:3px;flex-wrap:nowrap;width:max-content}
+#hud #quickMenuTray nav {display:flex;gap:3px;flex-flow:row nowrap;width:max-content}
 #hud #quickMenuTray nav button {position:static;flex:0 0 38px;width:38px;height:38px;min-height:38px;margin:0;color:#ffe0a2;border:1px solid #887347;border-radius:8px;background:linear-gradient(#26485c,#0a1724)}
 #hud #quickMenuTray svg {width:17px;height:17px}
 #hud #quickMenuTray small {font-size:8px}
