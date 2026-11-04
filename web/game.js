@@ -192,8 +192,10 @@ function measureShortcutRail(){
  const clearance=joy.getBoundingClientRect().top-toggle.getBoundingClientRect().top-8;
  $('hud').style.setProperty('--rail-room',Math.max(32,Math.floor(clearance))+'px');
 }
-const railSizer=new ResizeObserver(measureShortcutRail);
-for(const id of ['characterShortcut','joystick','controls'])railSizer.observe($(id));
+if(typeof ResizeObserver!=='undefined'){
+ const railSizer=new ResizeObserver(measureShortcutRail);
+ for(const id of ['characterShortcut','joystick','controls'])railSizer.observe($(id));
+}
 window.addEventListener('resize',measureShortcutRail);
 function setQuickMenu(open){$('quickMenuToggle').setAttribute('aria-expanded',String(open));$('quickMenuTray').classList.toggle('open',open);$('quickMenuTray').inert=!open;}
 $('characterShortcut').onclick=()=>statMenu('stats');$('characterShortcut').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();statMenu('stats');}};
