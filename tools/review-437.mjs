@@ -36,6 +36,7 @@ await page.selectOption('#dockChannel','world');await page.locator('#dockInput')
 await page.locator('#quickMenuToggle').click();await page.locator('#inventoryShortcut').click();await page.locator('#inventoryGrid').waitFor();
 await page.locator('#inventoryGrid [data-usable="true"]').first().click();
 await page.getByText('เมื่อเปลี่ยนจากชิ้นปัจจุบัน').waitFor();
+assert(await page.locator('.inventory-detail').evaluate(el=>el.querySelector('.compare-line').getBoundingClientRect().bottom<=el.getBoundingClientRect().bottom),'attack comparison visible without scrolling');
 await page.screenshot({path:'review/cockro-437-equipment.png'});
 await page.evaluate(()=>qa.close());
 await page.locator('#quickMenuToggle').click();await page.locator('#vaultShortcut').click();await page.evaluate(()=>qa.net.onCommerceResult({ok:true,revision:1,vaultSecurity:{supported:true,configured:false,locked:true},vault:null,ownShop:{open:false,listings:[]},shops:[]}));await page.fill('#vaultPin','123456');await page.fill('#vaultPinConfirm','123456');await page.locator('#vaultPinForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.action),'setVaultPin');
