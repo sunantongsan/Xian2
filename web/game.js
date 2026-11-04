@@ -673,22 +673,33 @@ function confirmExpTicket(id){const active=expMultiplier(s,Date.now()+serverTime
 }
 function potionIcon(id){return `<span class="loot-art loot-${id}" role="img" aria-label="ยา ${id.toUpperCase()}"></span>`;}
 function inventoryArt(entry){if(entry.kind==='ticket')return `<span class="exp-ticket-art">EXP<b>×${entry.item.multiplier}</b></span>`;if(entry.kind==='gear')return slotIcon(entry.item.slot,RARITY[entry.item.rarity].color);if(entry.kind==='material')return materialArt(entry.id);if(entry.kind==='potion')return potionIcon(entry.id);return `<canvas width="180" height="180" data-inventory-fashion="${entry.id}"></canvas>`;}
+function gearPreviewState(item){
+ return item?{...s,equip:{...s.equip,[item.slot]:item}}:s;
+}
+const statNumber=value=>Number(value.toFixed(2)).toLocaleString();
+function portraitTotals(item){
+ const preview=gearPreviewState(item);
+ const line=(label,current,next)=>{
+  const tone=next>current?'gain':next<current?'loss':'';
+  return `<span>${label}</span><b class="${tone}">${statNumber(current)}${current===next?'':' → '+statNumber(next)}</b>`;
+ };
+ return line('โจมตีรวม',damage(s),damage(preview))+line('ป้องกัน',combatStats(s).defense,combatStats(preview).defense);
+}
 function equipmentComparison(item){
- const allowed=canEquip(s,item),required=TIERS[item.tier].level;
- const candidate={...s,equip:{...s.equip,[item.slot]:item}};
+ const candidate=gearPreviewState(item);
  const totals=state=>{
   const c=combatStats(state);
   return [damage(state),c.defense,maxHP(state),c.mp,c.crit*100,c.speed,c.spell*100];
  };
  const before=totals(s),after=totals(candidate);
- const names=['พลังโจมตีรวม','ป้องกัน','HP สูงสุด','MP สูงสุด','คริติคอล','ความเร็ว','พลังวิชา'];
- const format=n=>Number(n.toFixed(2)).toLocaleString();
- const lines=names.map((name,i)=>{
-  const change=after[i]-before[i],unit=i===4||i===6?'%':'';
-  if(i!==0&&Math.abs(change)<.001)return '';
-  return `<div class="compare-line"><span>${name}</span><b>${format(before[i])}${unit} → ${format(after[i])}${unit}</b><em class="${change>0?'gain':change<0?'loss':''}">${change>0?'+':''}${format(change)}${unit}</em></div>`;
- }).join('');
- return `<div class="gear-preview"><b class="${allowed?'gain':'loss'}">${allowed?'✓ สวมได้':'🔒 ยังสวมไม่ได้'} · Lv. ${required}</b><small>${allowed?'เมื่อเปลี่ยนจากชิ้นปัจจุบัน':'ตัวอย่างเมื่อเทียบด้วยค่าสถานะปัจจุบัน'}</small>${lines}</div>`;
+ const names=['โจมตี','ป้องกัน','HP','MP','คริติคอล','ความเร็ว','พลังวิชา'];
+ const changes=names.flatMap((name,i)=>{
+  const delta=Number((after[i]-before[i]).toFixed(2));
+  if(!delta)return [];
+  return [`<span class="${delta>0?'gain':'loss'}">${name} ${delta>0?'+':''}${statNumber(delta)}${i===4||i===6?'%':''}</span>`];
+ });
+ const requirement=canEquip(s,item)?'':`<small class="loss">ต้องการ Lv. ${TIERS[item.tier].level}</small>`;
+ return `<div class="gear-preview">${requirement}${changes.join(' · ')||'ค่าสถานะเท่าเดิม'}</div>`;
 }
 function onlineInventory(){
  const scroll=$('inventoryGrid')?.scrollTop||0;lastInventoryKey=inventoryKey(s);
@@ -696,19 +707,19 @@ function onlineInventory(){
  const equipped=Object.entries(s.equip).filter(([,it])=>it);
  let detail='<span class="inventory-hint">เลือกไอเท็ม</span>';
  if(selected){const e=selected;const name=e.kind==='gear'?itemName(e.item,s.hero):e.kind==='potion'?(e.id==='hp'?'ยา HP':'ยา MP'):e.item.name;
- detail=`<strong>${escapeHTML(name)}</strong><span>${e.kind==='gear'?statLine(e.item):e.kind==='material'?e.item.description:e.kind==='potion'?'ฟื้นพลัง 50%':'แฟชั่น • สวมใส่ได้ทุกอาชีพ'}</span>`;
+ detail=`<strong>${escapeHTML(name)}</strong><span>${e.kind==='gear'?'':e.kind==='material'?e.item.description:e.kind==='potion'?'ฟื้นพลัง 50%':'แฟชั่น • สวมใส่ได้ทุกอาชีพ'}</span>`;
  if(e.kind==='gear')detail+=equipmentComparison(e.item)+`<button id="inventoryEquip" ${canEquip(s,e.item)?'':'disabled'}>สวมใส่</button><button id="inventorySell">ขาย ${sellPrice(e.item)} G</button>`;
  if(e.kind==='ticket')detail+=`<small>1 ชั่วโมง • เวลาเดินต่อแม้ออฟไลน์ • ไม่ซ้อนตัวคูณ</small><button id="inventoryUseTicket">ใช้ตั๋ว</button>`;
  if(e.kind==='material')detail+='<button id="inventoryForge">อัปเกรดอุปกรณ์</button>';
  if(e.kind==='fashion')detail+='<button id="inventoryWear">สวมใส่</button>';
  }
- show(`<h2>กระเป๋า</h2><div class="inventory-layout"><section class="inventory-hero"><canvas id="inventoryPortrait" width="260" height="240"></canvas><div class="inventory-equipped">${SLOT_ORDER.map(slot=>{const it=s.equip[slot];return `<button data-inventory-equipped="${slot}" title="${SLOTS[slot].name}" aria-label="${SLOTS[slot].name}" class="inventory-cell plus-${it?.plus||0} ${it?'':'empty'}">${slotIcon(slot,it?RARITY[it.rarity].color:'#52606b')}${it?.plus?`<b>+${it.plus}</b>`:''}</button>`;}).join('')}</div><small>พลังโจมตีรวม <b>${damage(s).toLocaleString()}</b></small><button id="inventoryAttributes">ค่าสถานะ</button><button id="inventoryVault">คลังร่วม</button></section><section class="inventory-content"><nav class="inventory-tabs">${[['all','▦','ทั้งหมด'],['gear','⚔','อุปกรณ์'],['material','◆','วัตถุดิบ'],['potion','♥','ยา'],['ticket','×','ตั๋ว EXP'],['fashion','♜','แฟชั่น']].map(([id,icon,label])=>`<button data-inventory-filter="${id}" aria-label="${label}" title="${label}" class="${inventoryFilter===id?'selected':''}">${icon}</button>`).join('')}</nav><div id="inventoryGrid" class="inventory-grid">${visible.map(e=>`<button class="inventory-cell plus-${e.kind==='gear'?e.item.plus||0:0} ${e.key===inventorySelected?'selected':''}" data-usable="${e.kind==='gear'?canEquip(s,e.item):''}" data-inventory-key="${escapeHTML(e.key)}" aria-label="${escapeHTML(e.kind==='gear'?itemName(e.item,s.hero):e.item?.name||e.id)}" style="--item-color:${e.kind==='gear'?RARITY[e.item.rarity].color:'#c8a65b'}">${inventoryArt(e)}${e.count>1?`<b>${e.count}</b>`:''}${e.kind==='gear'&&e.item.plus?`<i>+${e.item.plus}</i>`:''}</button>`).join('')}${Array.from({length:Math.max(0,24-visible.length)},()=>'<span class="inventory-cell empty"></span>').join('')}</div><div class="inventory-detail">${detail}</div><div class="inventory-wallet">◉ ${s.gold.toLocaleString()} G <span class="coin-balance"><img src="items/cockro-coin.webp" alt="COCKRO coin"> ${s.stones.toLocaleString()}</span></div></section></div>`);
+ show(`<h2>กระเป๋า</h2><div class="inventory-layout"><section class="inventory-hero"><div id="portraitTotals" aria-live="polite">${portraitTotals(selected?.kind==='gear'?selected.item:null)}</div><canvas id="inventoryPortrait" width="260" height="240"></canvas><div class="inventory-equipped">${SLOT_ORDER.map(slot=>{const it=s.equip[slot];return `<button data-inventory-equipped="${slot}" title="${SLOTS[slot].name}" aria-label="${SLOTS[slot].name}" class="inventory-cell plus-${it?.plus||0} ${it?'':'empty'}">${slotIcon(slot,it?RARITY[it.rarity].color:'#52606b')}${it?.plus?`<b>+${it.plus}</b>`:''}</button>`;}).join('')}</div><button id="inventoryAttributes">ค่าสถานะ</button><button id="inventoryVault">คลังร่วม</button></section><section class="inventory-content"><nav class="inventory-tabs">${[['all','▦','ทั้งหมด'],['gear','⚔','อุปกรณ์'],['material','◆','วัตถุดิบ'],['potion','♥','ยา'],['ticket','×','ตั๋ว EXP'],['fashion','♜','แฟชั่น']].map(([id,icon,label])=>`<button data-inventory-filter="${id}" aria-label="${label}" title="${label}" class="${inventoryFilter===id?'selected':''}">${icon}</button>`).join('')}</nav><div id="inventoryGrid" class="inventory-grid">${visible.map(e=>`<button class="inventory-cell plus-${e.kind==='gear'?e.item.plus||0:0} ${e.key===inventorySelected?'selected':''}" data-usable="${e.kind==='gear'?canEquip(s,e.item):''}" data-inventory-key="${escapeHTML(e.key)}" aria-label="${escapeHTML(e.kind==='gear'?itemName(e.item,s.hero):e.item?.name||e.id)}" style="--item-color:${e.kind==='gear'?RARITY[e.item.rarity].color:'#c8a65b'}">${inventoryArt(e)}${e.count>1?`<b>${e.count}</b>`:''}${e.kind==='gear'&&e.item.plus?`<i>+${e.item.plus}</i>`:''}</button>`).join('')}${Array.from({length:Math.max(0,24-visible.length)},()=>'<span class="inventory-cell empty"></span>').join('')}</div><div class="inventory-detail">${detail}</div><div class="inventory-wallet">◉ ${s.gold.toLocaleString()} G <span class="coin-balance"><img src="items/cockro-coin.webp" alt="COCKRO coin"> ${s.stones.toLocaleString()}</span></div></section></div>`);
  onlineView='stats';$('inventoryGrid').scrollTop=scroll;
  const portrait=$('inventoryPortrait'),g=portrait.getContext('2d');drawHero(g,images,s.hero,{...p,anim:'idle',animTime:0},130,225,205);
  document.querySelectorAll('[data-inventory-fashion]').forEach(c=>drawFashionIcon(c.getContext('2d'),images,c.dataset.inventoryFashion,8,8,164));
  document.querySelectorAll('[data-inventory-filter]').forEach(b=>b.onclick=()=>{inventoryFilter=b.dataset.inventoryFilter;inventorySelected=null;onlineInventory();});
  document.querySelectorAll('[data-inventory-key]').forEach(b=>b.onclick=()=>{inventorySelected=b.dataset.inventoryKey;onlineInventory();});
- document.querySelectorAll('[data-inventory-equipped]').forEach(b=>b.onclick=()=>{const it=s.equip[b.dataset.inventoryEquipped];if(!it)return;inventorySelected=null;const panel=document.querySelector('.inventory-detail');panel.innerHTML=`<strong>${escapeHTML(itemName(it,s.hero))}</strong><span>${statLine(it)}</span><small class="gain">กำลังสวมใส่ · พลังโจมตีรวม ${damage(s)}</small><button id="inventoryRemove">ถอดออก</button>`;$('inventoryRemove').onclick=()=>net.send({type:'op',op:'unequip',slot:b.dataset.inventoryEquipped});});
+ document.querySelectorAll('[data-inventory-equipped]').forEach(b=>b.onclick=()=>{const it=s.equip[b.dataset.inventoryEquipped];if(!it)return;inventorySelected=null;$('portraitTotals').innerHTML=portraitTotals(null);document.querySelector('.inventory-cell.selected')?.classList.remove('selected');const panel=document.querySelector('.inventory-detail');panel.innerHTML=`<strong>${escapeHTML(itemName(it,s.hero))}</strong><small class="gain">กำลังสวมใส่</small><button id="inventoryRemove">ถอดออก</button>`;$('inventoryRemove').onclick=()=>net.send({type:'op',op:'unequip',slot:b.dataset.inventoryEquipped});});
  $('inventoryAttributes').onclick=()=>onlineMenu('attributes');$('inventoryVault').onclick=()=>openCommerce();
  if(selected?.kind==='gear'){$('inventoryEquip').onclick=()=>net.send({type:'op',op:'equip',id:selected.item.id});$('inventorySell').onclick=()=>net.send({type:'op',op:'sell',id:selected.item.id});}
  if(selected?.kind==='ticket')$('inventoryUseTicket').onclick=()=>confirmExpTicket(selected.id);

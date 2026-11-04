@@ -9,7 +9,7 @@ await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFun
 await page.evaluate(()=>{
  const s=qa.state(),p=qa.player(),atStart=s.equip.weapon;
  const better={...atStart,plus:9},locked={...atStart,tier:2};
- if(!qa.equipmentComparison(better).includes('พลังโจมตีรวม')||!qa.equipmentComparison(better).includes('class="gain">+')||!qa.equipmentComparison(locked).includes('ยังสวมไม่ได้')||s.equip.weapon!==atStart)throw Error('gear preview');
+ if(!qa.equipmentComparison(better).includes('โจมตี')||!qa.equipmentComparison(better).includes('โจมตี +')||!qa.equipmentComparison(locked).includes('ต้องการ Lv.')||s.equip.weapon!==atStart)throw Error('gear preview');
  qa.showPickup({kind:'gold',count:2});qa.showPickup({kind:'gold',count:7});
  if(!document.querySelector('#pickupFeed').textContent.includes('×9'))throw Error('pickup aggregation');
  p.hp=1;p.mp=1;s.autoAttack=false;window.lastCommand=null;qa.autoUsePotions();
@@ -35,8 +35,11 @@ await page.setViewportSize({width:844,height:390});await page.evaluate(()=>qa.se
 await page.selectOption('#dockChannel','world');await page.locator('#dockInput').fill('<script>ไม่ใช่โค้ด</script>');await page.locator('#dockForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.channel),'world');await page.evaluate(()=>qa.net.onChatError('chat_rate_limit'));assert.equal(await page.locator('#dockInput').inputValue(),'<script>ไม่ใช่โค้ด</script>');
 await page.locator('#quickMenuToggle').click();await page.locator('#inventoryShortcut').click();await page.locator('#inventoryGrid').waitFor();
 await page.locator('#inventoryGrid [data-usable="true"]').first().click();
-await page.getByText('เมื่อเปลี่ยนจากชิ้นปัจจุบัน').waitFor();
-assert(await page.locator('.inventory-detail').evaluate(el=>el.querySelector('.compare-line').getBoundingClientRect().bottom<=el.getBoundingClientRect().bottom),'attack comparison visible without scrolling');
+const totals=page.locator('#portraitTotals');
+assert.match(await totals.innerText(),/ป้องกัน[\s\S]*2.45 → 3.95/);
+assert.match(await page.locator('.gear-preview').innerText(),/ป้องกัน \+1.5.*HP \+28/);
+assert(await page.evaluate(()=>!qa.state().equip.helm),'preview must not equip');
+assert(await totals.evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('#inventoryPortrait').getBoundingClientRect().top+1),'totals above portrait');
 await page.screenshot({path:'review/cockro-437-equipment.png'});
 await page.evaluate(()=>qa.close());
 await page.locator('#quickMenuToggle').click();await page.locator('#vaultShortcut').click();await page.evaluate(()=>qa.net.onCommerceResult({ok:true,revision:1,vaultSecurity:{supported:true,configured:false,locked:true},vault:null,ownShop:{open:false,listings:[]},shops:[]}));await page.fill('#vaultPin','123456');await page.fill('#vaultPinConfirm','123456');await page.locator('#vaultPinForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.action),'setVaultPin');

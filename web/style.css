@@ -537,10 +537,11 @@ html.chat-typing #controls{visibility:hidden}
 @media(max-width:540px){#hud {--card-width:min(34vw,145px)}}
 #hud .sector-card {background-size:contain;background-repeat:no-repeat;background-color:#081b29}
 #hud #money .coin-balance img {width:15px;height:15px}
-#modal .inventory-detail:has(.gear-preview) {display:block;flex:0 1 auto;max-height:53%;min-height:min(130px,37dvh);overflow:auto;line-height:1.25}
-#modal .inventory-detail:has(.gear-preview)>strong {margin-right:8px}
-#modal .gear-preview {gap:2px;padding:4px 0;line-height:1.25}
-#modal .gear-preview>small {font-size:10px;color:#c1d7db}
-#modal .gear-preview .compare-line:first-of-type {padding:3px 6px;border-radius:4px;background:#1c3040}
-#modal .gear-preview .compare-line:first-of-type span {color:#ffe0a1;font-weight:bold}
-#modal .inventory-detail:has(.gear-preview)>button {margin:2px 6px 0 0}
+#portraitTotals {display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 5px;width:100%;grid-column:1/-1;color:#e5d8b0;font-size:11px;line-height:1.25;font-variant-numeric:tabular-nums}
+#portraitTotals b {text-align:right;color:#fff3cc}
+#portraitTotals .gain,#modal .gear-preview .gain {color:#96efa9}
+#portraitTotals .loss,#modal .gear-preview .loss {color:#f6a29a}
+#modal .inventory-detail:has(.gear-preview) {display:flex;max-height:35%;min-height:44px;overflow:auto;gap:4px 8px}
+#modal .gear-preview {display:block;width:auto;padding:0;line-height:1.4}
+#modal .gear-preview small {margin-right:5px}
+#modal .inventory-detail>span:empty {display:none}
