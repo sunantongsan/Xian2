@@ -186,6 +186,15 @@ modal.addEventListener('cancel',e=>{if(!p||travelBusy){e.preventDefault();return
 const button=(id,text)=>`<button id="${id}">${text}</button>`;
 function atlas(g,im,col,row,cols,rows,x,y,w,h,flip=false){if(!im)return;const cw=im.width/cols,ch=im.height/rows;g.save();g.translate(x,y);if(flip)g.scale(-1,1);g.drawImage(im,col*cw,row*ch,cw,ch,-w/2,-h,w,h);g.restore();}
 function previewHeroes(){HEROES.forEach(h=>{const c=$('preview-'+h.id);if(c)drawHero(c.getContext('2d'),images,h.id,{face:1,anim:'idle',walkDX:1,walkDY:0},c.width/2,c.height-5,118);});}
+function measureShortcutRail(){
+ const toggle=$('quickMenuToggle'), joy=$('joystick');
+ if(!toggle.getClientRects().length||!joy.getClientRects().length)return;
+ const clearance=joy.getBoundingClientRect().top-toggle.getBoundingClientRect().top-8;
+ $('hud').style.setProperty('--rail-room',Math.max(32,Math.floor(clearance))+'px');
+}
+const railSizer=new ResizeObserver(measureShortcutRail);
+for(const id of ['characterShortcut','joystick','controls'])railSizer.observe($(id));
+window.addEventListener('resize',measureShortcutRail);
 function setQuickMenu(open){$('quickMenuToggle').setAttribute('aria-expanded',String(open));$('quickMenuTray').classList.toggle('open',open);$('quickMenuTray').inert=!open;}
 $('characterShortcut').onclick=()=>statMenu('stats');$('characterShortcut').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();statMenu('stats');}};
 $('shopShortcut').onclick=()=>{if(s&&p&&!travelBusy)premiumStore();};$('checkinShortcut').onclick=()=>{if(s&&p&&!travelBusy)checkinMenu();};

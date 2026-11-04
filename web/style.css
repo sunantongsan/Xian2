@@ -457,7 +457,7 @@ html.chat-typing #controls{visibility:hidden}
 /* Upper corners share a frame size. Keep the center clear for the minimap. */
 #hud {
   --card-width: 180px;
-  --rail-limit: calc(100dvh - 225px);
+  --rail-room: max(64px,calc(100dvh - 295px));
   display: grid;
   grid-template-columns: var(--card-width) 1fr var(--card-width);
   gap: 6px;
@@ -488,12 +488,12 @@ html.chat-typing #controls{visibility:hidden}
   gap:3px;width:40px;max-width:none;align-self:start;position:relative;
 }
 #hud #quickMenuToggle {order:-1;position:static;width:40px;height:32px;margin:0}
-#hud .shortcut-stack {display:grid;gap:3px;max-height:max(38px,calc(var(--rail-limit) - 110px));overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;scrollbar-width:thin}
+#hud .shortcut-stack {display:grid;gap:3px;max-height:max(0px,calc(var(--rail-room) - 35px));overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;scrollbar-width:thin}
 #hud .right .direct-shortcut {width:40px;min-width:40px;height:38px;min-height:38px;margin:0}
 #hud .right .direct-shortcut svg {height:20px}
-#hud #quickMenuTray {position:absolute;left:45px;right:auto;top:0;bottom:auto;width:auto;max-height:max(64px,calc(var(--rail-limit) - 70px));transform:none}
+#hud #quickMenuTray {position:absolute;left:45px;right:auto;top:0;bottom:auto;width:auto;max-height:var(--rail-room);transform:none}
 #hud .quick-menu {grid-template-columns:repeat(2,40px)}
 #hud .quick-menu button {width:40px}
-@media(max-height:450px){#hud{--card-width:166px;--rail-limit:calc(100dvh - 164px)}}
+@media(max-height:450px){#hud{--card-width:166px}}
 @media(max-width:450px){#hud{--card-width:min(42vw,166px)}}
 #hud[hidden]{display:none}

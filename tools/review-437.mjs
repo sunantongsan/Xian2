@@ -9,9 +9,15 @@ await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFun
 for(const [width,height]of [[844,390],[640,360],[390,844]]){
  await page.setViewportSize({width,height});await page.evaluate(()=>{qa.resize();qa.draw();qa.setQuickMenu(true)});await page.waitForTimeout(250);
  const rect=id=>page.locator(id).evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom}});
- const tray=await rect('#quickMenuTray'),trigger=await rect('#quickMenuToggle'),skill=await rect('.combat');assert(tray.y>=0&&tray.x>=0&&tray.right<=width+1);assert(tray.x>=trigger.right);assert(tray.bottom<=skill.y||tray.right<=skill.x);const dock=await rect('#chatDock');assert(dock.x>=0&&dock.right<=width+1&&dock.bottom<=height+1);
+ const tray=await rect('#quickMenuTray'),trigger=await rect('#quickMenuToggle'),skill=await rect('.combat');assert(tray.y>=0&&tray.x>=0&&tray.right<=width+1);assert(tray.x>=trigger.right);
+ const joy=await rect('#joystick'),rail=await rect('.shortcut-stack'),card=await rect('.sector-card'),hero=await rect('#characterShortcut');
+ assert(tray.bottom<=joy.y+1&&rail.bottom<=joy.y+1,'left controls must clear the joystick');
+ assert(Math.abs((card.right-card.x)-(hero.right-hero.x))<=1&&Math.abs(card.bottom-hero.bottom)<=1,'HUD cards must match');assert(tray.bottom<=skill.y||tray.right<=skill.x);const dock=await rect('#chatDock');assert(dock.x>=0&&dock.right<=width+1&&dock.bottom<=height+1);
  await page.evaluate(()=>{qa.net.onChat({id:'hello'+innerWidth,channel:'world',from:'self',name:'ฮีโร่แมงสาบ',text:'พร้อมอัปเกรดอาวุธ ไปผจญภัยกัน!'});const g=document.getElementById('game').getContext('2d');qa.chatUI.drawBubbles(g,()=>({x:innerWidth*.5,y:innerHeight*.5-70}));});
  await page.screenshot({path:`review/cockro-437-${width}.png`});
+ await page.evaluate(()=>qa.setQuickMenu(false));await page.waitForTimeout(240);
+ await page.evaluate(()=>qa.draw());
+ await page.screenshot({path:`review/cockro-437-closed-${width}.png`});
 }
 await page.setViewportSize({width:844,height:390});await page.evaluate(()=>qa.setQuickMenu(false));await page.locator('#dockInput').fill('สวัสดีเพื่อน');await page.locator('#dockForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.channel),'map');await page.evaluate(()=>qa.net.onChat({id:'ack',from:'self',name:'เรา',channel:'map',text:'สวัสดีเพื่อน'}));assert.equal(await page.locator('#dockInput').inputValue(),'');
 await page.selectOption('#dockChannel','world');await page.locator('#dockInput').fill('<script>ไม่ใช่โค้ด</script>');await page.locator('#dockForm').evaluate(f=>f.requestSubmit());assert.equal(await page.evaluate(()=>lastCommand.channel),'world');await page.evaluate(()=>qa.net.onChatError('chat_rate_limit'));assert.equal(await page.locator('#dockInput').inputValue(),'<script>ไม่ใช่โค้ด</script>');
