@@ -1,8 +1,9 @@
 import {ENHANCE_SLOTS} from './enhancement.js';
 // Rare upgrade gold is stored as stones; ordinary spending money remains gold (G).
 export const UPGRADE_ITEMS={
- alloy:{name:'โลหะเสริมพลัง',price:15,description:'วัสดุตีบวก +1 ถึง +9 • ใช้ตามขั้น',icon:'items/glowstone.webp'},
- meteor:{name:'หินอุกาบาศ',price:20,description:'สุ่มคุณสมบัติพิเศษ • ฟื้น HP 25% มีโอกาส 5%',icon:'items/meteor.webp'},
+ alloy:{name:'หินเสริมพลัง',price:15,description:'ตีบวกอาวุธ แหวน และสร้อย +1 ถึง +9 • ครั้งละ 1 ก้อน',icon:'items/glowstone.webp'},
+ protect:{name:'ผลึกพิทักษ์',price:30,description:'ป้องกันอุปกรณ์ในการตีบวก +4 ถึง +9 • ครั้งละ 1 ชิ้น',icon:'items/diamond.webp'},
+ meteor:{name:'หินอุกาบาศ',price:20,description:'สุ่มคุณสมบัติพิเศษ • ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%) มีโอกาสสุ่ม 5%',icon:'items/meteor.webp'},
  crystal:{name:'ผลึก',price:35,description:'เสริมโจมตี +8 ต่อขั้น',stat:'atk',amount:8,icon:'items/crystal.webp'},
  glowstone:{name:'หินเรืองแสง',price:35,description:'เสริมป้องกัน +4 ต่อขั้น',stat:'def',amount:4,icon:'items/glowstone.webp'},
  diamond:{name:'เพชร',price:60,description:'เสริมโอกาสคริติคอล +0.5% ต่อขั้น',stat:'crit',amount:.005,icon:'items/diamond.webp'},
