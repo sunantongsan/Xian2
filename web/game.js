@@ -120,7 +120,7 @@ function applyOnlineState(d){
  const current=isStar()?'star':town?'town':'forest';if(!scene||d.self.map!==current){loadRoadScene(d);return;}
  for(const [id,item] of Object.entries(UPGRADE_ITEMS)){if((d.self.save.upgradeItems?.[id]||0)>(s.upgradeItems?.[id]||0)&&adPending)toast('ได้รับ '+item.name+' • บันทึกแล้ว');}
  const oldForge=onlineView==='forge'?JSON.stringify([s.equip,s.upgradeItems,s.gold,s.stones]):'';const oldKills=s.kills,oldLevel=s.level,oldMutation=mutationStage(s);const prefs={sound:s.sound,quality:s.quality,autoAttack:s.autoAttack};s={...d.self.save,...prefs};
- const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));if(d.self.correction||Math.hypot(p.x-confirmed.x,p.y-confirmed.y)>70)Object.assign(p,confirmed);
+ const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));if(d.self.correction||Math.hypot(p.x-confirmed.x,p.y-confirmed.y)>70){net.movement.applied(p,confirmed);Object.assign(p,confirmed);}
  const wasDead=p.dead;p.hp=d.self.hp;p.mp=d.self.mp;p.dead=p.hp<=0;if(wasDead&&!p.dead){p.anim='idle';p.animTime=0;if($('onlineRevive'))close();}if(p.dead){if(!wasDead)p.animTime=0;p.anim='dead';pvpTarget=null;}
  pvpActionUntil=Math.max(pvpActionUntil,time+(d.self.actionRemaining||0));
  cooldown.attack=d.self.cooldowns.attack||0;cooldown.dash=d.self.cooldowns.dash||0;cooldown.potion=d.self.cooldowns.potion||0;cooldown.mpPotion=d.self.cooldowns.mpPotion||0;
@@ -913,3 +913,4 @@ function doctorMenu(){
  $('closeDoctor').onclick=close;if($('walkToDoctor'))$('walkToDoctor').onclick=visitDoctor;
  if($('confirmMutation'))$('confirmMutation').onclick=()=>{if(!onlineMode){toast('กรุณาเชื่อมต่อออนไลน์เพื่อกลายพันธุ์');return;}const b=$('confirmMutation');b.disabled=true;if(!net.send({type:'op',op:'mutate'})){b.disabled=false;toast('รอเชื่อมต่อเซิร์ฟเวอร์');return;}setTimeout(()=>{if(b.isConnected)b.disabled=false;},5000);};
 }
+
