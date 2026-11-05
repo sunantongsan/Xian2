@@ -26,21 +26,21 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: a190c611f229069a08acbeedcac56e8186b28aa4
+          ref: ede51cace3264a9ae943c0696e3e8ee3f98c4ff2
           persist-credentials: false
       - name: Download verified build from the pinned validation run
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: cockro-438-verified
-          run-id: 41985853061
+          name: cockro-439-server
+          run-id: 41991972634
           github-token: ${{ github.token }}
           path: verified
       - name: Check verified server bundle
         run: |
-          echo '547581b1f32c3f1725b39de37b7879f3ff848ea5443c20d2e36956977f582501  verified/server/online-server.cjs' | sha256sum --check
-          echo '3611d2effc525a6beae3571b69c8ac1abc716bfc9955593bdf48fbf2daaf476a  verified/server/smoke.cjs' | sha256sum --check
-          cp verified/server/online-server.cjs server/online-server.cjs
-          cp verified/server/smoke.cjs server/smoke.cjs
+          echo '43a5392c7b70ff9082ebd8b73f99a132276237d20d0539a05235e683c37deb83  verified/online-server.cjs' | sha256sum --check
+          echo 'f3595df72da33b1be8e01b9caa53cb7dd41d487d35da5c13c5b79e4fc6d1b56c  verified/smoke.cjs' | sha256sum --check
+          cp verified/online-server.cjs server/online-server.cjs
+          cp verified/smoke.cjs server/smoke.cjs
       - name: Stage reviewed release
         run: |
           set -euo pipefail
@@ -55,7 +55,7 @@ jobs:
           done
       - name: Verify advanced world data and combat
         run: |
-          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js tests/checkin.test.js tests/enhancement.test.js tests/release-backup.test.js tests/account-roads.test.js tests/account-management.test.js tests/living-forest.test.js tests/alien-world.test.js tests/maps.test.js tests/expedition.test.js tests/pvp-loot.test.js tests/pvp-timing.test.js tests/pvp-skills.test.js tests/merchant-session.test.js tests/render-performance.test.js tests/auto-hunt.test.js tests/shop-billing.test.js tests/commerce.test.js tests/identity-cleanup.test.js tests/loot-pets.test.js tests/chat.test.js tests/roamers.test.js tests/vault-pin.test.js tests/job-progression.test.js tests/balance-v3.test.js tests/mutation-combat.test.js
+          "$ONLINE_NODE" --test tests/advanced-world.test.js tests/hero-star.test.js tests/fashion.test.js tests/balance.test.js tests/core.test.js tests/progression.test.js tests/skills.test.js tests/gear.test.js tests/upgrade-items.test.js tests/checkin.test.js tests/enhancement.test.js tests/release-backup.test.js tests/account-roads.test.js tests/account-management.test.js tests/living-forest.test.js tests/alien-world.test.js tests/maps.test.js tests/expedition.test.js tests/pvp-loot.test.js tests/pvp-timing.test.js tests/pvp-skills.test.js tests/merchant-session.test.js tests/render-performance.test.js tests/auto-hunt.test.js tests/shop-billing.test.js tests/commerce.test.js tests/identity-cleanup.test.js tests/loot-pets.test.js tests/chat.test.js tests/roamers.test.js tests/vault-pin.test.js tests/job-progression.test.js tests/balance-v3.test.js tests/mutation-combat.test.js tests/manual-mutation.test.js
       - name: Validate server bundle syntax
         run: '"$ONLINE_NODE" --check server/online-server.cjs'
       - name: Deploy fixed online service
@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
-          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.38.0")process.exit(1);console.log("Verified backend 4.38.0 and pre-migration backup completed");});'
+          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.39.0")process.exit(1);console.log("Verified backend 4.39.0 and pre-migration backup completed");});'
           "$ONLINE_NODE" server/smoke.cjs
       - name: Verify SSV route rejects unsigned callbacks
         if: github.event_name == 'push' || inputs.operation != 'stage'
