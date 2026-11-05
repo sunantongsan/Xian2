@@ -12,3 +12,9 @@ export function jobFor(hero,level=1){
  const stage=n>=60?2:n>=20?1:0;
  return {id:`${hero}:${stage}`,species:hero,stage,name:path[stage],nextLevel:JOB_LEVELS[stage+1]??null};
 }
+
+// Derived at read time: never persist or stack mutation bonuses in player saves.
+export function mutationGrowth(hero,level){
+ const stage=jobFor(hero,level)?.stage||0;
+ return [1,1.2,1.45][stage];
+}
