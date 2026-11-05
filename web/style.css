@@ -589,3 +589,44 @@ html.chat-typing #controls{visibility:hidden}
 #hud #mutationNotice b{font-size:11px;line-height:14px}#hud #mutationNotice small{font-size:9px;line-height:12px;white-space:nowrap}#hud #mutationNotice .mutation-sigil{font-size:22px}#hud #mutationNotice>span:last-child{margin-left:auto}
 #hud .buff-readout{grid-area:3/1/4/3;display:flex;gap:8px;flex-wrap:wrap;max-width:300px}#hud #characterShortcut.mutation-ready::after{display:none}
 #hud .panel.right{z-index:5}
+/* Character armory review draft: portrait first, compact allocation panel. */
+#modal:has(.character-armory){width:min(1040px,98vw);max-width:98vw;padding:8px;max-height:97dvh;border-radius:10px}
+#modal:has(.character-armory) #modalContent>h2{position:static;min-height:24px;height:24px;line-height:20px;font-size:13px;letter-spacing:1px;padding:1px 32px;margin:0 0 5px;border:0;background:linear-gradient(90deg,#152b39,#263e4c,#152b39);box-shadow:none}
+#modal:has(.character-armory) #modalContent>h2::before,#modal:has(.character-armory) #modalContent>h2::after{font-size:8px;margin:0 8px}
+#modal:has(.character-armory) #windowClose{position:absolute;right:10px;top:7px;width:26px;height:26px;min-height:26px;margin:0;padding:0;line-height:24px;font-size:18px;border-radius:50%;box-shadow:none}
+#modal .character-armory{height:min(610px,calc(97dvh - 52px));grid-template-columns:minmax(0,1.5fr) minmax(275px,1fr);padding:5px;gap:7px;align-items:stretch}
+#modal .character-armory .doll{padding:6px;display:flex;flex-direction:column;min-height:0;background:radial-gradient(ellipse at 50% 80%,#35576a,#101f2e 66%,#081420);overflow:hidden}
+#modal .character-armory .doll-head{display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:0 3px 4px;gap:2px 8px;line-height:16px}
+#modal .character-eyebrow{display:none}#modal .character-armory .doll-head b{font-size:14px;letter-spacing:0}#modal .character-armory .doll-head span{font-size:9px}
+#modal .character-armory .character-totals{gap:5px;padding-bottom:2px;flex-shrink:0}#modal .character-totals span{padding:3px 8px;border:1px solid #49627466;border-radius:5px;display:flex;justify-content:center;align-items:center;gap:10px;font-size:10px;background:#0c1b28aa}#modal .character-totals strong{font-size:15px}
+#modal .character-armory .doll-body{grid-template-columns:46px minmax(0,1fr) 46px;flex:1;min-height:0;max-height:none;align-items:stretch}
+#modal .character-armory .stage{min-height:0}#modal .character-armory #dollCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#modal .character-armory .slots{justify-content:space-evenly;gap:4px}#modal .character-armory .gear-slot{width:46px;height:46px;max-height:23%;padding:2px;border-color:#b2955e;box-shadow:inset 0 0 8px #0008}
+#modal .character-armory #poseBtn{bottom:0;min-height:20px;height:20px;font-size:9px;padding:0 9px;width:auto;background:#152c3bd9;border-color:#6f8391}
+#modal .character-armory .sheet-side{gap:4px;min-height:0;overflow:auto;padding:0 2px}
+#modal .character-armory .character-rank{padding:4px 7px;min-height:25px;background:#1b343c;border-color:#4b6a6a}#modal .character-rank span{font-size:9px}#modal .character-rank b{font-size:10px}
+#modal .character-armory .tabs{gap:3px}#modal .character-armory .tabs button{min-height:27px;height:27px;padding:2px 4px;font-size:9px;border-radius:5px;line-height:13px;background:linear-gradient(#23465a,#142c3c)}#modal .character-armory .tabs button.on{background:linear-gradient(#6b5836,#393627);border-color:#c8aa6a}
+#modal .character-armory .attr-list{gap:4px}#modal .character-armory .attr{min-height:37px;padding:3px 5px;gap:4px;grid-template-columns:minmax(0,1fr) 28px 104px;border-color:#355164;border-radius:5px}
+#modal .character-armory .attr b{font-size:10px;line-height:13px}#modal .character-armory .attr small{font-size:8px;line-height:11px}#modal .character-armory .attr em{font-size:13px;line-height:20px;margin:0}#modal .character-armory .stat-control{grid-template-columns:27px 42px 27px;gap:4px}#modal .character-armory .stat-control button{min-height:27px;height:27px;font-size:12px;line-height:24px;padding:0;background:linear-gradient(#294b60,#102738)!important;border:1px solid #567389;box-shadow:inset 0 1px #90b9c433;border-radius:4px}#modal .character-armory .stat-control button[data-stat]{color:#fff1c4;background:#0c1d2b!important;border-color:#ad935e}
+#modal .character-armory #statMessage{font-size:9px;line-height:15px;min-height:15px;text-align:center;padding:0;margin:0;color:#b9d6dc}#modal .character-armory #statConfirm{font-size:10px;min-height:28px;height:28px;line-height:20px;padding:2px;border-radius:5px}
+#modal .character-armory .derived{margin:0;gap:3px;grid-template-columns:repeat(4,minmax(0,1fr))}#modal .character-armory .derived span{font-size:8px;line-height:10px;padding:3px 1px}#modal .character-armory .derived b{font-size:10px;line-height:13px}#modal .character-armory .draft-changed{color:#8fe6ce}
+#modal .character-armory .mutation-card{padding:4px 7px!important;gap:0}#modal .mutation-card span,#modal .mutation-card small{font-size:8px;line-height:11px}#modal .mutation-card b{font-size:10px;line-height:13px}
+@media(max-width:560px){#modal .character-armory{height:auto;grid-template-columns:1fr}#modal .character-armory .doll{height:340px}#modal .character-armory .sheet-side{overflow:visible}}
+#modal:has(.character-armory) #windowClose{width:26px!important;height:26px!important;min-height:26px!important;font-size:18px!important;top:7px!important;right:10px!important;outline:none!important;box-shadow:none!important}
+#modal .character-armory .sheet-side{gap:3px}#modal .character-armory .character-rank{min-height:20px;padding:2px 6px}#modal .character-armory .tabs button{height:24px;min-height:24px}#modal .character-armory .attr-list{gap:3px}#modal .character-armory .attr{min-height:31px;padding:2px 5px}#modal .character-armory .stat-control button{height:24px;min-height:24px;line-height:22px}#modal .character-armory #statMessage{line-height:13px;min-height:13px}#modal .character-armory #statConfirm{height:25px;min-height:25px}#modal .character-armory .derived span{padding:2px 1px;line-height:9px}#modal .character-armory .derived b{line-height:11px}
+
+#modal .character-armory .character-rank{display:none}
+
+/* Live capability preview stays with the hero, all allocation controls fit one view. */
+#modal .character-armory .doll>.derived{flex-shrink:0;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:5px;gap:3px}
+#modal .character-armory .doll>.derived span{padding:3px 2px;font-size:8px;line-height:10px;background:#0c1d2bd9}
+#modal .character-armory .doll>.derived b{font-size:11px;line-height:13px;color:#bcf3e6}
+#modal .character-armory .sheet-side{overflow:hidden}
+@media(min-width:561px){#modal:has(.character-armory){overflow:hidden}#modal .character-armory .sheet-side{justify-content:flex-start}#modal .character-armory #statConfirm{margin-top:3px}}
+@media(min-width:561px){#modal .character-armory{height:min(610px,calc(97dvh - 62px))}#modal:has(.character-armory) .stat-number-pad{left:auto;right:20px;top:auto;bottom:20px;transform:none;width:min(260px,36vw);max-height:86dvh;z-index:8}}
+
+/* Every enabled character control is green; unavailable controls are visibly grey. */
+#modal #modalContent .character-armory button:not(:disabled),#modal:has(.character-armory) .stat-number-pad button:not(:disabled),#modal:has(.character-armory) #windowClose{background:linear-gradient(#287344,#17462c)!important;border-color:#82b883!important;color:#eefbe9!important;box-shadow:inset 0 1px #d2ffd51a!important;cursor:pointer}
+#modal #modalContent .character-armory button:disabled,#modal:has(.character-armory) .stat-number-pad button:disabled{background:linear-gradient(#4b5357,#30373b)!important;border-color:#6a7276!important;color:#aeb6ba!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed}
+#modal #modalContent .character-armory .gear-slot:not(:disabled){background:radial-gradient(ellipse,#244e3c,#11271e)!important}
+#modal #modalContent .character-armory .tabs button.on:not(:disabled){border-color:#d1e9a5!important;background:linear-gradient(#43834d,#255637)!important}
