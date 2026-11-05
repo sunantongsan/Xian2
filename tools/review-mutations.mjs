@@ -9,7 +9,8 @@ try {
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1200,height:1080}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:8991/combat-preview.html');
+ await page.route('**/mutation-qa',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><body></body></html>'}));
+ await page.goto('http://127.0.0.1:8991/mutation-qa');
  const result=await page.evaluate(async()=>{
   const {drawHero}=await import('/hero-animation.js'),{heroAssetFiles}=await import('/hero-assets.js');
   const {knownSkills,compileSkill}=await import('/skills.js'),{fresh,maxHP,damage}=await import('/core.js');
