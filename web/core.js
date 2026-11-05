@@ -1,3 +1,4 @@
+import {mutationGrowth} from './job-progression.js';
 import {STAT_PROGRESSION_VERSION,STAT_POINTS_PER_LEVEL,statProgression} from './stat-progression.js';
 import {normalizeExpTickets,expMultiplier} from './exp-tickets.js';
 import {normalizePets} from './loot-pets.js';
@@ -15,8 +16,8 @@ import {buffMultiplier,normalizeTownBuff} from './town-buff.js';
 export const VERSION=1;
 export function fresh(hero){const s={version:VERSION,statProgressionVersion:STAT_PROGRESSION_VERSION,legacyStatLevels:0,name:'',townBuffUntil:0,enhancementVersion:2,balanceVersion:BALANCE_VERSION,mpPotions:5,adTickets:[],accountRewardReceipts:[],playReceipts:[],pvpReports:[],hero,level:1,xp:0,gold:100000,potions:10,stones:0,upgrade:0,zone:0,kills:0,seen:[],bosses:[],sound:true,quality:'auto',attributes:{vit:0,str:0,int:0,agi:0},statPoints:0,skillPoints:0,skillRanks:{},reputation:0,autoAttack:false};normalizePets(s);normalizeExpTickets(s);normalizeSkills(s);normalizeUpgradeItems(s);normalizeCheckin(s);freshGear(s);normalizeFashion(s);return s;}
 export function xpNeed(level){return levelXP(level);}
-export function maxHP(s){return buffMultiplier(s)*Math.round(120+s.level*PLAYER_GROWTH.hp+s.upgrade*12+(s.attributes?.vit||0)*12+gearTotals(s).hp);}
-export function damage(s){return buffMultiplier(s)*Math.round(16+s.level*PLAYER_GROWTH.attack+s.upgrade*8+(s.attributes?.str||0)*2+gearTotals(s).atk);}
+export function maxHP(s){return buffMultiplier(s)*Math.round((120+s.level*PLAYER_GROWTH.hp)*mutationGrowth(s.hero,s.level)+s.upgrade*12+(s.attributes?.vit||0)*12+gearTotals(s).hp);}
+export function damage(s){return buffMultiplier(s)*Math.round((16+s.level*PLAYER_GROWTH.attack)*mutationGrowth(s.hero,s.level)+s.upgrade*8+(s.attributes?.str||0)*2+gearTotals(s).atk);}
 export function reward(s,m,rng=Math.random){const prior=statProgression(s,s.level);s.statProgressionVersion=prior.statProgressionVersion;s.legacyStatLevels=prior.legacyStatLevels;countActivity(s,'hunt');if(m.boss)countActivity(s,'boss');s.gold+=m.gold;s.xp+=Math.floor(m.xp*expMultiplier(s));s.kills++;s.reputation=(s.reputation||0)+(m.boss?25:1);if(!s.seen.includes(m.id))s.seen.push(m.id);if(m.boss&&!s.bosses.includes(m.id))s.bosses.push(m.id);const stone=false;normalizeUpgradeItems(s);if(m.boss)s.upgradeItems.alloy=Math.min(99999,s.upgradeItems.alloy+3);else if(rng()<.08)s.upgradeItems.alloy=Math.min(99999,s.upgradeItems.alloy+1);while(s.level<210&&s.xp>=xpNeed(s.level)){s.xp-=xpNeed(s.level);s.level++;s.statPoints=(s.statPoints||0)+STAT_POINTS_PER_LEVEL;s.skillPoints=(s.skillPoints||0)+10;}if(s.level===210)s.xp=Math.min(s.xp,xpNeed(210));return stone;}
 export function buyPotion(s){if(s.gold<50||s.potions>=99999)return false;s.gold-=50;s.potions++;return true;}
 export function buyMPPotion(s){if(s.gold<60||(s.mpPotions||0)>=99999)return false;s.gold-=60;s.mpPotions=(s.mpPotions||0)+1;return true;}
@@ -45,7 +46,7 @@ export function allocateStats(s,values){
 }
 export function allocateStat(s,key){if(!Object.hasOwn(s.attributes,key)||s.statPoints<1)return false;s.attributes[key]++;s.statPoints--;return true;}
 export function trainSkill(s,id){if(!knownSkills(s).some(r=>r.id===id&&r.level<=s.level)||s.skillPoints<1||(s.skillRanks[id]||0)>=19)return false;s.skillRanks[id]=(s.skillRanks[id]||0)+1;s.skillPoints--;return true;}
-export function combatStats(s){const a=s.attributes||{},g=gearTotals(s),b=buffMultiplier(s);return {mp:b*Math.round(80+s.level*PLAYER_GROWTH.mp+(a.int||0)*8+g.mp),defense:b*(s.level*PLAYER_GROWTH.defense+(a.vit||0)*.6+g.def),crit:Math.min(1,b*Math.min(.5,.05+(a.agi||0)*.001+g.crit)),speed:Math.min(60,(a.agi||0)*.15+g.speed),haste:Math.min(.35,(a.agi||0)*.001),spell:1+(a.int||0)*.008+g.spell};}
+export function combatStats(s){const a=s.attributes||{},g=gearTotals(s),b=buffMultiplier(s);return {mp:b*Math.round((80+s.level*PLAYER_GROWTH.mp)*mutationGrowth(s.hero,s.level)+(a.int||0)*8+g.mp),defense:b*(s.level*PLAYER_GROWTH.defense*mutationGrowth(s.hero,s.level)+(a.vit||0)*.6+g.def),crit:Math.min(1,b*Math.min(.5,.05+(a.agi||0)*.001+g.crit)),speed:Math.min(60,(a.agi||0)*.15+g.speed),haste:Math.min(.35,(a.agi||0)*.001),spell:1+(a.int||0)*.008+g.spell};}
 export function reputationTitle(s){return s.reputation>=10000?'ตำนานฮีโร่':s.reputation>=2500?'ฮีโร่เลื่องชื่อ':s.reputation>=500?'ผู้มีชื่อเสียง':s.reputation>=100?'ฮีโร่ดาวรุ่ง':'ฮีโร่หน้าใหม่';}
 
 
