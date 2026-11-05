@@ -26,7 +26,7 @@ interpret the new budgets. No production manifest/version is changed here.
   imported. See balance-v3.md for the combat tuning and validation limits.
 - Level-five learned flight, NPC drone/jetpack purchases and movement remain
   unimplemented.
-- Three supplied separated-weapon prototypes remain separate; five evolved
+- Three supplied separated-weapon packages are now integrated (see layered-character-integration.md); five evolved
   looks, job-specific skills, browser gameplay and physical Android validation
   remain incomplete.
 - Native updater/device round-trip is not validated by Node unit tests.
