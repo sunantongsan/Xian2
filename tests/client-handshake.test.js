@@ -23,5 +23,5 @@ test('actual game client enters current server, receives world, and reconnects t
 
 test('server still rejects an incompatible wire protocol before granting a game session',async t=>{
  const app=startServer({port:0,directory:mkdtempSync(join(tmpdir(),'cockro-bad-protocol-')),test:true});await once(app.server,'listening');t.after(()=>app.close());
- const ws=new WebSocket(`ws://127.0.0.1:${app.server.address().port}/online/world`,{origin:'http://localhost:8080'});t.after(()=>ws.terminate());await once(ws,'open');const message=once(ws,'message');ws.send(JSON.stringify({type:'hello',version:'unsupported-protocol',create:true,hero:'sword-cockro',name:'Wrong Protocol'}));const [raw]=await message;assert.equal(JSON.parse(raw).type,'error');assert.equal(JSON.parse(raw).message,'invalid_request');assert.equal(app.world.players.size,0);
+ const ws=new WebSocket(`ws://127.0.0.1:${app.server.address().port}/online/world`,{origin:'http://localhost:8080'});t.after(()=>ws.terminate());await once(ws,'open');const message=once(ws,'message');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:true,hero:'sword-cockro',name:'Wrong Protocol'}));const [raw]=await message;assert.equal(JSON.parse(raw).type,'error');assert.equal(JSON.parse(raw).message,'version_mismatch');assert.equal(app.world.players.size,0);
 });
