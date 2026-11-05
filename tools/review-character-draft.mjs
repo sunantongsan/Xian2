@@ -7,14 +7,14 @@ await page.route('**/game.js',async route=>{const source=fs.readFileSync('web/ga
 await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.qa);await page.evaluate(()=>qa.init());fs.mkdirSync('review',{recursive:true});
 
 await page.evaluate(()=>{qa.close();qa.statMenu('stats');});await page.waitForTimeout(600);
-assert(await page.locator('[data-step="str"][data-delta="-1"]').isDisabled());assert(await page.locator('#statConfirm').isDisabled());
+const initialPower=await page.locator('#draftPower').innerText();assert(await page.locator('[data-step="str"][data-delta="-1"]').isDisabled());assert(await page.locator('#statConfirm').isDisabled());
 assert.match(await page.locator('[data-stat="str"]').evaluate(e=>getComputedStyle(e).backgroundImage),/40, 115, 68/);
 assert.match(await page.locator('#statConfirm').evaluate(e=>getComputedStyle(e).backgroundImage),/75, 83, 87/);
 
 
 await page.locator('[data-step="str"][data-delta="1"]').click();assert.match(await page.locator('#tabStats').innerText(),/75/);assert.equal(await page.locator('[data-stat-total="str"]').innerText(),'1');
 await page.locator('[data-step="str"][data-delta="-1"]').click();assert.match(await page.locator('#tabStats').innerText(),/76/);
-await page.locator('[data-stat="str"]').click();await page.locator('[data-digit="2"]').click();await page.locator('[data-digit="0"]').click();assert.match(await page.locator('#tabStats').innerText(),/56/);await page.locator('#statPadApply').click();assert.match(await page.locator('#tabStats').innerText(),/56/);assert.equal(await page.locator('[data-stat-total="str"]').innerText(),'20');
+await page.locator('[data-stat="str"]').click();await page.locator('[data-digit="2"]').click();await page.locator('[data-digit="0"]').click();assert.match(await page.locator('#tabStats').innerText(),/56/);await page.locator('#statPadApply').click();assert.match(await page.locator('#tabStats').innerText(),/56/);assert.equal(await page.locator('[data-stat-total="str"]').innerText(),'20');assert.notEqual(await page.locator('#draftPower').innerText(),initialPower);
 await page.locator('[data-stat="vit"]').click();await page.locator('[data-digit="1"]').click();await page.locator('[data-digit="0"]').click();await page.locator('#statPadApply').click();assert.match(await page.locator('#tabStats').innerText(),/46/);
 await page.locator('[data-stat="str"]').click();await page.locator('[data-digit="1"]').click();await page.locator('[data-digit="5"]').click();await page.locator('#statPadApply').click();assert.match(await page.locator('#tabStats').innerText(),/51/);
 await page.locator('[data-stat="str"]').click();await page.locator('[data-digit="2"]').click();await page.locator('[data-digit="0"]').click();await page.locator('#statPadApply').click();assert.equal(await page.evaluate(()=>qa.state().statPoints),76);assert.equal(await page.evaluate(()=>qa.state().attributes.str),0);
