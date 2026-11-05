@@ -26,7 +26,7 @@ jobs:
       - run: node tools/review-437.mjs && node tools/review-mutations.mjs && node tools/review-439.mjs && node tools/review-440.mjs && node tools/review-character-draft.mjs && node tools/review-442.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-442-verified
+          name: cockro-443-verified
           path: |
             patch-public/
             server/online-server.cjs
@@ -40,7 +40,7 @@ jobs:
             review/cockro442-*.png
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-442-server
+          name: cockro-443-server
           path: |
             server/online-server.cjs
             server/smoke.cjs
@@ -64,7 +64,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-442-android-validation
+          name: cockro-443-android-validation
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/bundle/release/app-release.aab

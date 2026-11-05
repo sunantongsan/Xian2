@@ -61,15 +61,15 @@ export function heroPower(s,base){return Math.round(base+Object.values(s.equip||
 
 
 // Save keys remain compatible: gold = spending money G, stones = rare upgrade gold.
-export const gearUpgradeCost=it=>20*((it.plus||0)+1)+it.tier*5;
+export const gearUpgradeCost=it=>0;
 export const gearUpgradeG=it=>500*((it.plus||0)+1)**2;
 export const upgradeMaterial=it=>'alloy';
 export const upgradeChance=it=>Math.min(1,([1,1,1,.65,.5,.35,.25,.15,.1][it.plus||0]||0)+Math.max(0,it.upgradeFails||0)*.05);
 export function upgradeGear(s,slot,rng=Math.random){
  const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it||(it.plus||0)>=MAX_PLUS)return false;
- normalizeUpgradeItems(s);const cost=gearUpgradeCost(it),g=gearUpgradeG(it),n=(it.plus||0)+1;
- if(!Number.isFinite(s.stones)||s.stones<cost||s.gold<g||s.upgradeItems[upgradeMaterial(it)]<1||(n>=4&&s.upgradeItems.protect<1))return false;
- const chance=upgradeChance(it);s.stones-=cost;s.gold-=g;s.upgradeItems[upgradeMaterial(it)]--;if(n>=4)s.upgradeItems.protect--;
+ normalizeUpgradeItems(s);const g=gearUpgradeG(it),n=(it.plus||0)+1;
+ if(!Number.isFinite(s.gold)||s.gold<g||s.upgradeItems[upgradeMaterial(it)]<1||(n>=4&&s.upgradeItems.protect<1))return false;
+ const chance=upgradeChance(it);s.gold-=g;s.upgradeItems[upgradeMaterial(it)]--;if(n>=4)s.upgradeItems.protect--;
  if(rng()<chance){it.plus=n;it.upgradeFails=0;countActivity(s,'upgrade');}else it.upgradeFails=(it.upgradeFails||0)+1;
  return true;
 }
