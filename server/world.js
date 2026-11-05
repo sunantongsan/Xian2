@@ -25,7 +25,7 @@ import {parseTiled} from '../web/tilemap.js';
 import {STAR_ZONES,starMonster} from '../web/star-data.js';
 import mapJSON from '../web/maps/hero-star.json' with {type:'json'};
 export const HEROES=['sword-cockro','sword-dragonfly','sword-cricket','demon-scorpion'];
-export const PROTOCOL='cockro-online-2';
+export const PROTOCOL='cockro-online-3';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finite=(...v)=>v.every(x=>typeof x==='number'&&Number.isFinite(x));
 export class World {
