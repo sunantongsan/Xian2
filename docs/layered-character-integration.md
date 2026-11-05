@@ -38,3 +38,5 @@ Memory limit: each species uses nine 1024px pages (36 MiB decoded RGBA),
 108 MiB if all three are resident, in addition to existing game assets.
 Android memory profiling is needed before release; source resolution was
 preserved rather than silently reducing visual quality.
+
+Update: the five additional supplied sheets are now integrated. See mutation-art-integration.md for level mapping, validation and remaining release limits.

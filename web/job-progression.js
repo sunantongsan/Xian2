@@ -1,7 +1,7 @@
 // Identity is derived from the existing species ID and level; never replace save IDs.
 export const JOB_LEVELS=Object.freeze([1,20,60]);
 export const JOB_PATHS=Object.freeze({
- 'sword-cockro':Object.freeze(['นักดาบ','ดาบแสงพิฆาต','ขวานเกราะเหล็ก']),
+ 'sword-cockro':Object.freeze(['นักดาบ','ดาบแสงพิฆาต','ผู้พิทักษ์เกราะเหล็ก']),
  'demon-scorpion':Object.freeze(['นักสู้พิษ','หมัดพิษสังหาร','หมัดเกราะทมิฬ']),
  'sword-dragonfly':Object.freeze(['นักธนู','มือปืนโฟตอน','ปืนใหญ่พายุ']),
  'sword-cricket':Object.freeze(['นักรบค้อน','นักวิทยาศาสตร์คลื่นเสียง','วิศวกรชีวภาพ'])

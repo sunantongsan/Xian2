@@ -11,8 +11,7 @@ without lowering the level.
 Four existing species have three derived job identities, advancing at levels
 20 and 60. The roster and character sheet display the current identity from the
 level, so existing high-level players need no new character or manual migration.
-This is the progression and display foundation: separate job skills, combat
-roles, new animation assets and equipment appearance are NOT integrated yet.
+This is the progression and display foundation: the supplied animation sets and level-derived appearance are integrated. Separate job skills and combat roles remain pending.
 
 Before starting the candidate server, the existing backup utility creates an
 immutable before-4.38.0-progression backup. Deploy the authoritative server and
@@ -26,9 +25,7 @@ interpret the new budgets. No production manifest/version is changed here.
   imported. See balance-v3.md for the combat tuning and validation limits.
 - Level-five learned flight, NPC drone/jetpack purchases and movement remain
   unimplemented.
-- Three supplied separated-weapon packages are now integrated (see layered-character-integration.md); five evolved
-  looks, job-specific skills, browser gameplay and physical Android validation
-  remain incomplete.
+- Three supplied separated-weapon packages are now integrated (see layered-character-integration.md); the five additional supplied looks are now integrated (see mutation-art-integration.md). Job-specific skills, browser gameplay and physical Android validation remain incomplete.
 - Native updater/device round-trip is not validated by Node unit tests.
 
 ## Validation
