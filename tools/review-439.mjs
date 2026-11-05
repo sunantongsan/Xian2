@@ -14,7 +14,7 @@ for(const [width,height]of [[844,390],[640,360],[390,844]]){
  await page.screenshot({path:`review/cockro439-character-${width}.png`});
  await page.locator('[data-step="str"][data-delta="1"]').click();assert.equal(await page.locator('[data-stat="str"]').getAttribute('data-value'),'1');
  await page.locator('#statConfirm').click();assert.equal(await page.evaluate(()=>lastCommand.op),'allocateStats');assert.equal(await page.evaluate(()=>lastCommand.values.str),1);
- await page.evaluate(()=>{qa.close();qa.doctorMenu()});assert(await page.locator('#confirmMutation').isEnabled());await page.locator('#confirmMutation').click();assert.equal(await page.evaluate(()=>lastCommand.op),'mutate');
+ await page.evaluate(()=>{qa.close();qa.doctorMenu()});assert(await page.locator('#confirmMutation').isEnabled());assert(await page.locator('#modal').evaluate(e=>e.scrollWidth<=e.clientWidth+2),'doctor dialog fits width');assert(await page.locator('.doctor-panel>div').evaluate(e=>e.clientWidth>=170),'doctor text remains readable');await page.locator('#confirmMutation').click();assert.equal(await page.evaluate(()=>lastCommand.op),'mutate');
  await page.screenshot({path:`review/cockro439-doctor-${width}.png`});
  await page.evaluate(()=>{qa.close();qa.draw();qa.celebrateProgress();});await page.waitForTimeout(600);
  assert.match(await page.locator('#levelCelebration').innerText(),/ยินดีด้วยคุณเข้าสู่เลเวล 20/);
