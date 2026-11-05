@@ -1,4 +1,4 @@
-# Balance v3 candidate — not deployed
+# Balance v3 baseline
 
 The requested baseline is COCKRO v2 +30% required XP, replacing the earlier
 Flyff-minus-5% proposal. No Flyff dataset, formula or table is imported. This is
@@ -28,7 +28,7 @@ by 30% because combat is also being retuned.
 - Monster damage: previous curve * 0.9, then rank multiplier and rounding.
   Elite HP remains 2.6x, boss HP 7x; species toughness remains multiplicative.
 - Existing allocated points, equipment and premium currency are retained.
-- Skills, cooldowns, paid EXP tickets and currency rewards are not retuned here.
+- This baseline is extended by the mutation bonuses and smooth enemy scaling documented in progression-20-60.md. Skill cooldowns, paid EXP tickets and currency rewards are unchanged.
 
 ## Migration and checks
 
@@ -50,4 +50,4 @@ builds, skills, multiple enemies, buffs and PvP require gameplay validation.
 
 The candidate still needs coordinated client/server deployment, complete
 assets, browser gameplay and Android updater/device tests. The live patch feed
-is unchanged. New job visuals/skills and learned flight remain incomplete.
+is unchanged. Job visuals and evolved skill power/names are now integrated; learned flight remains deferred. Earlier hit-count estimates above predate the mutation tuning.
