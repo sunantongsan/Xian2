@@ -11,7 +11,7 @@ import {characterName} from '../web/character-name.js';
 import {startServer} from '../server/server.js';
 import {World} from '../server/world.js';
 test('bulk allocation is atomic and rejects negative, fractional, unknown and excessive values',()=>{
- const s=fresh('sword-cockro');s.level=3;s.statPoints=20;
+ const s=fresh('sword-cockro');s.level=3;s.statPoints=20;delete s.statProgressionVersion;delete s.legacyStatLevels;
  for(const values of [{str:21},{str:-1},{str:.5},{luck:1},{str:Infinity},{str:NaN},[],{str:'1'},{str:0}]){const before=structuredClone(s);assert.equal(allocateStats(s,values),false);assert.deepEqual(s,before);}
  assert.equal(allocateStats(s,{str:12,vit:5,int:2,agi:1}),true);assert.equal(s.statPoints,0);assert.deepEqual(validSave(s).attributes,s.attributes);
  const w=new World(),p=w.join('test',s);w.command(p,{type:'op',op:'allocateStats',values:{str:1}},100);assert.equal(p.opResult.ok,false);assert.equal(s.attributes.str,12);
@@ -31,6 +31,7 @@ test('real socket rejects unnamed creation and confirms gold purchases after sav
  const saved=JSON.parse(readFileSync(join(directory,p.id+'.json')));assert.equal(saved.gold,gold-1000);assert.equal(saved.stones,2000);assert.equal(saved.bag.length,c.result.save.bag.length+1);assert.equal(saved.name,'ทดสอบทอง');
  const before=structuredClone(p.s);p.s.gold=0;app.world.command(p,{type:'op',op:'buyShopGear',slot:'weapon'},Date.now()/1000+1);assert.equal(p.opResult.ok,false);assert.deepEqual(p.s.bag,before.bag);
 });
+
 
 
 
