@@ -17,6 +17,6 @@ async function password(f){await f.api.manage(f.token,{action:'setPassword',pass
 test('real socket account deletion removes offline actor and survives ticks and restart',async t=>{
  const f=setup(t);await password(f);const app=startServer({port:0,directory:f.dir,test:true});await once(app.server,'listening');let stopped=false;t.after(async()=>{if(!stopped)await app.close();});const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
  async function request(data){const ws=new WebSocket(url,{origin:'http://localhost:9999'});await once(ws,'open');return new Promise((resolve,reject)=>{ws.on('message',raw=>{const d=JSON.parse(raw);if(['welcome','accountResult','error'].includes(d.type)){ws.close();resolve(d);}});ws.on('error',reject);ws.send(JSON.stringify(data));});}
- await request({type:'hello',version:'cockro-online-3',token:f.token});await new Promise(r=>setTimeout(r,80));assert(app.world.sleepers.has(f.account));
+ await request({type:'hello',version:'cockro-online-4',token:f.token});await new Promise(r=>setTimeout(r,80));assert(app.world.sleepers.has(f.account));
  const result=await request({type:'manage',action:'deleteAccount',token:f.token,password:'safe-pass-429',confirmText:'ลบบัญชี COCKRO'});assert(result.deleted);assert(!app.world.sleepers.has(f.account));await new Promise(r=>setTimeout(r,150));await app.close();stopped=true;assert(!existsSync(join(f.dir,f.account+'.json')));assert.throws(()=>createAccounts(f.dir).resolve(f.token));
 });

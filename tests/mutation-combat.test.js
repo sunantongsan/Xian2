@@ -6,8 +6,8 @@ import {knownSkills,compileSkill} from '../web/skills.js';
 import {monsterStats} from '../web/balance.js';
 test('mutation boundaries boost base combat, retain equipment and never stack on reconnect',()=>{
  for(const hero of Object.keys(JOB_PATHS))for(const level of [20,60]){
-  const s=fresh(hero);s.level=level-1;const before=[maxHP(s),damage(s),combatStats(s).mp,combatStats(s).defense];
-  s.level=level;const after=[maxHP(s),damage(s),combatStats(s).mp,combatStats(s).defense];
+  const s=fresh(hero);s.level=level-1;s.mutationStage=level===20?0:1;const before=[maxHP(s),damage(s),combatStats(s).mp,combatStats(s).defense];
+  s.level=level;s.mutationStage=level===20?1:2;const after=[maxHP(s),damage(s),combatStats(s).mp,combatStats(s).defense];
   after.forEach((v,i)=>assert(v>before[i]*1.12,`${hero} ${level} stat ${i}`));
   const equip=structuredClone(s.equip),gold=s.gold,stones=s.stones;
   let copy=validSave(s);for(let i=0;i<4;i++)copy=validSave(copy);
@@ -19,7 +19,7 @@ test('job skills evolve at 20/60 without replacing IDs, ranks or custom recipes'
  for(const hero of Object.keys(JOB_PATHS)){
   const s=fresh(hero);s.level=19;const old=knownSkills(s).slice(0,6);s.skillRanks[old[0].id]=7;s.equipped=[old[0].id,old[1].id,old[2].id,null,null];
   for(const level of [20,60]){
-   s.level=level;const list=knownSkills(s).slice(0,6);assert.deepEqual(list.map(r=>r.id),old.map(r=>r.id));assert.notEqual(list[0].name,old[0].name);
+   s.level=level;s.mutationStage=level===20?1:2;const list=knownSkills(s).slice(0,6);assert.deepEqual(list.map(r=>r.id),old.map(r=>r.id));assert.notEqual(list[0].name,old[0].name);
    list.forEach((r,i)=>{const a=compileSkill(old[i]),b=compileSkill(r);assert(b.power>a.power);assert.equal(b.mp,a.mp);assert.equal(b.cd,a.cd);});
    const restored=validSave(s);assert.equal(restored.skillRanks[old[0].id],7);assert.deepEqual(restored.equipped,s.equipped);
   }

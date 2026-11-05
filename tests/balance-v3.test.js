@@ -17,7 +17,7 @@ test('v2 saves preserve XP-bar percentage once, all old points and upgraded item
   for(const level of [1,5,19,20,59,60,119,120,209,210]){
    for(const fraction of [0,.25,.5,.999,1.25]){
     const old=fresh(hero);Object.assign(old,{level,balanceVersion:2,xp:Math.floor(previousLevelXP(level)*fraction),gold:912345,stones:321});
-    delete old.statProgressionVersion;delete old.legacyStatLevels;
+    delete old.mutationVersion;delete old.mutationStage;delete old.statProgressionVersion;delete old.legacyStatLevels;
     old.attributes={str:3*(level-1),vit:2*(level-1),agi:level-1,int:level-1};old.statPoints=3*(level-1);
     old.equip.weapon.plus=9;old.equip.weapon.gems={crystal:1,glowstone:0,diamond:0,ruby:0};
     const next=validSave(old);assert.equal(next.balanceVersion,3);

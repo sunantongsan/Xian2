@@ -1,3 +1,4 @@
+import {mutationStage} from './mutation.js';
 import {jobFor} from './job-progression.js';
 // Shared, deterministic skill rules: UI and combat consume the same definitions.
 export const FORMS={wave:{name:'คลื่นพลัง',range:320,radius:36,power:1.8,mp:18,cd:5,desc:'แนวตรงตามทิศเป้าหมาย'},circle:{name:'กวาดรอบตัว',range:155,radius:155,power:1.4,mp:22,cd:7,desc:'โจมตีศัตรูรอบตัว'},bolt:{name:'กระสุนพลังงาน',range:400,radius:0,power:2.3,mp:16,cd:4,desc:'โจมตีเป้าหมายเดียวระยะไกล'},dash:{name:'พุ่งแทง',range:230,radius:45,power:1.7,mp:24,cd:8,desc:'พุ่งผ่านศัตรูในแนวตรง'},field:{name:'สนามพลัง',range:300,radius:120,power:.65,mp:32,cd:12,desc:'สร้างพื้นที่โจมตี 4 ครั้งใน 3 วินาที'}};
@@ -81,7 +82,7 @@ const MUTATION_NAMES={
  'sword-cricket':[['คลื่นเสียงอัดกระแทก','พัลส์เรโซแนนซ์','บูสต์โซนิก'],['คลื่นชีวกลจักร','พัลส์ชีววิศวกรรม','บูสต์เกราะชีวภาพ']]
 };
 function classSkills(s){
- const list=baseClassSkills(s),stage=jobFor(s.hero,s.level)?.stage||0;
+ const list=baseClassSkills(s),stage=mutationStage(s)||0;
  if(!stage)return list;
  return list.map((r,i)=>{
   if(i>=6)return r;

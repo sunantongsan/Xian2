@@ -21,7 +21,7 @@ try {
    const files=heroAssetFiles(hero,level);if(!files.length)files.push('heroes/'+hero+'.webp');
    const images=new Map();for(const file of files){const im=new Image();im.src='/'+file;await im.decode();images.set(file,im);}
    memory.push({hero,level,decodedMiB:[...images.values()].reduce((n,im)=>n+im.naturalWidth*im.naturalHeight*4,0)/1048576});
-   const state=fresh(hero);state.level=level;ctx.fillStyle='#fff';ctx.font='13px sans-serif';ctx.fillText(hero+' Lv.'+level+' HP '+maxHP(state)+' ATK '+damage(state),10,row*88+18);
+   const state=fresh(hero);state.level=level;state.mutationStage=level>=60?2:level>=20?1:0;ctx.fillStyle='#fff';ctx.font='13px sans-serif';ctx.fillText(hero+' Lv.'+level+' HP '+maxHP(state)+' ATK '+damage(state),10,row*88+18);
    for(const [i,anim]of ['idle','walk','attack','skill','hurt','dead'].entries()){
     const actor={level,anim,animTime:.3,animDuration:.6,walkDistance:40,face:1,equip:state.equip,castId:state.equipped[0]};
     const rendered=drawHero(ctx,images,hero,actor,420+i*135,row*88+85,68);if(!rendered)throw Error('Missing '+hero+' '+level+' '+anim);draws++;

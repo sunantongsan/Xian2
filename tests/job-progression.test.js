@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {completeMutation} from '../web/mutation.js';
 import {JOB_PATHS,jobFor} from '../web/job-progression.js';
 import {fresh,validSave,reward,xpNeed,allocateStats} from '../web/core.js';
 import {heroIdentity} from '../web/hero-ui.js';
@@ -18,7 +19,7 @@ test('all four species advance at 20 and 60, including returning high-level char
 });
 test('legacy allocated and unspent points, inventory and balances survive repeated migrations',()=>{
  for(const level of [1,19,20,59,60,120,210]){
-  const old=fresh('sword-cockro');delete old.statProgressionVersion;delete old.legacyStatLevels;
+  const old=fresh('sword-cockro');delete old.mutationVersion;delete old.mutationStage;delete old.statProgressionVersion;delete old.legacyStatLevels;
   Object.assign(old,{level,xp:31,gold:987654,stones:4321});
   old.attributes={vit:(level-1)*3,str:(level-1)*4,int:(level-1)*2,agi:0};old.statPoints=level-1;
   let restored=validSave(old);
@@ -30,15 +31,15 @@ test('legacy allocated and unspent points, inventory and balances survive repeat
  }
 });
 test('legacy character crossing a job boundary earns four new points without losing old ones',()=>{
- const old=fresh('sword-dragonfly');delete old.statProgressionVersion;delete old.legacyStatLevels;old.level=19;
+ const old=fresh('sword-dragonfly');delete old.mutationVersion;delete old.mutationStage;delete old.statProgressionVersion;delete old.legacyStatLevels;old.level=19;
  const s=validSave(old);assert.equal(s.statPoints,180);
  assert.equal(allocateStats(s,{agi:80,str:100}),true);
  reward(s,{id:1,xp:xpNeed(19),gold:0},()=>1);
  assert.equal(s.level,20);assert.equal(s.statPoints,4);assert.equal(s.legacyStatLevels,18);
  assert.equal(jobFor(s.hero,s.level).stage,1);
  const copy=validSave(s);assert.equal(copy.statPoints,4);assert.deepEqual(copy.attributes,s.attributes);
- reward(copy,{id:1,xp:xpNeed(20)+xpNeed(21),gold:0},()=>1);
- assert.equal(validSave(copy).statPoints,12);assert.equal(copy.legacyStatLevels,18);
+ assert(completeMutation(copy));reward(copy,{id:1,xp:xpNeed(20)+xpNeed(21),gold:0},()=>1);
+ assert.equal(validSave(copy).statPoints,192);assert.equal(copy.legacyStatLevels,18);
 });
 test('new players earn four points per level and cannot spend beyond their budget',()=>{
  const s=fresh('sword-cricket');reward(s,{id:1,xp:xpNeed(1)+xpNeed(2),gold:0},()=>1);

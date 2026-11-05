@@ -23,10 +23,10 @@ jobs:
       - run: python3 tools/build_update_feed.py
       - run: npm install --no-save --package-lock=false playwright@1.56.1
       - run: npx playwright install --with-deps chromium --only-shell
-      - run: node tools/review-437.mjs && node tools/review-mutations.mjs
+      - run: node tools/review-437.mjs && node tools/review-mutations.mjs && node tools/review-439.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-438-verified
+          name: cockro-439-verified
           path: |
             patch-public/
             server/online-server.cjs
@@ -34,6 +34,13 @@ jobs:
             server/bootstrap.py
             review/cockro-437-*.png
             review/mutation-browser.*
+            review/cockro439-*.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cockro-439-server
+          path: |
+            server/online-server.cjs
+            server/smoke.cjs
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -54,7 +61,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-438-android-validation
+          name: cockro-439-android-validation
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/reports/tests
