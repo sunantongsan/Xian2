@@ -120,7 +120,7 @@ function applyOnlineState(d){
  const current=isStar()?'star':town?'town':'forest';if(!scene||d.self.map!==current){loadRoadScene(d);return;}
  for(const [id,item] of Object.entries(UPGRADE_ITEMS)){if((d.self.save.upgradeItems?.[id]||0)>(s.upgradeItems?.[id]||0)&&adPending)toast('ได้รับ '+item.name+' • บันทึกแล้ว');}
  const oldForge=onlineView==='forge'?JSON.stringify([s.equip,s.upgradeItems,s.gold,s.stones]):'';const oldKills=s.kills,oldLevel=s.level,oldMutation=mutationStage(s);const prefs={sound:s.sound,quality:s.quality,autoAttack:s.autoAttack};s={...d.self.save,...prefs};
- if(d.self.correction||Math.hypot(p.x-d.self.x,p.y-d.self.y)>70)Object.assign(p,{x:d.self.x,y:d.self.y});
+ const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));if(d.self.correction||Math.hypot(p.x-confirmed.x,p.y-confirmed.y)>70)Object.assign(p,confirmed);
  const wasDead=p.dead;p.hp=d.self.hp;p.mp=d.self.mp;p.dead=p.hp<=0;if(wasDead&&!p.dead){p.anim='idle';p.animTime=0;if($('onlineRevive'))close();}if(p.dead){if(!wasDead)p.animTime=0;p.anim='dead';pvpTarget=null;}
  pvpActionUntil=Math.max(pvpActionUntil,time+(d.self.actionRemaining||0));
  cooldown.attack=d.self.cooldowns.attack||0;cooldown.dash=d.self.cooldowns.dash||0;cooldown.potion=d.self.cooldowns.potion||0;cooldown.mpPotion=d.self.cooldowns.mpPotion||0;

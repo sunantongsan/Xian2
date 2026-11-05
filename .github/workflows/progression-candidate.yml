@@ -23,10 +23,10 @@ jobs:
       - run: python3 tools/build_update_feed.py
       - run: npm install --no-save --package-lock=false playwright@1.56.1
       - run: npx playwright install --with-deps chromium --only-shell
-      - run: node tools/review-437.mjs && node tools/review-mutations.mjs && node tools/review-439.mjs && node tools/review-440.mjs && node tools/review-character-draft.mjs && node tools/review-442.mjs
+      - run: node tools/review-437.mjs && node tools/review-mutations.mjs && node tools/review-439.mjs && node tools/review-440.mjs && node tools/review-character-draft.mjs && node tools/review-442.mjs && node tools/review-444.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-443-verified
+          name: cockro-444-verified
           path: |
             patch-public/
             server/online-server.cjs
@@ -38,9 +38,10 @@ jobs:
             review/cockro440-*.png
             review/character-redesign-review.png
             review/cockro442-*.png
+            review/cockro444-*.png
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-443-server
+          name: cockro-444-server
           path: |
             server/online-server.cjs
             server/smoke.cjs
@@ -64,7 +65,7 @@ jobs:
       - run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease :app:lintDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-443-android-validation
+          name: cockro-444-android-validation
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/bundle/release/app-release.aab
