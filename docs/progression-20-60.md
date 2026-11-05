@@ -4,8 +4,9 @@ The existing game awards 10 attribute points per level. The requested rule is
 4 per future level. Existing saves retain their allocated and unused attribute
 points through a versioned legacy-level allowance. New characters have no legacy
 allowance. Skill-point awards remain unchanged; the requested four-point rule
-applies to freely allocated attributes. Hero IDs, XP, equipment and currencies
-are not rewritten by this change.
+applies to freely allocated attributes. Hero IDs, equipment and currencies remain unchanged. Balance v3 rescales
+current XP once to preserve progress through the level; numeric XP changes
+without lowering the level.
 
 Four existing species have three derived job identities, advancing at levels
 20 and 60. The roster and character sheet display the current identity from the
@@ -20,9 +21,9 @@ interpret the new budgets. No production manifest/version is changed here.
 
 ## Pending decisions and validation
 
-- EXP 95% of Flyff: no authorized reference table selected. The official
-  Flyff Universe API explicitly excludes use in other games. Current COCKRO XP
-  and combat formulas are retained, rather than claiming an unverified match.
+- The user superseded the Flyff-minus-5% request: required XP is now 130%
+  of COCKRO v2, rounded upward, with unchanged monster XP. No Flyff data is
+  imported. See balance-v3.md for the combat tuning and validation limits.
 - Level-five learned flight, NPC drone/jetpack purchases and movement remain
   unimplemented.
 - Three supplied separated-weapon prototypes remain separate; five evolved
