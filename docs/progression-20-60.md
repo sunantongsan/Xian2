@@ -1,35 +1,12 @@
-# COCKRO progression candidate — not released
+# COCKRO 4.38 progression
+Four attribute points are awarded per new level. Versioned legacy-level allowances preserve previously allocated and unused points. XP requirements are 130% of v2, rounded up; migration preserves progress once. Species IDs, inventory, currency and earned levels are unchanged.
 
-The existing game awards 10 attribute points per level. The requested rule is
-4 per future level. Existing saves retain their allocated and unused attribute
-points through a versioned legacy-level allowance. New characters have no legacy
-allowance. Skill-point awards remain unchanged; the requested four-point rule
-applies to freely allocated attributes. Hero IDs, equipment and currencies remain unchanged. Balance v3 rescales
-current XP once to preserve progress through the level; numeric XP changes
-without lowering the level.
+At levels 20 and 60 the four insect species derive their job identity and appearance. Base HP, attack, MP and defense components gain factors 1.20 and 1.45 respectively (not compounded); equipment and allocated attributes are not multiplied by this bonus. Existing town buffs apply afterward. The first six class skills retain their IDs, ranks, slots, MP costs, cooldowns and targeting but gain 10% / 20% skill power. The first three receive job-specific names. These are evolved versions of the existing attacks, not new combat mechanics.
 
-Four existing species have three derived job identities, advancing at levels
-20 and 60. The roster and character sheet display the current identity from the
-level, so existing high-level players need no new character or manual migration.
-This is the progression and display foundation: the supplied animation sets and level-derived appearance are integrated. Separate job skills and combat roles remain pending.
+Monster HP and damage rise smoothly by up to 10% across levels 20–30 and another 12% across 60–70. XP, gold, elite/boss rank and species toughness remain unchanged. This avoids an enemy difficulty jump at the unlock level.
 
-Before starting the candidate server, the existing backup utility creates an
-immutable before-4.38.0-progression backup. Deploy the authoritative server and
-client together: old clients use the ten-point normalization and cannot safely
-interpret the new budgets. No production manifest/version is changed here.
+All three layered heroes and five supplied mutation looks are integrated. Baked props in the five new sheets remain part of their artwork; only the three layered sets support separate weapon shapes. Flight remains deferred.
 
-## Pending decisions and validation
+Wire protocol cockro-online-3 prevents old clients from misinterpreting four-point progression. Account token keys remain unchanged. Old clients must restart and download the patch. Server startup creates the immutable before-4.38.0-progression backup. Deploy the verified server artifact first, then the matching client feed.
 
-- The user superseded the Flyff-minus-5% request: required XP is now 130%
-  of COCKRO v2, rounded upward, with unchanged monster XP. No Flyff data is
-  imported. See balance-v3.md for the combat tuning and validation limits.
-- Level-five learned flight, NPC drone/jetpack purchases and movement remain
-  unimplemented.
-- Three supplied separated-weapon packages are now integrated (see layered-character-integration.md); the five additional supplied looks are now integrated (see mutation-art-integration.md). Job-specific skills, browser gameplay and physical Android validation remain incomplete.
-- Native updater/device round-trip is not validated by Node unit tests.
-
-## Validation
-
-New regression coverage checks all 12 job identities at the boundary levels,
-returning level-120/210 players, repeated migration, legacy currency/equipment
-and XP preservation, multi-level rewards and allocation limits.
+Validation includes save/reconnect preservation, evolution boundaries, stable skill slots/ranks, smooth monster scaling, the full Node suite, browser render checks and native Android unit/build/lint jobs. Check the exact release run before publication. Physical Android performance is not established by these automated checks.
