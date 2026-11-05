@@ -23,7 +23,7 @@ test('Thai and English names persist, markup/control and blank names fail',()=>{
 test('real socket rejects unnamed creation and confirms gold purchases after saving',async t=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-419-')),app=startServer({port:0,directory,test:true,testRewards:true});await once(app.server,'listening');t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true});});
  const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
- async function connect(name){const ws=new WebSocket(url,{origin:'http://localhost'});await once(ws,'open');const result=once(ws,'message');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:true,hero:'sword-cockro',name}));return {ws,result:JSON.parse((await result)[0])};}
+ async function connect(name){const ws=new WebSocket(url,{origin:'http://localhost'});await once(ws,'open');const result=once(ws,'message');ws.send(JSON.stringify({type:'hello',version:'cockro-online-3',create:true,hero:'sword-cockro',name}));return {ws,result:JSON.parse((await result)[0])};}
  const bad=await connect('');assert.equal(bad.result.message,'invalid_name');bad.ws.terminate();
  const c=await connect('ทดสอบทอง');t.after(()=>c.ws.terminate());assert.equal(c.result.save.name,'ทดสอบทอง');const p=app.world.players.get(c.result.id);p.s.stones=2000;const gold=p.s.gold;
  Object.assign(p,shopWorld(MERCHANT_UV,SHOP_MAPS.town));const receipt=new Promise(resolve=>c.ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='opResult')resolve(d);}));
