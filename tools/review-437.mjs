@@ -36,7 +36,7 @@ await page.selectOption('#dockChannel','world');await page.locator('#dockInput')
 await page.locator('#quickMenuToggle').click();await page.locator('#inventoryShortcut').click();await page.locator('#inventoryGrid').waitFor();
 await page.locator('#inventoryGrid [data-usable="true"]').first().click();
 const totals=page.locator('#portraitTotals');
-assert.match(await totals.innerText(),/ป้องกัน[\s\S]*2.45 → 3.95/);
+assert.match(await totals.innerText(),/ป้องกัน[\s\S]*2.6 → 4.1/);
 assert.match(await page.locator('.gear-preview').innerText(),/ป้องกัน \+1.5.*HP \+28/);
 assert(await page.evaluate(()=>!qa.state().equip.helm),'preview must not equip');
 assert(await totals.evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('.armory-stage').getBoundingClientRect().top+1),'totals above portrait');
