@@ -23,8 +23,7 @@ The level-60 Cockro label is now ผู้พิทักษ์เกราะ�
 The original three layered sets retain equipped weapon swapping. New sheets
 contain authored job props (shield/sonic emitter); these props are baked into
 the artwork, not independently swappable equipment layers. Equipment stats
-and upgrade aura remain authoritative and unchanged. Job-specific combat
-skills are a separate unfinished part of the broader progression candidate.
+and upgrade aura remain authoritative and unchanged. Job-specific names and bounded power upgrades now derive from the same level stages; existing targeting, cooldowns and MP costs are retained. See progression-20-60.md.
 
 The same authoritative level chooses local, remote/offline, inventory and
 wardrobe art. The loader requests only the active set, deduplicates requests,
@@ -37,9 +36,7 @@ creation, PvP, save preservation, level boundaries, appearance snapshots,
 asset bounds, rendering and asynchronous loader retry. All five looks were
 rendered through drawHero at gameplay scale and visually inspected on dark
 background. Client syntax and generated server bundle build pass.
-Previously missing original audio and identity-cleanup fixtures were fetched from the same pinned repository revision before the complete suite run. Chromium install
-failed with a truncated download; browser/physical Android validation and
-live deployment are not claimed. No production version or manifest changed.
+Previously missing original audio and identity-cleanup fixtures were fetched from the same pinned repository revision before the complete suite run. The original local Chromium download failed; the 4.38 validation workflow now runs browser rendering and native Android tests. See the release run for current results. Physical-device performance remains unverified.
 
 Rebuild: tools/pack-mutation-sheets.py accepts five transparent PNGs in order:
 dragonfly-green, scorpion-gold, cockro-guard, cricket-scientist, cricket-engineer.
