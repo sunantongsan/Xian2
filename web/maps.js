@@ -27,11 +27,11 @@ export const MAPS={
  town:{id:'town',name:'หมู่บ้านฮีโร่ • สถานีออโรรา',image:'maps/aurora-outpost.webp',width:4000,height:2666,spawn:[.50,.445],walk:[
  // Main plaza follows its painted perimeter, with broad side promenades.
  [[.29,.28],[.71,.28],[.77,.32],[.73,.43],[.76,.53],[.70,.64],[.61,.71],[.39,.71],[.25,.66],[.23,.54],[.27,.43],[.23,.31]],
- rect(.46,.23,.54,.97),rect(.68,.51,.97,.58),rect(.15,.49,.32,.59),
+ rect(.46,.23,.54,.97),rect(.68,.51,.97,.58),rect(.78,.49,.88,.55),rect(.15,.49,.32,.59),
  // Walk around the two landing pads without crossing parked craft or building roofs.
  rect(.12,.225,.31,.275),rect(.25,.17,.30,.34),rect(.04,.195,.12,.255),rect(.08,.245,.27,.29),
  rect(.69,.225,.88,.275),rect(.70,.17,.75,.34),rect(.88,.195,.96,.255),rect(.73,.245,.92,.29)
- ],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:MERCHANT_UV,name:'MERC-01 • หุ่นพ่อค้า',action:'shop'},{uv:[.73,.54],name:'FORGE-09 • หุ่นอัปเกรด',action:'forge'},{uv:DOCTOR_UV,name:'ดร.ไอสไตร์',action:'mutation'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.94],name:'ถนนสู่ป่าชีวะแสง • Lv.1–60',action:'road',road:'forest'},{uv:[.94,.54],name:'ถนนสู่เขตฮีโร่ • Lv.61–120',action:'road',road:'star'}]},
+ ],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:MERCHANT_UV,name:'MERC-01 • หุ่นพ่อค้า',action:'shop'},{uv:[.85,.505],name:'FORGE-09 • หุ่นอัปเกรด',action:'forge'},{uv:DOCTOR_UV,name:'ดร.ไอสไตร์',action:'mutation'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.94],name:'ถนนสู่ป่าชีวะแสง • Lv.1–60',action:'road',road:'forest'},{uv:[.94,.54],name:'ถนนสู่เขตฮีโร่ • Lv.61–120',action:'road',road:'star'}]},
  forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],name:'ถนนกลับสถานีออโรรา',action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
 
 };

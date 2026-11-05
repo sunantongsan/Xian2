@@ -1,6 +1,6 @@
 import {pendingMutation} from './mutation.js';
 export function createProgressionUI(onVisit){
- const notice=document.createElement('button');notice.id='mutationNotice';notice.hidden=true;notice.onclick=onVisit;notice.innerHTML='<span class="mutation-sigil">✧</span><span><b>พร้อมกลายพันธุ์</b><small>กลับยานพบ ดร.ไอสไตร์ • เลเวลหยุดรับ EXP</small></span><span>›</span>';document.body.appendChild(notice);
+ const notice=document.createElement('button');notice.id='mutationNotice';notice.hidden=true;notice.onclick=onVisit;notice.innerHTML='<span class="mutation-sigil">✧</span><span><b>พร้อมกลายพันธุ์</b><small>พบ ดร.ไอสไตร์ • หยุดรับ EXP</small></span><span>›</span>';(document.getElementById('fieldActions')||document.body).appendChild(notice);
  const overlay=document.createElement('div');overlay.id='levelCelebration';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');overlay.hidden=true;overlay.innerHTML='<div class="level-rays"></div><span class="level-kicker">LEVEL UP</span><strong></strong><small></small>';document.body.appendChild(overlay);let timer;
  return {
   celebrate(level,{mutation=false,name='',pending=false}={}){

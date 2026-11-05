@@ -1,6 +1,6 @@
 import {jobFor,JOB_PATHS} from './job-progression.js';
 export const MUTATION_VERSION=1;
-export const DOCTOR_UV=Object.freeze([.69,.59]);
+export const DOCTOR_UV=Object.freeze([.80,.495]);
 export const MUTATION_LEVELS=Object.freeze([20,60]);
 export function mutationStage(s){
  const earned=jobFor(s?.hero,s?.level)?.stage||0;

@@ -38,7 +38,7 @@ test('existing 4.38 characters keep completed mutations and XP; new pending char
 });
 test('server requires living player at doctor in town, out of combat, and rejects repeated requests',()=>{
  const w=new World(),s=fresh('sword-cricket');s.level=20;s.statPoints=76;const p=w.join('mutator',s),at=toWorld(DOCTOR_UV,MAPS.town);
- assert(walkable(MAPS.town,at));assert(routeTo(MAPS.town,toWorld(MAPS.town.spawn,MAPS.town),at).length>0);
+ const forge=toWorld(MAPS.town.pois.find(p=>p.action==='forge').uv,MAPS.town);assert(walkable(MAPS.town,forge));assert(Math.hypot(at.x-forge.x,at.y-forge.y)>170);assert(Math.hypot(at.x-forge.x,at.y-forge.y)<260);assert(walkable(MAPS.town,at));assert(routeTo(MAPS.town,toWorld(MAPS.town.spawn,MAPS.town),at).length>0);
  let now=100;for(const mode of ['away','forest','dead','combat']){
   Object.assign(p,at,{map:'town',hp:100,lastPvp:-Infinity});if(mode==='away')p.x+=500;if(mode==='forest')p.map='forest';if(mode==='dead')p.hp=0;if(mode==='combat')p.lastPvp=now;
   w.command(p,{type:'op',op:'mutate',stage:2},now++);assert.equal(p.opResult.ok,false,mode);assert.equal(s.mutationStage,0);
