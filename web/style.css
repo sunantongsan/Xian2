@@ -215,9 +215,9 @@ body.welcome-screen #modal:has(.hero-grid){max-width:900px;width:86vw}
 #hud #zoomControls{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}
 #hud #zoomControls[hidden]{display:none}
 #hud #zoomControls button{width:38px;height:32px;min-height:32px;margin:0;padding:0;font-size:20px}
-dialog:not(:has(#choose)):not(:has(.hero-grid)):not(:has(.hero-sheet)):not(:has(.forge-panel,.inventory-layout,.market,.gold-store,.doctor-panel)){width:min(520px,65vw);max-height:82vh;padding:0 14px 14px;font-size:12px;border-radius:12px;box-shadow:0 8px 30px #0008;border:1px solid #8b7855;background:linear-gradient(#162b3c,#081521)}
-dialog:not(:has(#choose)) h2{font-size:15px;padding:10px 38px;margin:0 -14px 10px;letter-spacing:0;background:linear-gradient(#263c4b,#142735)}
-dialog:not(:has(#choose)) button{font-size:12px;min-height:36px;padding:6px 10px}
+dialog:not(.coin-celebration):not(:has(.coin-confirm)):not(:has(#choose)):not(:has(.hero-grid)):not(:has(.hero-sheet)):not(:has(.forge-panel,.inventory-layout,.market,.gold-store,.doctor-panel)){width:min(520px,65vw);max-height:82vh;padding:0 14px 14px;font-size:12px;border-radius:12px;box-shadow:0 8px 30px #0008;border:1px solid #8b7855;background:linear-gradient(#162b3c,#081521)}
+dialog:not(.coin-celebration):not(:has(.coin-confirm)):not(:has(#choose)) h2{font-size:15px;padding:10px 38px;margin:0 -14px 10px;letter-spacing:0;background:linear-gradient(#263c4b,#142735)}
+dialog:not(.coin-celebration):not(:has(.coin-confirm)):not(:has(#choose)) button{font-size:12px;min-height:36px;padding:6px 10px}
 dialog:not(:has(#choose))::before,dialog:not(:has(#choose))::after{display:none}
 @media(max-height:450px){body.welcome-screen #modal{padding:12px;max-height:90vh}#hud .player-panel{width:166px;min-width:166px;max-width:166px;padding-top:5px;padding-bottom:5px}#hud #heroName{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#quickMenuTray{transition:none}}
