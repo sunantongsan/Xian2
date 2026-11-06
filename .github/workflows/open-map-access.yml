@@ -1,4 +1,4 @@
-name: Inspect COCKRO deploy helper
+name: Open all COCKRO map levels
 on:
   push:
     branches: [fix/mobile-layout-4.46.3]
@@ -6,9 +6,12 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
+  deploy:
     runs-on: [self-hosted, linux, x64, cockro-vps-control]
-    timeout-minutes: 2
+    timeout-minutes: 4
     steps:
-      - name: Read existing deployment helper
-        run: cat /usr/local/sbin/cockro-deploy-online
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Deploy through existing checksum-verified server helper
+        run: python3 tools/open-map-access.py
