@@ -38,3 +38,16 @@
 #modal .gift-center .gold-store-note,#modal .gift-center #goldStoreStatus{font-size:10px;line-height:13px;margin:4px 0}
 #modal .gift-center #restoreGold{min-height:30px;height:30px;padding:3px 8px;font-size:11px;margin:0}
 }
+
+@media(max-width:420px){
+#modal:has(.gift-center){padding:12px!important}
+#modal .gift-center .gift-heading{gap:8px;margin-bottom:6px}
+#modal .gift-center .gift-heading>img{width:32px;height:32px}
+#modal .gift-center .gift-heading h2{font-size:18px}
+#modal .gift-center .gold-pack{gap:3px;padding:6px}
+#modal .gift-center .gold-pack img{width:32px;height:32px}
+#modal .gift-center .gold-pack b{font-size:18px;line-height:23px}
+#modal .gift-center .gold-pack b em{font-size:9px;line-height:13px}
+#modal .gift-center .gold-store-note,#modal .gift-center #goldStoreStatus{font-size:10px;line-height:14px;margin:5px 0}
+#modal .gift-center #restoreGold{font-size:10px;min-height:32px;padding:4px;margin:0}
+}
