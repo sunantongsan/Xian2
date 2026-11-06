@@ -26,18 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 110cbcb429a878d98bbf9223b25e899e61beb003
+          ref: d876b76834a7a6d3a68a1b43dd8acb163fad5e75
           persist-credentials: false
       - name: Download verified build from the pinned validation run
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: cockro-444-server
-          run-id: 42018879952
+          name: cockro-4444-server
+          run-id: 42140701254
           github-token: ${{ github.token }}
           path: verified
       - name: Check verified server bundle
         run: |
-          echo '216cde1650732906929cd30a786176be4550e4a6f002a01981de1a045901d49a  verified/online-server.cjs' | sha256sum --check
+          echo '600b52c2ea93fa64ad97715cf052c6562116be72484eae2708df8cad7a9c5149  verified/online-server.cjs' | sha256sum --check
           echo 'f3595df72da33b1be8e01b9caa53cb7dd41d487d35da5c13c5b79e4fc6d1b56c  verified/smoke.cjs' | sha256sum --check
           cp verified/online-server.cjs server/online-server.cjs
           cp verified/smoke.cjs server/smoke.cjs
@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --retry 5 --retry-connrefused --retry-delay 2 https://game.guardscan.xyz/online/health
-          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.44.0")process.exit(1);console.log("Verified backend 4.44.0 and pre-migration backup completed");});'
+          curl --fail --silent https://game.guardscan.xyz/online/health | "$ONLINE_NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.release!=="4.44.4")process.exit(1);console.log("Verified backend 4.44.4 and pre-migration backup completed");});'
           "$ONLINE_NODE" server/smoke.cjs
       - name: Verify SSV route rejects unsigned callbacks
         if: github.event_name == 'push' || inputs.operation != 'stage'
