@@ -1,3 +1,4 @@
+import {t,ui} from './i18n.js';
 import {MUTATION_VERSION,normalizeMutation,pendingMutation,mutationStage} from './mutation.js';
 import {mutationGrowth} from './job-progression.js';
 import {STAT_PROGRESSION_VERSION,STAT_POINTS_PER_LEVEL,statProgression} from './stat-progression.js';
@@ -48,7 +49,7 @@ export function allocateStats(s,values){
 export function allocateStat(s,key){if(!Object.hasOwn(s.attributes,key)||s.statPoints<1)return false;s.attributes[key]++;s.statPoints--;return true;}
 export function trainSkill(s,id){if(!knownSkills(s).some(r=>r.id===id&&r.level<=s.level)||s.skillPoints<1||(s.skillRanks[id]||0)>=19)return false;s.skillRanks[id]=(s.skillRanks[id]||0)+1;s.skillPoints--;return true;}
 export function combatStats(s){const a=s.attributes||{},g=gearTotals(s),b=buffMultiplier(s);return {mp:b*Math.round((80+s.level*PLAYER_GROWTH.mp)*mutationGrowth(s.hero,s.level,mutationStage(s))+(a.int||0)*8+g.mp),defense:b*(s.level*PLAYER_GROWTH.defense*mutationGrowth(s.hero,s.level,mutationStage(s))+(a.vit||0)*.6+g.def),crit:Math.min(1,b*Math.min(.5,.05+(a.agi||0)*.001+g.crit)),speed:Math.min(60,(a.agi||0)*.15+g.speed),haste:Math.min(.35,(a.agi||0)*.001),spell:1+(a.int||0)*.008+g.spell};}
-export function reputationTitle(s){return s.reputation>=10000?'ตำนานฮีโร่':s.reputation>=2500?'ฮีโร่เลื่องชื่อ':s.reputation>=500?'ผู้มีชื่อเสียง':s.reputation>=100?'ฮีโร่ดาวรุ่ง':'ฮีโร่หน้าใหม่';}
+export function reputationTitle(s){return s.reputation>=10000?t('ตำนานฮีโร่'):s.reputation>=2500?t('ฮีโร่เลื่องชื่อ'):s.reputation>=500?t('ผู้มีชื่อเสียง'):s.reputation>=100?t('ฮีโร่ดาวรุ่ง'):t('ฮีโร่หน้าใหม่');}
 
 
 

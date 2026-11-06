@@ -1,3 +1,4 @@
+import {t,ui} from './i18n.js';
 import {monsterStats} from './balance.js';
 // Original Lv.1–60 bestiary: artwork cells and combat signatures share this order.
 const DATA=[
@@ -22,8 +23,8 @@ const DATA=[
  ['ตะขาบลาวาโลหะ','Magma fault','#ff7356','fault',350,45],
  ['วิหคแสงสุริยะ','Solar star','#fff4ac','solar',290,30]
 ];
-export const FOREST_SPECIES=DATA.map(([name,skillName,color,pattern,range,radius],species)=>({name,skillName,color,pattern,range,radius,species,id:1100+species,min:species*3+1,max:species*3+3}));
-export function forestMonster(level){const sp=FOREST_SPECIES[Math.min(19,Math.floor((level-1)/3))];return {...sp,...monsterStats(level),level,region:Math.floor((level-1)/10),zone:0,art:'forest-v2',slot:sp.species,boss:false,speed:65+(sp.species%5)*7,attack:'signature',cooldown:2.8+(sp.species%4)*.25,xp:20+level*8,gold:10+level*3,hp:monsterStats(level).hp};}
+export const FOREST_SPECIES=DATA.map(([name,skillName,color,pattern,range,radius],species)=>({get name(){return t(name);},skillName,color,pattern,range,radius,species,id:1100+species,min:species*3+1,max:species*3+3}));
+export function forestMonster(level){const sp=FOREST_SPECIES[Math.min(19,Math.floor((level-1)/3))];return {...sp,get name(){return sp.name;},...monsterStats(level),level,region:Math.floor((level-1)/10),zone:0,art:'forest-v2',slot:sp.species,boss:false,speed:65+(sp.species%5)*7,attack:'signature',cooldown:2.8+(sp.species%4)*.25,xp:20+level*8,gold:10+level*3,hp:monsterStats(level).hp};}
 // Canonical attack footprints in WORLD coordinates: consumed by damage, warnings and VFX.
 export function monsterZones(e){
  const d=e.def,a=e.angle||0,ux=Math.cos(a),uy=Math.sin(a),o={x:e.x,y:e.y},r=d.range||200,w=d.radius||30;

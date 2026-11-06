@@ -1,13 +1,14 @@
+import {t,ui} from './i18n.js';
 import {ENHANCE_SLOTS} from './enhancement.js';
 // Rare upgrade gold is stored as stones; ordinary spending money remains gold (G).
 export const UPGRADE_ITEMS={
- alloy:{name:'หินเสริมพลัง',currency:'gold',price:1000,description:'ตีบวกอาวุธ แหวน และสร้อย +1 ถึง +9 • ครั้งละ 1 ก้อน',icon:'items/glowstone.webp'},
- protect:{name:'ผลึกพิทักษ์',currency:'gold',price:5000,description:'ป้องกันอุปกรณ์ในการตีบวก +4 ถึง +9 • ครั้งละ 1 ชิ้น • ไม่ใช่เพชร',icon:'items/protection-shield.svg'},
- meteor:{name:'หินอุกาบาศ',price:20,description:'สุ่มคุณสมบัติพิเศษ • ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%) มีโอกาสสุ่ม 5%',icon:'items/meteor.webp'},
- crystal:{name:'ผลึก',price:35,description:'เสริมโจมตี +8 ต่อขั้น',stat:'atk',amount:8,icon:'items/crystal.webp'},
- glowstone:{name:'หินเรืองแสง',price:35,description:'เสริมป้องกัน +4 ต่อขั้น',stat:'def',amount:4,icon:'items/glowstone.webp'},
- diamond:{name:'เพชร',price:60,description:'เสริมโอกาสคริติคอล +0.5% ต่อขั้น',stat:'crit',amount:.005,icon:'items/diamond.webp'},
- ruby:{name:'ทับทิม',price:40,description:'เสริม HP +60 ต่อขั้น',stat:'hp',amount:60,icon:'items/ruby.webp'}
+ alloy:{get name(){return t('หินเสริมพลัง');},currency:'gold',price:1000,get description(){return t('ตีบวกอาวุธ แหวน และสร้อย +1 ถึง +9 • ครั้งละ 1 ก้อน');},icon:'items/glowstone.webp'},
+ protect:{get name(){return t('ผลึกพิทักษ์');},currency:'gold',price:5000,get description(){return t('ป้องกันอุปกรณ์ในการตีบวก +4 ถึง +9 • ครั้งละ 1 ชิ้น • ไม่ใช่เพชร');},icon:'items/protection-shield.svg'},
+ meteor:{get name(){return t('หินอุกาบาศ');},price:20,get description(){return t('สุ่มคุณสมบัติพิเศษ • ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%) มีโอกาสสุ่ม 5%');},icon:'items/meteor.webp'},
+ crystal:{get name(){return t('ผลึก');},price:35,get description(){return t('เสริมโจมตี +8 ต่อขั้น');},stat:'atk',amount:8,icon:'items/crystal.webp'},
+ glowstone:{get name(){return t('หินเรืองแสง');},price:35,get description(){return t('เสริมป้องกัน +4 ต่อขั้น');},stat:'def',amount:4,icon:'items/glowstone.webp'},
+ diamond:{get name(){return t('เพชร');},price:60,get description(){return t('เสริมโอกาสคริติคอล +0.5% ต่อขั้น');},stat:'crit',amount:.005,icon:'items/diamond.webp'},
+ ruby:{get name(){return t('ทับทิม');},price:40,get description(){return t('เสริม HP +60 ต่อขั้น');},stat:'hp',amount:60,icon:'items/ruby.webp'}
 };
 export const GEM_IDS=['crystal','glowstone','diamond','ruby'];
 export const GEM_CAP=1;

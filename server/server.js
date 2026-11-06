@@ -64,7 +64,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  for(const slot of CHARACTER_SLOTS){const body=world.sleepers.get(characterId(account,slot));if(body?.dirty)persist(body);}
  const main=created?fresh(d.hero):readCharacter(directory,account);
  if(!main&&!accounts.exists(account))throw Error('account_missing');
- if(d.preview===true){send(ws,{type:'roster',characters:characterRoster(directory,account)});clearTimeout(timer);ws.close(1000);return;}
+ if(d.preview===true){send(ws,{type:'roster',...accounts.languageProfile(account,d.deviceLocale),characters:characterRoster(directory,account)});clearTimeout(timer);ws.close(1000);return;}
  if(activeAccounts.has(account)||accounts.busy.has(account))throw Error('already_online');
  let character=d.character||'main',state;
  if(d.newCharacter===true&&!created){
@@ -78,12 +78,13 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
  accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
- send(ws,{type:'welcome',release:'4.45.0',id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account});send(ws,world.snapshot(p));return;}
+ send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'4.45.0',id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account});send(ws,world.snapshot(p));return;}
     if(d.type==='chat'){try{chat.handle(p,d);}catch(e){send(ws,{type:'chatError',message:e.message});}return;}
     if(d.type==='commerce'){
      try{const result=commerce.run(p,d);for(const socket of connections){const actor=socket.player?.();if(actor)send(socket,world.snapshot(actor));}send(ws,{type:'commerceResult',ok:true,...result});}
      catch(e){send(ws,{type:'commerceResult',ok:false,message:e.message,...(commerce.failed?{}:commerce.view(p))});if(commerce.failed){diskFailure=true;for(const socket of connections)socket.close(1011);}}return;
     }
+    if(d.type==='language'){try{send(ws,{type:'languageResult',requestId:typeof d.requestId==='string'?d.requestId.slice(0,40):null,ok:true,...accounts.setLanguage(p.account,d.language)});}catch(e){send(ws,{type:'languageResult',requestId:typeof d.requestId==='string'?d.requestId.slice(0,40):null,ok:false,message:e.message});}return;}
     if(d.type==='billingPurchase'){managing=true;p.economyBusy=true;try{const reward=await billing.redeem(p,d,persist);send(ws,world.snapshot(p));send(ws,{type:'billingResult',ok:true,...reward});}catch(e){send(ws,{type:'billingResult',ok:false,message:['payment_pending','wrong_account','wallet_full','billing_unavailable','purchase_busy'].includes(e.message)?e.message:'purchase_not_verified'});}finally{managing=false;p.economyBusy=false;if(ws.readyState!==1)activeAccounts.delete(p.account);}return;}
     if(d.type==='testAdTicket'||d.type==='testAdComplete'){
      if(!testRewards){send(ws,{type:'adError',message:'test_rewards_disabled'});return;}
@@ -108,6 +109,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
  server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);clearInterval(deletionWorker);for(const key of [...world.fights.keys()])finishFight(world,key,'interrupted','interrupted',Date.now()/1000);for(const p of world.actors()){try{persist(p);}catch{}}for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
+
 
 
 

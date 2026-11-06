@@ -1,3 +1,4 @@
+import {accountLanguage, identityLanguage, languagePreference} from './language.js';
 import {createReferrals} from './referrals.js';
 // Supabase owns identity; this server owns game saves and account-to-character links.
 import {createHash,randomBytes,scrypt as derive,timingSafeEqual} from 'node:crypto';
@@ -23,10 +24,11 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  const meta=account=>read('profile',account)||{};
  function throttle(account){const now=Date.now(),q=(attempts.get(account)||[]).filter(t=>t>now-600000);if(q.length>=5)throw Error('password_locked');q.push(now);attempts.set(account,q);}
  async function verifyPassword(account,password){throttle(account);const m=meta(account);if(!m.password||typeof password!=='string'||password.length>128)throw Error('wrong_password');const key=await scrypt(password,m.salt,32);if(!timingSafeEqual(key,Buffer.from(m.password,'hex')))throw Error('wrong_password');attempts.delete(account);return m;}
- async function manageUnlocked(token,d){const account=resolve(token);if(d.action==='logout'){write('session',token,{account,revoked:true});return {loggedOut:true};}if(d.action==='status')return {hasPassword:!!meta(account).password,google:!!meta(account).uid,canReset:!!meta(account).uid&&Date.now()-(read('session',token)?.reauthAt||0)<300000,canDelete:!!meta(account).uid&&Date.now()-(read('session',token)?.deleteReauthAt||0)<300000,accountId:account.slice(0,12)};
+ async function manageUnlocked(token,d){const account=resolve(token);if(d.action==='logout'){write('session',token,{account,revoked:true});return {loggedOut:true};}if(d.action==='status')return {hasPassword:!!meta(account).password,google:!!meta(account).uid,canReset:!!meta(account).uid&&Date.now()-(read('session',token)?.reauthAt||0)<300000,canDelete:!!meta(account).uid&&Date.now()-(read('session',token)?.deleteReauthAt||0)<300000,accountId:account.slice(0,12),...accountLanguage(meta(account),d.deviceLocale)};
+ if(d.action==='language'){return setLanguage(account,d.language);}
  if(d.action==='referralStatus')return referrals.status(account,meta(account).uid);
  if(d.action==='redeemReferral')return referrals.redeem(account,meta(account).uid,d.code);
- if(d.action==='deleteAccount'){if(meta(account).uid){const proof=read('session',token)?.deleteReauthAt;if(!proof||Date.now()-proof>300000)throw Error('reauth_required');}else await verifyPassword(account,d.password);if(d.confirmText!=='ลบบัญชี COCKRO')throw Error('confirmation_mismatch');return deletion.request(account,meta(account).uid);}
+ if(d.action==='deleteAccount'){if(meta(account).uid){const proof=read('session',token)?.deleteReauthAt;if(!proof||Date.now()-proof>300000)throw Error('reauth_required');}else await verifyPassword(account,d.password);if(!['ลบบัญชี COCKRO','DELETE COCKRO'].includes(d.confirmText))throw Error('confirmation_mismatch');return deletion.request(account,meta(account).uid);}
  if(d.action==='rename'){const state=readCharacter(directory,account,d.character);if(!state)throw Error('character_missing');if(state.name)throw Error('already_named');const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;const p=join(directory,characterId(account,d.character)+'.json');writeFileSync(p+'.tmp',JSON.stringify(state),{mode:0o600});renameSync(p+'.tmp',p);return {characters:characterRoster(directory,account)};}
  if(d.action==='setPassword'){const m=meta(account);if(d.reset===true){const session=read('session',token);if(!m.uid||!session?.reauthAt||Date.now()-session.reauthAt>300000)throw Error('reauth_required');}else if(m.password)await verifyPassword(account,d.oldPassword);if(typeof d.password!=='string'||d.password.length<8||d.password.length>128)throw Error('weak_password');const salt=randomBytes(16).toString('hex'),key=await scrypt(d.password,salt,32);write('profile',account,{...meta(account),salt,password:key.toString('hex')});if(d.reset===true)write('session',token,{...read('session',token),reauthAt:0});return {hasPassword:true};}
  if(d.action==='delete'){await verifyPassword(account,d.password);if(!CHARACTER_SLOTS.includes(d.character))throw Error('character_missing');const state=readCharacter(directory,account,d.character);if(!state)throw Error('character_missing');if(d.confirmName!==(state.name||'กรุณาตั้งชื่อ'))throw Error('name_mismatch');write('profile',account,meta(account));const trash=join(directory,'deleted-characters');mkdirSync(trash,{recursive:true,mode:0o700});renameSync(join(directory,characterId(account,d.character)+'.json'),join(trash,characterId(account,d.character)+'-'+Date.now()+'.json'));return {characters:characterRoster(directory,account)};}
@@ -40,10 +42,14 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  if(f.account&&deletion.isDeleted(f.account))throw Error('account_deleted');
  const existing=read('google',user.id);let account=existing?.account;
  if(!account){account=f.account||hash(randomBytes(32));const profile=meta(account);if(profile.uid&&profile.uid!==user.id)throw Error('account_linked');write('profile',account,{...profile,uid:user.id});write('google',user.id,{account});}
+ write('profile',account,{...meta(account),...identityLanguage(user)});
  // A known Google account is loaded, never overwritten by an unrelated guest save.
- const token=randomBytes(32).toString('hex');write('session',token,{account,persistent:true,createdAt:Date.now(),reauthAt:f.purpose==='resetPassword'?Date.now():0,deleteReauthAt:f.purpose==='deleteAccount'?Date.now():0});return {token,google:true,accountDeletionReady:f.purpose==='deleteAccount',passwordReset:f.purpose==='resetPassword',characters:characterRoster(directory,account),loadedExisting:!!existing&&f.account!==account};}
+ const token=randomBytes(32).toString('hex');write('session',token,{account,persistent:true,createdAt:Date.now(),reauthAt:f.purpose==='resetPassword'?Date.now():0,deleteReauthAt:f.purpose==='deleteAccount'?Date.now():0});return {token,google:true,accountId:account.slice(0,12),...accountLanguage(meta(account)),accountDeletionReady:f.purpose==='deleteAccount',passwordReset:f.purpose==='resetPassword',characters:characterRoster(directory,account),loadedExisting:!!existing&&f.account!==account};}
  async function manage(token,d){const account=resolve(token);if(busy.has(account))throw Error('account_busy');busy.add(account);try{return await manageUnlocked(token,d);}finally{busy.delete(account);}}
- return {resolve,exists,meta,manage,authStart,authFinish,busy,deletion,referrals};
+ function setLanguage(account,value){const language=languagePreference(value);write('profile',account,{...meta(account),language});return {accountId:account.slice(0,12),...accountLanguage(meta(account))};}
+ function languageProfile(account,deviceLocale){return {accountId:account.slice(0,12),...accountLanguage(meta(account),deviceLocale)};}
+ return {resolve,exists,meta,manage,authStart,authFinish,busy,deletion,referrals,setLanguage,languageProfile};
 }
+
 
 

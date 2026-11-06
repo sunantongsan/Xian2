@@ -24,7 +24,7 @@ test('authenticated character preview does not enter world or overwrite saved pr
  const app=await setup(t),a=await client(app.url,hello);a.ws.close();await until(()=>app.world.players.size===0);
  const path=join(app.directory,a.data.id+'.json'),before=readFileSync(path,'utf8');
  const preview=await client(app.url,{type:'hello',version:PROTOCOL,token:a.data.token,preview:true});
- assert.deepEqual(preview.data,{type:'roster',characters:[{id:'main',hero:'sword-cricket',name:'Tester',level:1,mutationStage:0}]});preview.ws.terminate();
+ assert.deepEqual(preview.data,{type:'roster',accountId:a.data.billingOwner.slice(0,12),language:'en',country:null,locale:null,characters:[{id:'main',hero:'sword-cricket',name:'Tester',level:1,mutationStage:0}]});preview.ws.terminate();
  assert.equal(app.world.players.size,0);assert.equal(readFileSync(path,'utf8'),before);
  const bad=await client(app.url,{...hello,preview:true});assert.equal(bad.data.type,'error');bad.ws.terminate();assert.equal(app.world.players.size,0);
 });

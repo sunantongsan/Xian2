@@ -1,5 +1,6 @@
-const CHANNELS={world:'ตะโกน',map:'พูด',whisper:'กระซิบ'};
-const ERRORS={chat_rate_limit:'ส่งเร็วไปนิด รอสักครู่แล้วลองใหม่',invalid_text:'พิมพ์ข้อความ 1–200 ตัวอักษร',player_offline:'ไม่พบผู้เล่นออนไลน์ชื่อนี้',ambiguous_name:'ชื่อนี้ซ้ำกัน กรุณาแตะชื่อจากข้อความหรือแตะตัวละคร',self_whisper:'เลือกผู้เล่นคนอื่นเพื่อกระซิบ',invalid_channel:'กรุณาเลือกช่องแชท'};
+import {t,ui} from './i18n.js';
+const CHANNELS={get world(){return t('ตะโกน');},get map(){return t('พูด');},get whisper(){return t('กระซิบ');}};
+const ERRORS={get chat_rate_limit(){return t('ส่งเร็วไปนิด รอสักครู่แล้วลองใหม่');},get invalid_text(){return t('พิมพ์ข้อความ 1–200 ตัวอักษร');},get player_offline(){return t('ไม่พบผู้เล่นออนไลน์ชื่อนี้');},get ambiguous_name(){return t('ชื่อนี้ซ้ำกัน กรุณาแตะชื่อจากข้อความหรือแตะตัวละคร');},get self_whisper(){return t('เลือกผู้เล่นคนอื่นเพื่อกระซิบ');},get invalid_channel(){return t('กรุณาเลือกช่องแชท');}};
 export function createChatView({net,show,close,toast}){
  let channel='map',peer=null,unread=0,history=[],draft='',pending=false,pendingText='',timer,mutedOwner;
  const muted=new Set(),bubbles=new Map();
@@ -13,10 +14,10 @@ export function createChatView({net,show,close,toast}){
   const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<70,oldTop=log.scrollTop;
   log.replaceChildren();
   const rows=history.filter(m=>!muted.has(m.from)&&(channel==='world'||m.channel===channel)&&(channel!=='whisper'||!peer||m.from===peer.id||m.to===peer.id));
-  if(!rows.length){const empty=document.createElement('p');empty.className='chat-empty';empty.textContent='เริ่มทักทายเพื่อนกันได้เลย';log.append(empty);}
+  if(!rows.length){const empty=document.createElement('p');empty.className='chat-empty';empty.textContent=t('เริ่มทักทายเพื่อนกันได้เลย');log.append(empty);}
   for(const m of rows){
    const row=document.createElement('div');row.className='chat-row chat-'+m.channel;
-   const name=document.createElement('button');name.className='chat-name';name.textContent=(m.from===net.selfId?'คุณ':m.name)+(m.channel==='whisper'?' → '+(m.to===net.selfId?'คุณ':m.toName):'');
+   const name=document.createElement('button');name.className='chat-name';name.textContent=(m.from===net.selfId?t('คุณ'):m.name)+(m.channel==='whisper'?' → '+(m.to===net.selfId?t('คุณ'):m.toName):'');
    name.onclick=()=>choosePeer(m.from===net.selfId?{id:m.to,name:m.toName}:{id:m.from,name:m.name});
    name.disabled=m.from===net.selfId&&!m.to;
    const label=document.createElement('small');label.textContent='['+CHANNELS[m.channel]+'] ';
@@ -27,13 +28,13 @@ export function createChatView({net,show,close,toast}){
  }
  function choosePeer(person){if(!person?.id)return;peer=person;channel='whisper';open();}
  function open(person){
-  if(!net.ready){toast('รอเชื่อมต่อเกมก่อนเปิดแชท');return;}
-  if(!net.chatEnabled){toast('แชทยังไม่พร้อม กรุณาเข้าเกมใหม่หลังอัปเดต');return;}
+  if(!net.ready){toast(t('รอเชื่อมต่อเกมก่อนเปิดแชท'));return;}
+  if(!net.chatEnabled){toast(t('แชทยังไม่พร้อม กรุณาเข้าเกมใหม่หลังอัปเดต'));return;}
   if(person){peer=person;channel='whisper';}loadMuted();
   if($('chatInput'))draft=$('chatInput').value;
-  show(`<section id="chatPanel" aria-label="แชทในเกม"><header class="chat-heading"><div><small>COCKRO COMMUNITY</small><h2>พูดคุย</h2></div><button id="chatMinimize" aria-label="ย่อแชท">ย่อ −</button></header><nav class="chat-tabs" aria-label="ช่องแชท">${Object.entries(CHANNELS).map(([id,label])=>`<button data-chat-channel="${id}" aria-pressed="${id===channel}">${label}</button>`).join('')}</nav><div id="chatRecipient" ${channel!=='whisper'?'hidden':''}><input id="chatTo" maxlength="20" placeholder="ชื่อตัวละครที่จะกระซิบ" aria-label="ผู้รับข้อความส่วนตัว" autocomplete="off"><button id="chatMute" ${!peer?'hidden':''}>ปิดเสียง</button></div><div id="chatLog" role="log" aria-label="ข้อความแชท" aria-live="polite" aria-relevant="additions"></div><form id="chatForm"><input id="chatInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="ข้อความแชท"><button id="chatSend" type="submit">ส่ง ➤</button></form><footer class="chat-footer"><span id="chatStatus" role="status">แชทสด • แตะชื่อเพื่อตอบส่วนตัว • เกมยังดำเนินต่อ</span><button id="chatUnmute">เลิกปิดเสียง (${muted.size})</button></footer></section>`);
+  show(ui`<section id="chatPanel" aria-label="แชทในเกม"><header class="chat-heading"><div><small>COCKRO COMMUNITY</small><h2>พูดคุย</h2></div><button id="chatMinimize" aria-label="ย่อแชท">ย่อ −</button></header><nav class="chat-tabs" aria-label="ช่องแชท">${Object.entries(CHANNELS).map(([id,label])=>`<button data-chat-channel="${id}" aria-pressed="${id===channel}">${label}</button>`).join('')}</nav><div id="chatRecipient" ${channel!=='whisper'?'hidden':''}><input id="chatTo" maxlength="20" placeholder="ชื่อตัวละครที่จะกระซิบ" aria-label="ผู้รับข้อความส่วนตัว" autocomplete="off"><button id="chatMute" ${!peer?'hidden':''}>ปิดเสียง</button></div><div id="chatLog" role="log" aria-label="ข้อความแชท" aria-live="polite" aria-relevant="additions"></div><form id="chatForm"><input id="chatInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="ข้อความแชท"><button id="chatSend" type="submit">ส่ง ➤</button></form><footer class="chat-footer"><span id="chatStatus" role="status">แชทสด • แตะชื่อเพื่อตอบส่วนตัว • เกมยังดำเนินต่อ</span><button id="chatUnmute">เลิกปิดเสียง (${muted.size})</button></footer></section>`);
   unread=0;badge();$('chatInput').value=draft;$('chatSend').disabled=pending;
-  if(peer){$('chatTo').value=peer.name;$('chatMute').textContent=muted.has(peer.id)?'เปิดเสียง':'ปิดเสียง';}
+  if(peer){$('chatTo').value=peer.name;$('chatMute').textContent=muted.has(peer.id)?t('เปิดเสียง'):t('ปิดเสียง');}
   $('chatTo').oninput=()=>{peer=null;$('chatMute').hidden=true;};
   $('chatInput').oninput=()=>draft=$('chatInput').value;
   $('chatMinimize').onclick=()=>{draft=$('chatInput').value;close();};
@@ -43,17 +44,17 @@ export function createChatView({net,show,close,toast}){
   $('chatForm').onsubmit=e=>{
    e.preventDefault();if(pending)return;const input=$('chatInput'),text=input.value.trim();
    if(!text||Array.from(text).length>200){status(ERRORS.invalid_text);return;}
-   const toName=$('chatTo').value.trim();if(channel==='whisper'&&!toName){status('กรุณาระบุชื่อตัวละครผู้รับ');$('chatTo').focus();return;}
-   if(!net.send({type:'chat',channel,text,...(channel==='whisper'?{to:peer?.id,toName}: {})})){status('การเชื่อมต่อขาด ข้อความยังไม่ถูกส่ง');return;}
-   pending=true;pendingText=text;$('chatSend').disabled=true;status('กำลังส่ง…');
-   timer=setTimeout(()=>{pending=false;if($('chatSend'))$('chatSend').disabled=false;status('ยังไม่ได้รับการยืนยัน ตรวจข้อความก่อนส่งซ้ำ');},8000);
+   const toName=$('chatTo').value.trim();if(channel==='whisper'&&!toName){status(t('กรุณาระบุชื่อตัวละครผู้รับ'));$('chatTo').focus();return;}
+   if(!net.send({type:'chat',channel,text,...(channel==='whisper'?{to:peer?.id,toName}: {})})){status(t('การเชื่อมต่อขาด ข้อความยังไม่ถูกส่ง'));return;}
+   pending=true;pendingText=text;$('chatSend').disabled=true;status(t('กำลังส่ง…'));
+   timer=setTimeout(()=>{pending=false;if($('chatSend'))$('chatSend').disabled=false;status(t('ยังไม่ได้รับการยืนยัน ตรวจข้อความก่อนส่งซ้ำ'));},8000);
   };render();$('chatLog').scrollTop=$('chatLog').scrollHeight;
  }
 
  function mount(){
   if($('chatDock'))return;
-  const dock=document.createElement('section');dock.id='chatDock';dock.setAttribute('aria-label','แถบพูดคุย');
-  dock.innerHTML='<button type="button" id="dockToggle" aria-label="เปิดหรือพับช่องพูด" aria-controls="dockForm" aria-expanded="false">💬</button><form id="dockForm"><select id="dockChannel" aria-label="รูปแบบข้อความ"><option value="map">พูด</option><option value="world">ตะโกน</option></select><input id="dockInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="พิมพ์ข้อความ"><button type="submit" id="dockSend" aria-label="ส่งข้อความ">➤</button><button type="button" id="dockHistory" aria-label="ประวัติแชท">⋯</button></form><small id="dockStatus" role="status">พูดในแผนที่ • ตะโกนถึงทุกแผนที่</small>';
+  const dock=document.createElement('section');dock.id='chatDock';dock.setAttribute('aria-label',t('แถบพูดคุย'));
+  dock.innerHTML=t('<button type="button" id="dockToggle" aria-label="เปิดหรือพับช่องพูด" aria-controls="dockForm" aria-expanded="false">💬</button><form id="dockForm"><select id="dockChannel" aria-label="รูปแบบข้อความ"><option value="map">พูด</option><option value="world">ตะโกน</option></select><input id="dockInput" maxlength="400" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์ข้อความ…" aria-label="พิมพ์ข้อความ"><button type="submit" id="dockSend" aria-label="ส่งข้อความ">➤</button><button type="button" id="dockHistory" aria-label="ประวัติแชท">⋯</button></form><small id="dockStatus" role="status">พูดในแผนที่ • ตะโกนถึงทุกแผนที่</small>');
   document.body.append(dock);
   $('dockToggle').onclick=()=>{
    const open=dock.classList.toggle('expanded');
@@ -63,7 +64,7 @@ export function createChatView({net,show,close,toast}){
   const input=$('dockInput');input.addEventListener('focus',()=>{document.documentElement.classList.add('chat-typing');window.dispatchEvent(new Event('blur'));});input.addEventListener('blur',()=>document.documentElement.classList.remove('chat-typing'));
   $('dockChannel').onchange=()=>{$('dockChannel').style.color=$('dockChannel').value==='world'?'#ffd477':'#92e5ff';};
   $('dockHistory').onclick=()=>open();
-  $('dockForm').onsubmit=e=>{e.preventDefault();if(pending)return;const text=input.value.trim();if(!text||Array.from(text).length>200){status(ERRORS.invalid_text);return;}if(!net.ready||!net.chatEnabled||!net.send({type:'chat',channel:$('dockChannel').value,text})){status('การเชื่อมต่อขาด ข้อความยังไม่ถูกส่ง');return;}pending=true;pendingText=text;$('dockSend').disabled=true;status('กำลังส่ง…');input.blur();timer=setTimeout(()=>{pending=false;if($('dockSend'))$('dockSend').disabled=false;status('ยังไม่ได้รับการยืนยัน ตรวจประวัติก่อนส่งซ้ำ');},8000);};
+  $('dockForm').onsubmit=e=>{e.preventDefault();if(pending)return;const text=input.value.trim();if(!text||Array.from(text).length>200){status(ERRORS.invalid_text);return;}if(!net.ready||!net.chatEnabled||!net.send({type:'chat',channel:$('dockChannel').value,text})){status(t('การเชื่อมต่อขาด ข้อความยังไม่ถูกส่ง'));return;}pending=true;pendingText=text;$('dockSend').disabled=true;status(t('กำลังส่ง…'));input.blur();timer=setTimeout(()=>{pending=false;if($('dockSend'))$('dockSend').disabled=false;status(t('ยังไม่ได้รับการยืนยัน ตรวจประวัติก่อนส่งซ้ำ'));},8000);};
  }
  function drawBubbles(g,position,now=performance.now()){
   for(const [id,b]of bubbles){if(now>=b.until){bubbles.delete(id);continue;}const q=position(id);if(!q)continue;
@@ -80,11 +81,19 @@ export function createChatView({net,show,close,toast}){
  net.onChat=m=>{
   loadMuted();
   if(!CHANNELS[m.channel]||typeof m.text!=='string'||history.some(x=>x.id===m.id))return;
-  if(m.from===net.selfId){if($('dockInput')?.value.trim()===pendingText)$('dockInput').value='';if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if(draft.trim()===pendingText){draft='';if($('chatInput'))$('chatInput').value='';}if($('chatSend'))$('chatSend').disabled=false;status('ส่งแล้ว');}
+  if(m.from===net.selfId){if($('dockInput')?.value.trim()===pendingText)$('dockInput').value='';if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if(draft.trim()===pendingText){draft='';if($('chatInput'))$('chatInput').value='';}if($('chatSend'))$('chatSend').disabled=false;status(t('ส่งแล้ว'));}
   if(muted.has(m.from))return;if(m.channel!=='whisper'){bubbles.set(m.from,{text:m.text,channel:m.channel,until:performance.now()+5500});if(bubbles.size>64)bubbles.delete(bubbles.keys().next().value);}history.push(m);history=history.slice(-120);
   if(!isOpen()&&m.from!==net.selfId){unread++;badge();}render();
  };
- net.onChatError=code=>{if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if($('chatSend'))$('chatSend').disabled=false;status(ERRORS[code]||'ส่งข้อความไม่ได้ กรุณาลองใหม่');};
- return {open,mount,drawBubbles,reset(){bubbles.clear();$('chatDock')?.remove?.();document.documentElement?.classList.remove('chat-typing');clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
+ net.onChatError=code=>{if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if($('chatSend'))$('chatSend').disabled=false;status(ERRORS[code]||t('ส่งข้อความไม่ได้ กรุณาลองใหม่'));};
+ function refreshLanguage(){
+  if(!$('chatDock'))return;
+  $('chatDock').setAttribute('aria-label',t('แถบพูดคุย'));
+  for(const [id,source] of [['dockToggle','เปิดหรือพับช่องพูด'],['dockChannel','รูปแบบข้อความ'],['dockInput','พิมพ์ข้อความ'],['dockSend','ส่งข้อความ'],['dockHistory','ประวัติแชท']])$(id)?.setAttribute('aria-label',t(source));
+  $('dockInput').placeholder=t('พิมพ์ข้อความ…');
+  for(const option of $('dockChannel').options)option.textContent=CHANNELS[option.value];
+  if(!pending)$('dockStatus').textContent=t('พูดในแผนที่ • ตะโกนถึงทุกแผนที่');
+ }
+ return {open,mount,refreshLanguage,drawBubbles,reset(){bubbles.clear();$('chatDock')?.remove?.();document.documentElement?.classList.remove('chat-typing');clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
 }
 

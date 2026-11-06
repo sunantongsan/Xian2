@@ -1,3 +1,4 @@
+import {t,ui} from './i18n.js';
 import {DOCTOR_UV} from './mutation.js';
 // Ground geometry is authored against the actual alien map, not the retired village.
 // Tile maps (type 'tiles', e.g. ดาวฮีโร่) are handled by tilemap.js.
@@ -16,23 +17,23 @@ const localPoly=(col,row,poly)=>poly.map(([u,v])=>[(col+u)/FOREST_COLS,(row+v)/F
 const forestWalk=[rect(.012,.012,.988,.988)];
 
 export const REGIONS=[
- {id:0,name:'ชายป่าแสงแรก',min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
- {id:1,name:'ทุ่งสปอร์อำพัน',min:11,max:20,center:[.50,.75],entry:[.50,.90]},
- {id:2,name:'สวนรากคริสตัล',min:21,max:30,center:[5/6,.75],entry:[5/6,.90]},
- {id:3,name:'ดงบุปผากินพลัง',min:31,max:40,center:[5/6,.25],entry:[5/6,.40]},
- {id:4,name:'แอ่งชีวะแสง',min:41,max:50,center:[.50,.25],entry:[.50,.40]},
- {id:5,name:'หัวใจป่าดาวไกล',min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
+ {id:0,get name(){return t('ชายป่าแสงแรก');},min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
+ {id:1,get name(){return t('ทุ่งสปอร์อำพัน');},min:11,max:20,center:[.50,.75],entry:[.50,.90]},
+ {id:2,get name(){return t('สวนรากคริสตัล');},min:21,max:30,center:[5/6,.75],entry:[5/6,.90]},
+ {id:3,get name(){return t('ดงบุปผากินพลัง');},min:31,max:40,center:[5/6,.25],entry:[5/6,.40]},
+ {id:4,get name(){return t('แอ่งชีวะแสง');},min:41,max:50,center:[.50,.25],entry:[.50,.40]},
+ {id:5,get name(){return t('หัวใจป่าดาวไกล');},min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
 ];
 export const MAPS={
- town:{id:'town',name:'หมู่บ้านฮีโร่ • สถานีออโรรา',image:'maps/aurora-outpost.webp',width:4000,height:2666,spawn:[.50,.445],walk:[
+ town:{id:'town',get name(){return t('หมู่บ้านฮีโร่ • สถานีออโรรา');},image:'maps/aurora-outpost.webp',width:4000,height:2666,spawn:[.50,.445],walk:[
  // Main plaza follows its painted perimeter, with broad side promenades.
  [[.29,.28],[.71,.28],[.77,.32],[.73,.43],[.76,.53],[.70,.64],[.61,.71],[.39,.71],[.25,.66],[.23,.54],[.27,.43],[.23,.31]],
  rect(.46,.23,.54,.97),rect(.68,.51,.97,.58),rect(.78,.49,.88,.55),rect(.15,.49,.32,.59),
  // Walk around the two landing pads without crossing parked craft or building roofs.
  rect(.12,.225,.31,.275),rect(.25,.17,.30,.34),rect(.04,.195,.12,.255),rect(.08,.245,.27,.29),
  rect(.69,.225,.88,.275),rect(.70,.17,.75,.34),rect(.88,.195,.96,.255),rect(.73,.245,.92,.29)
- ],pois:[{uv:BUFF_NPC_UV,name:'AURA-01 • รับบัฟ 1 ชั่วโมง',action:'buff'},{uv:MERCHANT_UV,name:'MERC-01 • หุ่นพ่อค้า',action:'shop'},{uv:[.85,.505],name:'FORGE-09 • หุ่นอัปเกรด',action:'forge'},{uv:DOCTOR_UV,name:'ดร.ไอสไตร์',action:'mutation'},{uv:[.50,.37],name:'ศูนย์ฝึกฮีโร่',action:'skills'},{uv:[.50,.94],name:'ถนนสู่ป่าชีวะแสง • Lv.1–60',action:'road',road:'forest'},{uv:[.94,.54],name:'ถนนสู่เขตฮีโร่ • Lv.61–120',action:'road',road:'star'}]},
- forest:{id:'forest',name:'ป่าชีวะแสง • Lv.1–60',image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],name:'ถนนกลับสถานีออโรรา',action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,name:r.name+' • '+r.min+'–'+r.max,action:'waypoint',region:r.id}))]}
+ ],pois:[{uv:BUFF_NPC_UV,get name(){return t('AURA-01 • รับบัฟ 1 ชั่วโมง');},action:'buff'},{uv:MERCHANT_UV,get name(){return t('MERC-01 • หุ่นพ่อค้า');},action:'shop'},{uv:[.85,.505],get name(){return t('FORGE-09 • หุ่นอัปเกรด');},action:'forge'},{uv:DOCTOR_UV,get name(){return t('ดร.ไอสไตร์');},action:'mutation'},{uv:[.50,.37],get name(){return t('ศูนย์ฝึกฮีโร่');},action:'skills'},{uv:[.50,.94],get name(){return t('ถนนสู่ป่าชีวะแสง • Lv.1–60');},action:'road',road:'forest'},{uv:[.94,.54],get name(){return t('ถนนสู่เขตฮีโร่ • Lv.61–120');},action:'road',road:'star'}]},
+ forest:{id:'forest',get name(){return t('ป่าชีวะแสง • Lv.1–60');},image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],get name(){return t('ถนนกลับสถานีออโรรา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]}
 
 };
 export function regionAt(point){const [u,v]=toUV(point,MAPS.forest);return REGIONS.reduce((best,r)=>Math.hypot(u-r.center[0],v-r.center[1])<Math.hypot(u-best.center[0],v-best.center[1])?r:best,REGIONS[0]);}

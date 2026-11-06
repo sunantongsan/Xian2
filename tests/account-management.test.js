@@ -22,7 +22,7 @@ test('whole account deletion purges all slots, archive and backup; revokes token
  for(const sub of ['deleted-characters','release-backups/before-test','play-receipts'])mkdirSync(join(f.dir,sub),{recursive:true});
  writeFileSync(join(f.dir,'deleted-characters',slot+'-123.json'),'{}');writeFileSync(join(f.dir,'release-backups/before-test',f.account+'.json'),'{}');
  writeFileSync(join(f.dir,'play-receipts',hash('receipt')+'.json'),JSON.stringify({owner:f.account,character:slot,orderId:'GPA.private',product:'cockro_gold_5000',gold:5000,credited:true}));
- const out=await f.api.manage(f.token,{action:'deleteAccount',password:'safe-pass-429',confirmText:'ลบบัญชี COCKRO'});assert.equal(out.identityCleanupPending,false);
+ const out=await f.api.manage(f.token,{action:'deleteAccount',password:'safe-pass-429',confirmText:'DELETE COCKRO'});assert.equal(out.identityCleanupPending,false);
  for(const p of [f.account+'.json',slot+'.json','deleted-characters/'+slot+'-123.json','release-backups/before-test/'+f.account+'.json'])assert(!existsSync(join(f.dir,p)));
  assert.throws(()=>f.api.resolve(f.token),/account_deleted/);assert(f.api.deletion.isCharacterDeleted(slot));
  const receipt=readFileSync(join(f.dir,'play-receipts',hash('receipt')+'.json'),'utf8');assert(!receipt.includes(f.account));assert(!receipt.includes(slot));assert(!receipt.includes('GPA.private'));
