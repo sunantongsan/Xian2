@@ -1,0 +1,16 @@
+name: Validate rewarded ad feedback
+on:
+  push:
+    branches: [fix/rewarded-ad-silent-buttons]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm test && npm run check && python3 tools/build_update_feed.py
