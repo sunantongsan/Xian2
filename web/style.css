@@ -662,3 +662,5 @@ html.chat-typing #controls{visibility:hidden}
 .text-settings{width:min(100%,420px);margin:auto;display:grid;gap:10px;padding:8px}.text-settings h2{margin:0 0 8px}.text-settings button,.text-settings select{width:100%;min-height:44px;font-size:15px}.text-settings p{margin:0;min-height:1.4em;font-size:13px}.text-settings img,.text-settings canvas,.text-settings .ui-art{display:none}
 
 #modal:has(.text-settings){background:#132631;background-image:none;max-width:460px}#modal:has(.text-settings)::before,#modal:has(.text-settings)::after{display:none}
+
+.account-identity{padding:8px 12px;border:1px solid #bda161;border-radius:12px;background:#091a25;text-align:left;overflow-wrap:anywhere}.account-identity p{margin:6px 0}.account-identity span{color:#ffe0a1;user-select:text}
