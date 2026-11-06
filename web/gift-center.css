@@ -25,3 +25,16 @@
 #modal .gift-days{gap:5px;margin:4px 0 6px}#modal .gift-day{padding:3px;gap:0}#modal .gift-day small{font-size:9px;line-height:12px}#modal .gift-day img{height:20px;width:20px}#modal .gift-day b{font-size:15px;line-height:18px}#modal .gift-day span{font-size:8px;line-height:10px}
 #modal .gift-center .gift-claim{min-height:32px;height:32px;padding:3px;font-size:13px;line-height:22px}#modal .gift-center #checkinMessage{min-height:12px;font-size:10px;line-height:12px;margin:4px 0 2px}#modal .gift-balance{font-size:9px;line-height:12px;margin:0}#modal .gift-center .gift-tasks{min-height:18px;height:18px;font-size:10px;line-height:14px;margin:2px auto 0;padding:0 4px}
 }
+
+#modal .gift-center .gold-store{padding:0;max-height:none;overflow:visible}
+#modal .gift-center .gold-pack-grid{margin:6px 0}
+@media(max-height:430px){
+#modal .gift-center .gold-pack{gap:2px;padding:4px}
+#modal .gift-center .gold-pack img{width:26px;height:26px}
+#modal .gift-center .gold-pack b{font-size:17px;line-height:20px}
+#modal .gift-center .gold-pack b em{font-size:9px;line-height:12px}
+#modal .gift-center .gold-pack small{font-size:9px;line-height:12px}
+#modal .gift-center .gold-pack button{min-height:30px;height:30px;padding:3px;font-size:12px}
+#modal .gift-center .gold-store-note,#modal .gift-center #goldStoreStatus{font-size:10px;line-height:13px;margin:4px 0}
+#modal .gift-center #restoreGold{min-height:30px;height:30px;padding:3px 8px;font-size:11px;margin:0}
+}
