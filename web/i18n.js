@@ -3,7 +3,7 @@ import {createLanguage} from './language.js';
 export const language = createLanguage({
   storage: typeof localStorage === 'undefined' ? undefined : localStorage,
   deviceLocale: typeof window === 'undefined' ? 'th' : navigator.language,
-  onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; }
+  onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; try { globalThis.CockroLanguage?.setLanguage(value); } catch {} }
 });
 export const messages = {
  'ตั้งค่า':'Settings', 'ภาษา':'Language', 'กลับ':'Back', 'บันทึก':'Save', 'ยกเลิก':'Cancel',
@@ -43,6 +43,7 @@ export const missingTranslations = new Set();
 export function t(text) {
   if (typeof text !== 'string' || language.current !== 'en') return text;
   if (Object.hasOwn(messages,text)) return messages[text];
+  if (Object.hasOwn(EN,text)) return EN[text];
   return text.replace(THAI_RUN, (part,offset,whole) => {
     const translated = EN[part];
     if (translated === undefined) { missingTranslations.add(part); return part; }

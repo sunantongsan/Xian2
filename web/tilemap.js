@@ -26,12 +26,12 @@ export function parseTiled(json){
   const z=info(zl[i]);if(z)zone[i]=z.id;if(g.zone>=0&&zone[i]<0)zone[i]=g.zone;
  }
  const zoneSet=json.tilesets.find(t=>t.name==='hero-star-zones');
- const zones=(zoneSet?.tiles||[]).sort((a,b)=>a.id-b.id).map(t=>{const p=props(t);return {...STAR_ZONES[t.id],name:p.name,en:p.en,min:p.minLevel,max:p.maxLevel};});
+ const zones=(zoneSet?.tiles||[]).sort((a,b)=>a.id-b.id).map(tile=>{const p=props(tile);return {...STAR_ZONES[tile.id],get name(){return t(p.name);},en:p.en,min:p.minLevel,max:p.maxLevel};});
  const toW=o=>({x:o.x/json.tileheight*T,y:o.y/json.tileheight*T});
  const spawns=(layer('spawns')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,name:o.name,...toW(o),zone:p.zone,level:p.level,species:p.species,count:p.count||1,elite:o.type==='elite'||o.type==='boss',boss:o.type==='boss'};});
- const pois=(layer('pois')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,name:o.name,action:o.type,zone:p.zone,world:toW(o)};});
+ const pois=(layer('pois')?.objects||[]).map(o=>{const p=props(o);return {id:o.id,get name(){return t(o.name);},action:o.type,zone:p.zone,world:toW(o)};});
  const gate=pois.find(p=>p.action==='warp'&&p.zone===0)||pois[0];
- return {type:'tiles',get name(){return mp.title||t('แผนที่');},N,rows,T,kind,color,walk,prop,zone,variant,zones,spawns,pois,spawn:gate.world};
+ return {type:'tiles',get name(){return t(mp.title||'แผนที่');},N,rows,T,kind,color,walk,prop,zone,variant,zones,spawns,pois,spawn:gate.world};
 }
 
 export const tileIndex=(scene,x,y)=>{const c=Math.floor(x/scene.T),r=Math.floor(y/scene.T);return c<0||r<0||c>=scene.N||r>=scene.rows?-1:r*scene.N+c;};

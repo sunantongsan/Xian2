@@ -1,7 +1,7 @@
 import {t,ui} from './i18n.js';
 import {FOREST_SPECIES,forestMonster} from './forest-species.js';
 import {monsterStats} from './balance.js';
-import {ADVANCED_MONSTERS} from './advanced-monsters.js';
+import {ADVANCED_MONSTERS,advancedMonster} from './advanced-monsters.js';
 export const ZONES=[{id:0,get name(){return t('ป่าชีวะแสง');},level:1,maxLevel:60},{id:1,get name(){return t('ดาวฮีโร่');},level:61,maxLevel:120}];
 export const SPECIES=[
  {get name(){return t('หยดพลังอำพัน');},attack:'melee',slot:0},
@@ -22,3 +22,10 @@ HEROES.push({id:"sword-cockro",get name(){return t("แมงสาบแมน 
 
 
 
+
+// Resolve server-authored monster labels locally; player names never use this path.
+const MONSTER_BY_ID=new Map(MONSTERS.map(m=>[m.id,m]));
+export function monsterLabel(def){
+ if(def.art==='advanced')return advancedMonster(def.level,{boss:def.boss,elite:def.elite}).name;
+ return MONSTER_BY_ID.get(def.id)?.name||t(def.name);
+}

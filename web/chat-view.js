@@ -86,6 +86,14 @@ export function createChatView({net,show,close,toast}){
   if(!isOpen()&&m.from!==net.selfId){unread++;badge();}render();
  };
  net.onChatError=code=>{if($('dockSend'))$('dockSend').disabled=false;clearTimeout(timer);pending=false;if($('chatSend'))$('chatSend').disabled=false;status(ERRORS[code]||t('ส่งข้อความไม่ได้ กรุณาลองใหม่'));};
- return {open,mount,drawBubbles,reset(){bubbles.clear();$('chatDock')?.remove?.();document.documentElement?.classList.remove('chat-typing');clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
+ function refreshLanguage(){
+  if(!$('chatDock'))return;
+  $('chatDock').setAttribute('aria-label',t('แถบพูดคุย'));
+  for(const [id,source] of [['dockToggle','เปิดหรือพับช่องพูด'],['dockChannel','รูปแบบข้อความ'],['dockInput','พิมพ์ข้อความ'],['dockSend','ส่งข้อความ'],['dockHistory','ประวัติแชท']])$(id)?.setAttribute('aria-label',t(source));
+  $('dockInput').placeholder=t('พิมพ์ข้อความ…');
+  for(const option of $('dockChannel').options)option.textContent=CHANNELS[option.value];
+  if(!pending)$('dockStatus').textContent=t('พูดในแผนที่ • ตะโกนถึงทุกแผนที่');
+ }
+ return {open,mount,refreshLanguage,drawBubbles,reset(){bubbles.clear();$('chatDock')?.remove?.();document.documentElement?.classList.remove('chat-typing');clearTimeout(timer);history=[];draft='';peer=null;channel='world';pending=false;unread=0;muted.clear();mutedOwner=undefined;if($('chatInput'))$('chatInput').value='';badge();}};
 }
 

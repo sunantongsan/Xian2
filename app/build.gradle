@@ -13,8 +13,8 @@ android {
         applicationId 'com.sunantongsan.networkcokcro'
         minSdk 26
         targetSdk 36
-        versionCode 113
-        versionName '4.42.0'
+        versionCode 114
+        versionName '4.46.0'
     }
     signingConfigs {
         release {
@@ -37,7 +37,7 @@ android {
         release {
             buildConfigField 'String', 'ADMOB_BANNER_UNIT_ID', '"' + (internalTestAds ? 'ca-app-pub-3940256099942544/6300978111' : adsConfig.bannerUnitId) + '"'
             buildConfigField 'boolean', 'TEST_ADS', internalTestAds.toString()
-            manifestPlaceholders = [appLabel: 'COCKRO', admobAppId: internalTestAds ? 'ca-app-pub-3940256099942544~3347511713' : adsApp]
+            manifestPlaceholders = [appLabel: 'COCKRO MAN', admobAppId: internalTestAds ? 'ca-app-pub-3940256099942544~3347511713' : adsApp]
             buildConfigField 'String', 'ADMOB_REWARDED_UNIT_ID', '"' + (internalTestAds ? 'ca-app-pub-3940256099942544/5224354917' : adsUnit) + '"'
             if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig signingConfigs.release }
     }
@@ -61,6 +61,7 @@ tasks.register('validateProductionAds') {
  }
 }
 tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'validateProductionAds' }
+
 
 
 

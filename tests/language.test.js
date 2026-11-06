@@ -44,3 +44,9 @@ test('server notices translate while chat and player payloads remain byte-identi
  for(const type of ['chat','state','roster']){const payload={type,name:'กลับ',text:'ตั้งค่า',message:'ภาษา'};assert.equal(localizeNotice(payload),payload);}
  language.choose('th');
 });
+test('existing server monster snapshots and parsed map names change without reload',async()=>{
+ const {advancedMonster}=await import('../web/advanced-monsters.js');const {monsterLabel}=await import('../web/catalog.js');const {parseTiled}=await import('../web/tilemap.js');const {readFileSync}=await import('node:fs');
+ language.choose('th');const snapshot=JSON.parse(JSON.stringify(advancedMonster(70,{boss:true})));const scene=parseTiled(JSON.parse(readFileSync(new URL('../web/maps/hero-star.json',import.meta.url))));const original=scene.zones[0].name;
+ language.choose('en');assert.doesNotMatch(monsterLabel(snapshot),/[\u0e00-\u0e7f]/);assert.match(monsterLabel(snapshot),/^Lord /);for(const zone of scene.zones)assert.doesNotMatch(zone.name,/[\u0e00-\u0e7f]/);
+ language.choose('th');assert.equal(scene.zones[0].name,original);assert.equal(monsterLabel(snapshot),snapshot.name);
+});
