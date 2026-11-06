@@ -2,12 +2,14 @@ import {createHash,createSign} from 'node:crypto';
 import {readFileSync,readdirSync,mkdirSync,existsSync,writeFileSync,renameSync} from 'node:fs';
 import {join} from 'node:path';
 import {GOLD_PRODUCTS} from '../web/gold-products.js';
+import {createPlayRelay} from './play-relay.js';
 export function validatePlayPurchase(data,{owner,character}){
  if(data.purchaseState!==0)throw Error('payment_pending');
  if(data.obfuscatedExternalAccountId!==owner||data.obfuscatedExternalProfileId!==character)throw Error('wrong_account');
  if((data.quantity??1)!==1)throw Error('invalid_quantity');
 }
-export function createPlayVerifier({credentialsPath=process.env.GOOGLE_PLAY_CREDENTIALS,fetcher=fetch}={}){
+export function createPlayVerifier({credentialsPath=process.env.GOOGLE_PLAY_CREDENTIALS,relayConfigPath=process.env.COCKRO_PLAY_RELAY_CONFIG,fetcher=fetch}={}){
+ if(relayConfigPath)return createPlayRelay({configPath:relayConfigPath,fetcher});
  let credentials=null;try{if(credentialsPath)credentials=JSON.parse(readFileSync(credentialsPath,'utf8'));}catch{}
  const enabled=!!(credentials?.client_email&&credentials?.private_key);let cached=null;
  async function access(){if(!enabled)throw Error('billing_unavailable');if(cached&&cached.until>Date.now())return cached.token;
