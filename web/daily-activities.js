@@ -1,7 +1,0 @@
-import {t,ui} from './i18n.js';
-export const dayKey=(now=Date.now())=>new Date(now+7*3600000).toISOString().slice(0,10);
-export const DAILY_TASKS=[{id:'hunt',get name(){return t('ล่ามอนสเตอร์ 100 ตัว');},target:100,g:5000,alloy:3},{id:'boss',get name(){return t('ปราบบอส 3 ตัว');},target:3,g:10000,alloy:5},{id:'upgrade',get name(){return t('ตีบวกสำเร็จ 1 ครั้ง');},target:1,g:2000,alloy:2}];
-export function dailyState(s,now=Date.now()){const day=dayKey(now);if(s.dailyActivities?.day!==day)s.dailyActivities={day,hunt:0,boss:0,upgrade:0,claimed:[]};return s.dailyActivities;}
-export function countActivity(s,id,now=Date.now()){const d=dailyState(s,now);if(DAILY_TASKS.some(t=>t.id===id))d[id]=Math.min(100000,(d[id]||0)+1);}
-export function claimActivity(s,id,now=Date.now()){const t=DAILY_TASKS.find(t=>t.id===id),d=dailyState(s,now);if(!t||d.claimed.includes(id)||(d[id]||0)<t.target)return false;s.gold+=t.g;s.upgradeItems.alloy=Math.min(99999,(s.upgradeItems.alloy||0)+t.alloy);d.claimed.push(id);return true;}
-export function normalizeActivities(s,v){const d=v.dailyActivities;if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d.day))return;s.dailyActivities={day:d.day,claimed:Array.isArray(d.claimed)?d.claimed.filter(id=>DAILY_TASKS.some(t=>t.id===id)):[]};for(const t of DAILY_TASKS)s.dailyActivities[t.id]=Number.isFinite(d[t.id])?Math.max(0,Math.min(100000,Math.floor(d[t.id]))):0;}

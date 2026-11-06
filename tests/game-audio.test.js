@@ -24,3 +24,8 @@ test('welcome requires interaction; scene changes stream one track and mute stop
 test('hidden page silences playback; rapid duplicate casts are throttled and overlap is bounded',()=>{
  const a=new GameAudio();a.unlock(true);for(const form of ['wave','dash','bolt','circle','field'])a.skill({form});assert.equal([...a.effects.values()].filter(x=>!x.paused).length,3);a.skill({form:'field'});assert.equal(a.effects.get('skill-field').plays,1);document.hidden=true;a.sync(true);assert.ok([...a.effects.values(),a.music].every(x=>x.paused));a.success();assert.ok(!a.effects.has('ui-confirm'));document.hidden=false;
 });
+test('native page pause stops all sound even before document.hidden changes',async()=>{
+ document.hidden=false;const a=new GameAudio();a.unlock(true);a.hit();a.suspend(true);a.sync(true);a.setScene('welcome');a.success();await Promise.resolve();
+ assert.ok(a.music.paused);assert.ok([...a.effects.values()].every(x=>x.paused));assert.ok(!a.effects.has('ui-confirm'));
+ a.suspend(false);assert.equal(a.music.paused,false);a.sync(false);a.suspend(true);a.suspend(false);assert.equal(a.music.paused,true);
+});

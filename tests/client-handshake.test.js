@@ -19,6 +19,9 @@ test('actual game client enters current server, receives world, and reconnects t
  const preference=new Promise(resolve=>client.onLanguageResult=resolve);
  client.send({type:'language',language:'en',requestId:'language-test'});const result=await preference;
  assert.equal(result.ok,true);assert.equal(result.language,'en');assert.equal(result.requestId,'language-test');assert(client.ready);
+ client.setSuspended(true);const before=state;
+ await new Promise(r=>setTimeout(r,250));assert.equal(state,before);assert.ok(client.pendingState);
+ client.setSuspended(false);assert.notEqual(state,before);assert.equal(client.pendingState,null);assert(client.ready);
  const token=storage.get('cockro-online-device-token-v1');const closed=once(client.socket,'close');client.disconnect();await closed;
  for(let i=0;i<30&&app.world.players.size;i++)await new Promise(r=>setTimeout(r,10));
  const restored=await client.connect('sword-cockro');assert.equal(restored.name,save.name);assert.equal(storage.get('cockro-online-device-token-v1'),token);assert(client.ready);assert.equal(state.self.map,'town');
