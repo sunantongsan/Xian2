@@ -1,5 +1,13 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ข้อมูลบัญชีที่ใช้งาน":"Current account details",
+"บัญชีเข้าเกม":"Game sign-in account",
+"บัญชีเดิมยังไม่มีข้อมูลอีเมล กรุณายืนยัน Google เดิม":"Email is not recorded for this older account. Verify the original Google account.",
+"บัญชีผู้เยี่ยมชม • ยังไม่เชื่อม Google":"Guest account \u2022 Google not linked",
+"ตัวละครในบัญชีนี้":"Characters on this account",
+"บัญชีจ่ายเงิน Google Play อาจต่างจากบัญชีเข้าเกม ตรวจอีเมลผู้จ่ายในหน้าชำระเงิน":"The Google Play payment account may differ. Check the payer email at checkout.",
+"ยืนยันและแสดงอีเมล Google เดิม":"Verify and show original Google email",
+
 "เลือกกระเป๋าตัวละครที่จะรับเหรียญก่อนชำระเงิน":"Choose the character wallet before checkout",
 "ตัวละครรับเหรียญ":"Recipient character",
 "ยืนยันตัวละครรับเหรียญ":"Confirm recipient",
