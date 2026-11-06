@@ -9,7 +9,8 @@ for old,new in changes:
     s=s.replace(old,new)
 stage=pathlib.Path('/srv/cockro-deploy/online-stage');stage.mkdir(parents=True,exist_ok=True)
 candidate=stage/'online-server.cjs';candidate.write_text(s)
-subprocess.run(['node','--check',str(candidate)],check=True)
+node=shutil.which('node') or '/opt/cockro-runner/externals/node24/bin/node'
+subprocess.run([node,'--check',str(candidate)],check=True)
 backup=stage/('before-open-maps-'+str(int(time.time()))+'.cjs');shutil.copy2(p,backup)
 def deploy():
     digest=hashlib.sha256(candidate.read_bytes()).hexdigest()

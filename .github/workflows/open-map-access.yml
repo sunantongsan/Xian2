@@ -13,5 +13,5 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Deploy through existing checksum-verified server helper
+      - name: Deploy through existing checksum-verified server helper and bundled Node
         run: python3 tools/open-map-access.py
