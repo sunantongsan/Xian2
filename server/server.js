@@ -78,18 +78,27 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
  accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
- send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'4.45.0',id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account});send(ws,world.snapshot(p));return;}
+ send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'4.45.0',id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
     if(d.type==='chat'){try{chat.handle(p,d);}catch(e){send(ws,{type:'chatError',message:e.message});}return;}
     if(d.type==='commerce'){
      try{const result=commerce.run(p,d);for(const socket of connections){const actor=socket.player?.();if(actor)send(socket,world.snapshot(actor));}send(ws,{type:'commerceResult',ok:true,...result});}
      catch(e){send(ws,{type:'commerceResult',ok:false,message:e.message,...(commerce.failed?{}:commerce.view(p))});if(commerce.failed){diskFailure=true;for(const socket of connections)socket.close(1011);}}return;
     }
     if(d.type==='language'){try{send(ws,{type:'languageResult',requestId:typeof d.requestId==='string'?d.requestId.slice(0,40):null,ok:true,...accounts.setLanguage(p.account,d.language)});}catch(e){send(ws,{type:'languageResult',requestId:typeof d.requestId==='string'?d.requestId.slice(0,40):null,ok:false,message:e.message});}return;}
-    if(d.type==='billingPurchase'){managing=true;p.economyBusy=true;try{const reward=await billing.redeem(p,d,persist);send(ws,world.snapshot(p));send(ws,{type:'billingResult',ok:true,...reward});}catch(e){send(ws,{type:'billingResult',ok:false,message:['payment_pending','wrong_account','wallet_full','billing_unavailable','purchase_busy'].includes(e.message)?e.message:'purchase_not_verified'});}finally{managing=false;p.economyBusy=false;if(ws.readyState!==1)activeAccounts.delete(p.account);}return;}
+    if(d.type==='billingNoticeAck'){try{billing.acknowledge(p.account,p.id,d.reference);}catch{}return;}
+    if(d.type==='billingPurchase'){managing=true;p.economyBusy=true;try{const reward=await billing.redeem(p,d,persist,profile=>{
+ const slot=CHARACTER_SLOTS.find(slot=>characterId(p.account,slot)===profile);if(!slot)return null;
+ const body=world.getActor(profile);if(body){body.account=p.account;return body;}
+ const state=readCharacter(directory,p.account,slot);return state?{id:profile,account:p.account,s:state}:null;
+ });send(ws,world.snapshot(p));send(ws,{type:'billingResult',ok:true,...reward});}catch(e){send(ws,{type:'billingResult',ok:false,message:['payment_pending','wrong_account','wallet_full','billing_unavailable','purchase_busy'].includes(e.message)?e.message:'purchase_not_verified'});}finally{managing=false;p.economyBusy=false;if(ws.readyState!==1)activeAccounts.delete(p.account);}return;}
     if(d.type==='testAdTicket'||d.type==='testAdComplete'){
      if(!testRewards){send(ws,{type:'adError',message:'test_rewards_disabled'});return;}
      try{const copy=structuredClone(p.s);
-      if(d.type==='billingPurchase'){managing=true;p.economyBusy=true;try{const reward=await billing.redeem(p,d,persist);send(ws,world.snapshot(p));send(ws,{type:'billingResult',ok:true,...reward});}catch(e){send(ws,{type:'billingResult',ok:false,message:['payment_pending','wrong_account','wallet_full','billing_unavailable','purchase_busy'].includes(e.message)?e.message:'purchase_not_verified'});}finally{managing=false;p.economyBusy=false;if(ws.readyState!==1)activeAccounts.delete(p.account);}return;}
+      if(d.type==='billingPurchase'){managing=true;p.economyBusy=true;try{const reward=await billing.redeem(p,d,persist,profile=>{
+ const slot=CHARACTER_SLOTS.find(slot=>characterId(p.account,slot)===profile);if(!slot)return null;
+ const body=world.getActor(profile);if(body){body.account=p.account;return body;}
+ const state=readCharacter(directory,p.account,slot);return state?{id:profile,account:p.account,s:state}:null;
+ });send(ws,world.snapshot(p));send(ws,{type:'billingResult',ok:true,...reward});}catch(e){send(ws,{type:'billingResult',ok:false,message:['payment_pending','wrong_account','wallet_full','billing_unavailable','purchase_busy'].includes(e.message)?e.message:'purchase_not_verified'});}finally{managing=false;p.economyBusy=false;if(ws.readyState!==1)activeAccounts.delete(p.account);}return;}
     if(d.type==='testAdTicket'){const ticket=issueTestTicket(copy,d.item);persist({id:p.id,s:copy});p.s=copy;send(ws,{type:'adTicket',user:p.id,nonce:ticket.nonce,item:ticket.item,test:true});}
       else{const reward=completeTestTicket(copy,d.nonce);persist({id:p.id,s:copy});p.s=copy;send(ws,world.snapshot(p));send(ws,{type:'adReward',...reward});}
      }catch(error){send(ws,{type:'adError',message:error.message});}return;
