@@ -1,4 +1,4 @@
-name: Open all COCKRO map levels
+name: Inspect COCKRO deploy access
 on:
   push:
     branches: [fix/mobile-layout-4.46.3]
@@ -6,12 +6,11 @@ on:
 permissions:
   contents: read
 jobs:
-  deploy:
+  inspect:
     runs-on: [self-hosted, linux, x64, cockro-vps-control]
-    timeout-minutes: 4
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
-      - name: Open map access with exact-match guard and rollback
-        run: python3 tools/open-map-access.py
+      - name: Read existing deployment permissions
+        run: |
+          sudo -n -l
+          ls /usr/local/sbin
