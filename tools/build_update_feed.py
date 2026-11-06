@@ -37,3 +37,8 @@ shutil.copytree(root/'web',output/'play')
 print(json.dumps(feed))
 
 
+
+# Review fixtures are never included in the Android patch or production output.
+import os,subprocess
+if os.environ.get('VERCEL_ENV')=='preview':
+ subprocess.run(['python3',str(root/'tools/build-mobile-review.py')],check=True)
