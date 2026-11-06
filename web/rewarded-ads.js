@@ -4,7 +4,7 @@ export class RewardedAdsClient {
   if(typeof window!=='undefined')window.addEventListener('cockro-ad',event=>{this.state={...this.state,...event.detail};this.onChange(this.state);});
  }
  get supported(){return typeof window!=='undefined'&&typeof window.CockroAds?.postMessage==='function';}
- send(data){if(!this.supported)return false;window.CockroAds.postMessage(JSON.stringify(data));return true;}
+ send(data){if(!this.supported)return false;try{window.CockroAds.postMessage(JSON.stringify(data));return true;}catch{return false;}}
  refresh(){this.send({type:'status'});}
  show(ticket={}){return this.send({type:'show',nonce:ticket.nonce||'',user:ticket.user||''});}
  privacy(){return this.send({type:'privacy'});}
