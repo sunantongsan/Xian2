@@ -1,5 +1,16 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"เลือกกระเป๋าตัวละครที่จะรับเหรียญก่อนชำระเงิน":"Choose the character wallet before checkout",
+"ตัวละครรับเหรียญ":"Recipient character",
+"ยืนยันตัวละครรับเหรียญ":"Confirm recipient",
+"เหรียญจะเข้าตัวละครนี้ แม้บัญชีชำระเงิน Google Play จะเป็นคนละบัญชี":"Coins go to this character, even if Google Play uses a different payment account.",
+"กลับไปเลือก":"Go back",
+"ยืนยันและไปชำระเงิน":"Confirm and pay",
+"ส่งเหรียญเข้าตัวละครแล้ว: ":"Coins delivered to: ",
+"รายการนี้ผูกกับบัญชีเกมอื่น หรือตัวละครผู้รับถูกลบ กรุณาติดต่อผู้ดูแล":"This purchase belongs to another game account or the recipient was deleted. Contact support.",
+"ยินดีด้วย!":"Congratulations!",
+"เติมเข้ากระเป๋าแล้ว":"Added to your wallet",
+"ยอดเยี่ยม!":"Awesome!",
 "กำลังพัก เก็บไฟล์ที่โหลดไว้…":"Pausing and saving download progress\u2026",
 "กำลังเปิดเกม…":"Opening game\u2026",
 "พักดาวน์โหลด":"Pause download",
