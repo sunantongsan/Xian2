@@ -1,0 +1,54 @@
+/* Phone layout uses one viewport and safe-area coordinate system. */
+html { -webkit-text-size-adjust:100%; text-size-adjust:100%; --edge-left:max(6px,env(safe-area-inset-left)); --edge-right:max(6px,env(safe-area-inset-right)); --edge-top:max(6px,env(safe-area-inset-top)); --edge-bottom:max(6px,env(safe-area-inset-bottom)); }
+#hud {left:var(--edge-left);right:var(--edge-right);top:var(--edge-top);--card-width:clamp(126px,17vw,148px);align-items:start;gap:5px;}
+#hud .player-panel {width:var(--card-width);min-width:0;max-width:none;align-self:start;padding:5px 6px 4px 34px;line-height:1.2;}
+#hud #portrait {width:24px;height:31px;left:5px;top:6px;}
+#hud #heroName {font-size:10px;line-height:14px;}
+#hud #level {font-size:9px;line-height:12px;margin:0 0 2px;}
+#hud .player-panel small {font-size:8px;line-height:11px;white-space:nowrap;}
+#hud .meter {margin:1px 0;height:3px;}
+#hud .meter.xp {height:2px;margin-top:2px;}
+#hud #money {font-size:8px;line-height:12px;margin-left:-28px;padding-top:3px;white-space:nowrap;gap:3px;}
+#hud #money .coin-balance img {width:11px;height:11px;}
+#hud .sector-card {height:65px;align-self:start;background-size:contain;}
+#hud .field-wire {display:none;}
+#controls {left:var(--edge-left);right:var(--edge-right);width:auto;bottom:var(--edge-bottom);transform:none;}
+@media(max-height:450px){#controls .combat{transform:scale(.83);transform-origin:bottom right;}#controls .movement{transform:scale(.83);transform-origin:bottom left;}}
+/* Scroll content instead of cutting off text behind a decorative frame. */
+body:not(.welcome-screen) #modal:not(:has(#chatPanel)) {max-width:calc(100vw - var(--edge-left) - var(--edge-right));max-height:calc(var(--visible-height,100dvh) - var(--edge-top) - var(--edge-bottom));top:calc(var(--visible-top,0px) + var(--edge-top));bottom:auto;left:var(--edge-left);right:var(--edge-right);margin:0 auto;transform:none;overflow-y:auto;overflow-x:hidden;scroll-padding:40px 8px 8px;}
+#modal #modalContent {min-width:0;}
+#modal p,#modal small,#modal summary {overflow-wrap:anywhere;}
+#modal .character-armory .sheet-side {overflow-y:auto;}
+/* Forge: compact header and equipment, scrollable workbench, visible footer. */
+body:not(.welcome-screen) #modal:has(.forge-panel) {width:min(760px,calc(100vw - var(--edge-left) - var(--edge-right)));height:calc(var(--visible-height,100dvh) - var(--edge-top) - var(--edge-bottom));max-height:460px;padding:6px 9px;border-width:1px;border-radius:10px;overflow:hidden;}
+#modal:has(.forge-panel) #modalContent {height:100%;}
+#modal .forge-panel {height:100%;display:flex;flex-direction:column;gap:5px;min-height:0;}
+#modal:has(.forge-panel) .forge-panel h2 {flex:none;margin:0;padding:2px 35px;font-size:15px;line-height:24px;min-height:28px;letter-spacing:0;}
+#modal:has(.forge-panel) h2::before,#modal:has(.forge-panel) h2::after {display:none;}
+#modal:has(.forge-panel) #windowClose {width:30px;height:30px;min-height:30px;min-width:30px;top:5px;right:6px;padding:0;font-size:20px;line-height:28px;}
+#modal .forge-tabs {flex:none;margin:0;gap:5px;}
+#modal .forge-panel button {font-size:11px;line-height:16px;min-height:32px;padding:4px 7px;}
+#modal .forge-layout {flex:1;min-height:0;grid-template-columns:minmax(0,1fr) 150px;gap:6px;overflow:auto;}
+#modal .forge-workbench {padding:5px;min-height:0;overflow:auto;justify-content:flex-start;}
+#modal .forge-workbench>* {flex-shrink:0;}
+#modal .forge-item {width:48px;height:48px;padding:2px;}
+#modal .forge-item b {font-size:16px;right:2px;bottom:0;}
+#modal .forge-item-name {font-size:11px;line-height:16px;margin:2px 0;}
+#modal .forge-stats {font-size:10px;line-height:15px;}
+#modal .forge-recipe {min-height:40px;margin-top:3px;gap:8px;}
+#modal .forge-gems {gap:6px;}
+#modal .forge-gems button {width:40px;height:40px;min-height:40px;padding:2px;}
+#modal .forge-material {grid-template-columns:36px auto;font-size:10px;}
+#modal .forge-material>img,#modal .forge-material>.loot-art {width:36px;height:36px;}
+#modal .forge-next {font-size:17px;}
+#modal .forge-inventory {padding:6px;gap:5px;overflow:auto;}
+#modal .forge-equipment {grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;}
+#modal .forge-equipment button {min-height:0;padding:2px;}
+#modal .forge-wallet {font-size:10px;line-height:15px;gap:3px;overflow-wrap:anywhere;}
+#modal .forge-footer {flex:none;padding:3px 0;gap:7px;align-items:center;}
+#modal .forge-footer>small {flex:1;min-width:0;font-size:10px;line-height:15px;}
+#modal .forge-footer>div {max-width:50%;flex-shrink:0;}
+#modal .forge-submit {min-width:100px;}
+#modal .forge-panel #adMessage {flex:none;font-size:10px;line-height:14px;margin:0;max-height:28px;overflow:auto;}
+#modal .forge-panel #adMessage:empty {display:none;}
+@media(max-width:500px){#modal .forge-layout{grid-template-columns:minmax(0,1fr) 105px;}#modal .forge-equipment{grid-template-columns:repeat(2,minmax(0,1fr));}#modal .forge-gems{gap:3px;}#modal .forge-gems button{width:34px;height:34px;min-height:34px;}}

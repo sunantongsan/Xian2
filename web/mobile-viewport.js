@@ -12,6 +12,10 @@ function syncViewport(){
 }
 window.visualViewport?.addEventListener('resize',syncViewport);
 window.visualViewport?.addEventListener('scroll',syncViewport);
-window.addEventListener('resize',syncViewport);syncViewport();
+window.addEventListener('resize',syncViewport);
+window.addEventListener('pageshow',syncViewport);
+window.addEventListener('orientationchange',syncViewport);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncViewport();});
+syncViewport();
 
 }
