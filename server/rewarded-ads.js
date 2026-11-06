@@ -6,7 +6,8 @@ const TTL=3600000, RETENTION=86400000;
 export function issueRewardTicket(s,item,now=Date.now()){
  const restore=rewardTarget(s,item,now);
  const tickets=(s.adTickets||[]).filter(t=>t.created>now-RETENTION);
- if(tickets.some(t=>!t.transaction&&t.created>now-90000))throw Error('ad_pending');
+ // A failed load has no SSV callback. Pending tickets must not impose a retry cooldown.
+ // Each attempt has a unique nonce; signed transaction verification below prevents duplicate grants.
  if(tickets.length>=100)throw Error('ad_limit');
  const ticket={nonce:randomBytes(24).toString('hex'),item,restore,created:now};
  s.adTickets=[...tickets,ticket];return ticket;
@@ -42,4 +43,5 @@ export function createSSVVerifier({fetchKeys=()=>fetch('https://www.gstatic.com/
   return p;
  };
 }
+
 

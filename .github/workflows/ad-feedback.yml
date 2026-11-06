@@ -1,7 +1,7 @@
 name: Validate rewarded ad feedback
 on:
   push:
-    branches: [fix/rewarded-ad-silent-buttons]
+    branches: [fix/ad-retry-no-cooldown]
 permissions:
   contents: read
 jobs:
@@ -13,4 +13,13 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: npm test && npm run check && python3 tools/build_update_feed.py
+      - run: npm test && npm run check && npm run build:server && python3 tools/build_update_feed.py
+
+      - run: npx esbuild server/smoke.js --bundle --platform=node --format=cjs --external:bufferutil --external:utf-8-validate --outfile=server/smoke.cjs
+      - run: sha256sum server/online-server.cjs server/smoke.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cockro-4444-server
+          path: |
+            server/online-server.cjs
+            server/smoke.cjs
