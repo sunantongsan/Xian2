@@ -1,16 +1,22 @@
 /* Phone layout uses one viewport and safe-area coordinate system. */
 html { -webkit-text-size-adjust:100%; text-size-adjust:100%; --edge-left:max(6px,env(safe-area-inset-left)); --edge-right:max(6px,env(safe-area-inset-right)); --edge-top:max(6px,env(safe-area-inset-top)); --edge-bottom:max(6px,env(safe-area-inset-bottom)); }
-#hud {left:var(--edge-left);right:var(--edge-right);top:var(--edge-top);--card-width:clamp(126px,17vw,148px);align-items:start;gap:5px;}
-#hud .player-panel {width:var(--card-width);min-width:0;max-width:none;align-self:start;padding:5px 6px 4px 34px;line-height:1.2;}
-#hud #portrait {width:24px;height:31px;left:5px;top:6px;}
-#hud #heroName {font-size:10px;line-height:14px;}
-#hud #level {font-size:9px;line-height:12px;margin:0 0 2px;}
-#hud .player-panel small {font-size:8px;line-height:11px;white-space:nowrap;}
-#hud .meter {margin:1px 0;height:3px;}
-#hud .meter.xp {height:2px;margin-top:2px;}
-#hud #money {font-size:8px;line-height:12px;margin-left:-28px;padding-top:3px;white-space:nowrap;gap:3px;}
-#hud #money .coin-balance img {width:11px;height:11px;}
-#hud .sector-card {height:65px;align-self:start;background-size:contain;}
+/* Separate the status card from the original right-hand artwork dimensions. */
+#hud {left:4px;right:var(--edge-right);top:var(--edge-top);--card-width:clamp(112px,15vw,132px);grid-template-columns:var(--card-width) 1fr auto;align-items:start;gap:5px;}
+#hud .player-panel {display:grid;grid-template-columns:26px minmax(0,1fr);grid-template-rows:14px 12px repeat(3,12px) 13px;gap:1px 0;width:var(--card-width);min-width:0;max-width:none;align-self:start;padding:4px;line-height:1.2;}
+#hud #portrait {width:23px;height:28px;left:4px;top:4px;}
+#hud #heroName {grid-area:1/2;font-size:10px;line-height:14px;}
+#hud #level {grid-area:2/2;font-size:8px;line-height:12px;margin:0;}
+#hud .player-panel .meter {grid-column:1/-1;height:12px;margin:0;border:0;border-radius:3px;background:#07131c;align-self:center;}
+#hud .player-panel .meter i {opacity:.5;}
+#hud .player-panel .meter:not(.mana):not(.xp) {grid-row:3;}
+#hud .player-panel .meter.mana {grid-row:4;}
+#hud .player-panel .meter.xp {grid-row:5;}
+#hud .player-panel small {grid-column:1/-1;z-index:1;font-size:8px;line-height:12px;white-space:nowrap;text-align:center;text-shadow:0 1px 2px #000;pointer-events:none;}
+#hud #hpText {grid-row:3;}#hud #mpText {grid-row:4;}#hud #xpText {grid-row:5;}
+#hud #money {grid-area:6/1/7/3;font-size:8px;line-height:13px;margin:0;padding:0;white-space:nowrap;gap:2px;justify-content:center;}
+#hud #money .coin-balance img {width:10px;height:10px;}
+#hud .sector-card {width:96px;height:44px;min-width:0;padding:0;align-self:start;justify-self:end;background-size:contain;background-color:transparent;border:0;border-radius:0;box-shadow:none;}
+#hud .sector-card.ad-loaded {width:var(--ad-width);height:var(--ad-height);background:none;pointer-events:none;}
 #hud .field-wire {display:none;}
 #controls {left:var(--edge-left);right:var(--edge-right);width:auto;bottom:var(--edge-bottom);transform:none;}
 @media(max-height:450px){#controls .combat{transform:scale(.83);transform-origin:bottom right;}#controls .movement{transform:scale(.83);transform-origin:bottom left;}}

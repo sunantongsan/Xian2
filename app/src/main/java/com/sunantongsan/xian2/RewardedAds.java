@@ -22,6 +22,9 @@ final class RewardedAds {
  private AdView banner;
  private boolean rosterVisible, foreground;
  private int bannerInset;
+ private AdView fieldAd;
+ private boolean fieldWanted,fieldLoaded;
+ private double fieldViewport,fieldTop,fieldRight,fieldMaxWidth,fieldMaxHeight;
  private String failure="";
  private final android.os.Handler handler=new android.os.Handler(android.os.Looper.getMainLooper());
  private int requestId;
@@ -35,13 +38,16 @@ final class RewardedAds {
  }
  private void initialize(){
   if(dead||!canLoadAds()||initialized||initializing)return;
-  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;syncBanner();emit("status");}));
+  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;syncBanner();syncFieldBanner();emit("status");}));
  }
  void attach(WebView view){web=view;if(!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))return;
   WebViewCompat.addWebMessageListener(view,"CockroAds",Collections.singleton(ORIGIN),(v,message,origin,mainFrame,reply)->{
    if(!mainFrame||!ORIGIN.equals(origin.toString())||dead)return;
    try{JSONObject data=new JSONObject(message.getData());String type=data.optString("type");
-    if("rosterBanner".equals(type)){rosterVisible=data.optBoolean("visible");syncBanner();}
+    if("fieldBanner".equals(type)){
+     fieldWanted=data.optBoolean("visible");fieldViewport=data.optDouble("viewportWidth",0);fieldTop=data.optDouble("top",0);fieldRight=data.optDouble("right",0);fieldMaxWidth=data.optDouble("maxWidth",0);fieldMaxHeight=data.optDouble("maxHeight",0);syncFieldBanner();
+    }
+    else if("rosterBanner".equals(type)){rosterVisible=data.optBoolean("visible");syncBanner();}
     else if("status".equals(type))emit("status");
     else if("privacy".equals(type)&&!busy){UserMessagingPlatform.showPrivacyOptionsForm(activity,error->{initialize();emit("status");});}
     else if("show".equals(type))show(data.optString("nonce"),data.optString("user"));
@@ -49,7 +55,7 @@ final class RewardedAds {
   });
  }
  // The roster gets a separate row outside the WebView, so an ad cannot cover its buttons.
- void setForeground(boolean value){foreground=value;syncBanner();}
+ void setForeground(boolean value){foreground=value;syncBanner();syncFieldBanner();}
  private void syncBanner(){
   if(dead||!foreground||!rosterVisible||!initialized||!canLoadAds()||web==null){
    clearBanner();return;
@@ -85,6 +91,41 @@ final class RewardedAds {
   if(old.getParent() instanceof FrameLayout)((FrameLayout)old.getParent()).removeView(old);
   old.destroy();setBannerInset(0);
  }
+ // Gameplay banner: keep Google's creative at its SDK size; reserve space only after load.
+ private void syncFieldBanner(){
+  if(dead||web==null||!(web.getParent() instanceof FrameLayout))return;
+  FrameLayout host=(FrameLayout)web.getParent();
+  double scale=fieldViewport>0?web.getWidth()/fieldViewport:0;
+  int width=AdSize.BANNER.getWidthInPixels(activity),height=AdSize.BANNER.getHeightInPixels(activity);
+  boolean fits=Double.isFinite(scale)&&scale>0&&Double.isFinite(fieldTop)&&Double.isFinite(fieldRight)&&fieldTop>=0&&fieldRight>=0&&width<=fieldMaxWidth*scale&&height<=fieldMaxHeight*scale&&fieldRight*scale+width<=web.getWidth()&&fieldTop*scale+height<=web.getHeight();
+  if(!foreground||!fieldWanted||rosterVisible||!initialized||!canLoadAds()||!fits){
+   if(fieldAd!=null)fieldAd.setVisibility(View.GONE);
+   emitFieldBanner(false,0,0);return;
+  }
+  final int right=(int)Math.ceil(host.getWidth()-web.getRight()+fieldRight*scale);
+  final int top=(int)Math.ceil(web.getTop()+fieldTop*scale);
+  FrameLayout.LayoutParams params=new FrameLayout.LayoutParams(width,height,Gravity.TOP|Gravity.RIGHT);
+  params.rightMargin=right;params.topMargin=top;
+  if(fieldAd==null){
+   AdView view=new AdView(activity);fieldAd=view;fieldLoaded=false;
+   view.setAdSize(AdSize.BANNER);view.setAdUnitId(BuildConfig.ADMOB_BANNER_UNIT_ID);
+   view.setVisibility(View.INVISIBLE);host.addView(view,params);
+   view.setAdListener(new AdListener(){
+    @Override public void onAdLoaded(){if(dead||fieldAd!=view)return;fieldLoaded=true;syncFieldBanner();}
+    @Override public void onAdFailedToLoad(LoadAdError error){if(fieldAd!=view)return;fieldLoaded=false;view.setVisibility(View.GONE);emitFieldBanner(false,0,0);}
+   });
+   view.loadAd(new AdRequest.Builder().build());
+  }else{
+   fieldAd.setLayoutParams(params);fieldAd.setVisibility(fieldLoaded?View.VISIBLE:View.INVISIBLE);
+  }
+  emitFieldBanner(fieldLoaded,width/scale,height/scale);
+ }
+ private void emitFieldBanner(boolean loaded,double width,double height){
+  if(dead||web==null)return;
+  try{JSONObject event=new JSONObject();event.put("loaded",loaded);event.put("width",width);event.put("height",height);
+   web.evaluateJavascript("window.dispatchEvent(new CustomEvent('cockro-field-banner',{detail:"+event.toString()+"}));",null);
+  }catch(Exception ignored){}
+ }
  private void fail(String stage,AdError error){failure=stage+" • "+error.getDomain()+" / "+error.getCode()+" • "+error.getMessage();emit("unavailable");}
  private void emit(String status){
   if(dead||web==null)return;
@@ -115,6 +156,5 @@ final class RewardedAds {
    }
   });
  }
- void destroy(){dead=true;clearBanner();requestId++;handler.removeCallbacksAndMessages(null);web=null;}
+ void destroy(){dead=true;clearBanner();if(fieldAd!=null){if(fieldAd.getParent() instanceof FrameLayout)((FrameLayout)fieldAd.getParent()).removeView(fieldAd);fieldAd.destroy();fieldAd=null;}requestId++;handler.removeCallbacksAndMessages(null);web=null;}
 }
-

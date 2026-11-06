@@ -1,3 +1,4 @@
+import {installFieldBanner} from './field-banner.js';
 import {language,t,ui,localizeStatic,translateSegment,formatLocale} from './i18n.js';
 import {giftShell,checkinPanelHTML} from './gift-center.js';
 import {rewardAdBlockReason} from './reward-ad-status.js';
@@ -81,7 +82,7 @@ let serverTimeOffset=0,pvpTarget=null,groundDrops=[],reportShown=false;
 let pvpAuto=true,pvpNextSkill=0,pvpActionUntil=0,pvpManualSkill=null;
 let onlineMode=false,onlineEvent=0,onlineView=null,onlinePaint=0;
 const net=new OnlineClient(applyOnlineState,()=>{});
-installMobileViewport();
+installMobileViewport();installFieldBanner();
 const chatUI=createChatView({net,show,close,toast});
 $('chatToggle').onclick=()=>chatUI.open();
 $('inventoryShortcut').onclick=()=>{if(p&&!travelBusy){sheetSel=null;statMenu('bag');}};
