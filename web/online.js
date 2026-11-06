@@ -1,4 +1,4 @@
-import {language,t,ui} from './i18n.js';
+import {language,t,ui,localizeNotice} from './i18n.js';
 import {MoveHistory} from './move-reconcile.js';
 import {receiveActor} from './render-motion.js';
 export const ONLINE_URL='wss://game.guardscan.xyz/online/world';
