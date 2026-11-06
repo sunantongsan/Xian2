@@ -14,4 +14,4 @@ async function accessToken(){
  if(!r.ok)throw Error('publisher_unavailable');const d=await r.json();if(typeof d.access_token!=='string'||!d.access_token)throw Error('publisher_unavailable');
  cached={token:d.access_token,until:Date.now()+Math.max(0,Math.min(Number(d.expires_in)||0,3600)-60)*1000};return cached.token;
 }
-Deno.serve(createRelayHandler({secret:Deno.env.get('COCKRO_PLAY_RELAY_TOKEN'),accessToken}));
+Deno.serve(createRelayHandler({secretHash:'c9faec75082cecb74e2008a1c418452bcd5de188a06746563d5de21b9b25cb4d8',accessToken}));
