@@ -4,12 +4,15 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const encoder=new TextEncoder();
 async function hash(text){return new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(text)));}
 async function equal(a,b){const [x,y]=await Promise.all([hash(a),hash(b)]);let difference=0;for(let i=0;i<x.length;i++)difference|=x[i]^y[i];return difference===0;}
-export function createRelayHandler({secret,accessToken,fetcher=fetch}){
+export function createRelayHandler({secret,secretHash,accessToken,fetcher=fetch}){
  return async req=>{
   if(req.method!=='POST')return json({error:'method_not_allowed'},405);
-  if(!/^[a-f0-9]{64}$/.test(secret||''))return json({error:'not_configured'},503);
+  if(!/^[a-f0-9]{64}$/.test(secretHash||secret||''))return json({error:'not_configured'},503);
   const auth=req.headers.get('Authorization')||'';
-  if(!/^Bearer [a-f0-9]{64}$/.test(auth)||!await equal(auth.slice(7),secret))return json({error:'unauthorized'},401);
+  if(!/^Bearer [a-f0-9]{64}$/.test(auth))return json({error:'unauthorized'},401);
+  const provided=auth.slice(7);
+  const digest=secretHash?[...await hash(provided)].map(x=>x.toString(16).padStart(2,'0')).join(''):provided;
+  if(!await equal(digest,secretHash||secret))return json({error:'unauthorized'},401);
   try{
    if(Number(req.headers.get('Content-Length')||0)>8192)return json({error:'too_large'},413);
    const raw=await req.text();if(raw.length>8192)return json({error:'too_large'},413);
