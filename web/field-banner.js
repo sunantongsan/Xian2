@@ -1,6 +1,6 @@
 // The native SDK owns the ad creative. Only reserve its reported, unscaled size.
 export function installFieldBanner(){
- if(!document.documentElement)return;
+ if(!document.documentElement||!document.querySelector)return;
  const slot=document.querySelector('.sector-card'),hud=document.getElementById('hud'),modal=document.getElementById('modal');
  if(!slot||!hud)return;
  let frame=0,last='';
