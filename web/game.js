@@ -330,11 +330,11 @@ function drawTownRoads(){if(!town||!scene)return;ctx.save();ctx.lineCap='butt';f
 const ink=road.min>s.level?'#ffe0a0':'#e4fff0';
 ctx.save();ctx.globalAlpha=.88;
 const tx=qa.x+dx*.30,ty=qa.y+dy*.30;
-ctx.translate(tx,ty);ctx.scale(scale,scale*.68);
-ctx.font='bold 23px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.translate(tx,ty);ctx.scale(scale,scale*.85);
+ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.lineWidth=2;ctx.strokeStyle='#344956';ctx.strokeText(road.id==='forest'?'1–60':'61–120',0,0,82);
 ctx.fillStyle=ink;ctx.fillText(road.id==='forest'?'1–60':'61–120',0,0,82);ctx.restore();
-const ux=dx/len,uy=dy/len,ax=qa.x+dx*.70,ay=qa.y+dy*.70,shaft=20*scale,wing=13*scale;
+const ux=dx/len,uy=dy/len,ax=qa.x+dx*.43,ay=qa.y+dy*.43,shaft=20*scale,wing=13*scale;
 ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle=ink;ctx.lineWidth=5*scale;ctx.lineJoin='round';ctx.lineCap='round';
 ctx.beginPath();ctx.moveTo(ax-ux*shaft,ay-uy*shaft);ctx.lineTo(ax+ux*shaft,ay+uy*shaft);
 ctx.moveTo(ax+ux*(shaft-wing)+nx*wing,ay+uy*(shaft-wing)+ny*wing);ctx.lineTo(ax+ux*shaft,ay+uy*shaft);ctx.lineTo(ax+ux*(shaft-wing)-nx*wing,ay+uy*(shaft-wing)-ny*wing);ctx.stroke();ctx.restore();}ctx.restore();}
