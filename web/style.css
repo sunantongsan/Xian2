@@ -655,3 +655,5 @@ html.chat-typing #controls{visibility:hidden}
 #modal .forge-result-message{padding:8px 5px;color:#ead1cd;}
 #modal:has(.forge-result-failure){border-color:#b17466!important;}
 @media(max-height:360px){#modal:has(.forge-result){padding:8px!important;}#modal .forge-result{gap:5px;}#modal .forge-result-sigil{font-size:21px;line-height:23px;}#modal .forge-result h2{font-size:16px!important;}#modal .forge-result-icon{flex-basis:44px;width:44px;height:44px;}#modal .forge-result #forgeContinue{min-height:34px!important;}}
+#modal:has(.forge-result) h2::before,#modal:has(.forge-result) h2::after{content:none!important;display:none!important;}
+#modal:has(.forge-result) #windowClose{width:28px!important;height:28px!important;min-height:28px!important;min-width:28px!important;right:7px!important;top:7px!important;padding:0!important;font-size:16px!important;border-radius:50%!important;box-shadow:none!important;border:1px solid #a89368!important;background:#193244!important;}
