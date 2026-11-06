@@ -70,3 +70,18 @@ test('expired Google deletion proof leaves account and game data intact',async t
  const file=join(f.dir,'accounts','session-'+hash(proof.token)+'.json'),session=JSON.parse(readFileSync(file));session.deleteReauthAt=Date.now()-300001;writeFileSync(file,JSON.stringify(session));assert.equal((await f.api.manage(proof.token,{action:'status'})).canDelete,false);
  await assert.rejects(f.api.manage(proof.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);assert(existsSync(join(f.dir,f.account+'.json')));
 });
+
+test('account details persist verified identity and same-account verification cannot switch characters',async t=>{
+ let uid='identity-one',email='owner@example.com';
+ const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:uid,email,user_metadata:{full_name:'Owner'},identities:[{provider:'google'}]}});
+ const f=setup(t,{fetcher});
+ assert.equal((await f.api.manage(f.token,{action:'status'})).email,null);
+ await assert.rejects(f.api.authStart(f.token,'verifyAccount'),/google_required/);
+ let flow=await f.api.authStart(f.token);const signed=await f.api.authFinish(flow.flow,'code');f.token=signed.token;
+ const original=f.api.resolve(f.token);let status=await f.api.manage(f.token,{action:'status'});
+ assert.equal(status.email,'owner@example.com');assert.equal(status.displayName,'Owner');assert(!('uid' in status));assert(!('token' in status));
+ flow=await f.api.authStart(f.token,'verifyAccount');uid='other';email='other@example.com';await assert.rejects(f.api.authFinish(flow.flow,'code'),/wrong_google_account/);
+ assert.equal(f.api.resolve(f.token),original);assert.equal((await f.api.manage(f.token,{action:'status'})).email,'owner@example.com');
+ uid='identity-one';email='owner@example.com';flow=await f.api.authStart(f.token,'verifyAccount');const proof=await f.api.authFinish(flow.flow,'code');assert(proof.accountIdentityReady);assert.equal(f.api.resolve(proof.token),original);
+ const restarted=createAccounts(f.dir,{fetcher});assert.equal((await restarted.manage(proof.token,{action:'status'})).email,'owner@example.com');assert(existsSync(join(f.dir,f.account+'.json')));
+});
