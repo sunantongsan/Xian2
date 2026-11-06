@@ -166,7 +166,7 @@ function refreshOnlineShop(){
  document.querySelectorAll('[data-reward-item]').forEach(b=>{b.disabled=false;b.textContent=ads.state.test?'ดูโฆษณาทดสอบ • รับ 1 ชิ้น':'ดูโฆษณา • รับ 1 ชิ้น';});
 }
 function onlineMenu(view){if(view==='checkin')return checkinMenu();if(view==='attributes')return statMenu('stats');if(view==='stats')return onlineInventory();onlineView=view;onlinePaint=performance.now();let html='';
- if(view==='checkin')html=checkinHTML(true)+dailyHTML(true);
+ if(view==='activities')html=dailyHTML(true);
  if(view==='shop')html=shopHTML(true);
  if(view==='forge')html=forgeHTML(true);
  if(view==='attributes')html=`<h2>ฮีโร่ออนไลน์ • Lv.${s.level}</h2><p>แต้มสถานะ ${s.statPoints} • ${s.gold.toLocaleString()} G</p><div class="grid">${Object.entries(s.attributes).map(([k,v])=>`<button data-op="stat" data-key="${k}">${k.toUpperCase()} ${v} +</button>`).join('')}</div><h3>อุปกรณ์</h3><div class="grid">${Object.entries(s.equip).filter(([,it])=>it).map(([slot,it])=>`<button data-op="unequip" data-slot="${slot}">ถอด ${escapeHTML(itemName(it,s.hero))}</button>`).join('')}</div><h3>กระเป๋า</h3><div class="grid">${s.bag.map(it=>`<article class="card"><b>${escapeHTML(itemName(it,s.hero))}</b><button data-op="equip" data-id="${it.id}">สวมใส่</button><button data-op="sell" data-id="${it.id}">ขาย • ${sellPrice(it)} G</button></article>`).join('')}</div>`;
@@ -614,7 +614,7 @@ function claimDailyGift(){
  clearTimeout(dailyGiftTimer);dailyGiftTimer=setTimeout(()=>{dailyGiftPending=false;if(onlineView==='gifts'){checkinMenu();$('checkinMessage').textContent='ยังไม่ได้รับคำยืนยัน ตรวจยอดเหรียญแล้วลองใหม่ได้';}},10000);
 }
 function checkinHTML(online=false){return checkinPanelHTML(s,Date.now()+(online?serverTimeOffset:0),dailyGiftPending);}
-function checkinMenu(){show(giftShell('daily',checkinHTML(onlineMode)));onlineView='gifts';bindGiftTabs();$('claimDailyGift').onclick=claimDailyGift;}
+function checkinMenu(){show(giftShell('daily',checkinHTML(onlineMode)));onlineView='gifts';bindGiftTabs();$('claimDailyGift').onclick=claimDailyGift;$('giftTasks').onclick=()=>{if(!onlineMode||!net.ready){$('checkinMessage').textContent='กรุณารอเชื่อมต่อออนไลน์';return;}onlineMenu('activities');};}
 let goldStore;function initGoldStore(){return goldStore??=createGoldStore({net,show:html=>{show(giftShell('coins',html));bindGiftTabs();},escape:escapeHTML,onSuccess:gold=>{toast('เติมสำเร็จ ได้รับ '+gold.toLocaleString()+' COCKRO coin');gameAudio.success();}});}
 
 function premiumStore(){initGoldStore().open();}
