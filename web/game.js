@@ -92,7 +92,7 @@ const shopAmounts=()=>JSON.stringify([s?.gold,s?.stones,s?.potions,s?.mpPotions,
 function adNotice(message){adMessage=message;let label=document.getElementById('adMessage');if(modal.open&&!label){label=document.createElement('p');label.id='adMessage';label.setAttribute('role','status');label.setAttribute('aria-live','polite');$('modalContent').prepend(label);}if(label)label.textContent=message;toast(message);}
 function refreshRewardButtons(){document.querySelectorAll('[data-reward-item]').forEach(b=>{b.disabled=b.dataset.rewardItem==='dailyCheckin'&&!!s&&checkinStatus(s,Date.now()+serverTimeOffset).claimed;});}
 const ads=new RewardedAdsClient(state=>{
- if(state.status==='loading')adScreenOpen=true;
+ if(state.status==='loading'){adScreenOpen=true;clearTimeout(adTimeout);}
  if(['dismissed','unavailable','error'].includes(state.status))adScreenOpen=false;
  const versionLabel=document.getElementById("adsNativeVersion");if(versionLabel)versionLabel.textContent=Number.isInteger(state.nativeCode)?String(state.nativeCode):"—";
  const text={loading:'กำลังโหลดโฆษณา…',unavailable:'ยังไม่มีโฆษณาให้ดู กรุณาลองใหม่',error:'เปิดโฆษณาไม่สำเร็จ',verifying:'ดูจบแล้ว • รอเซิร์ฟเวอร์ยืนยันรางวัล', 'test-earned':'ดูจบแล้ว • กำลังรับไอเท็มทดสอบ'}[state.status];
