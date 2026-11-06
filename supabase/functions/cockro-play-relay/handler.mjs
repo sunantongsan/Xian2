@@ -20,9 +20,9 @@ export function createRelayHandler({secret,secretHash,accessToken,fetcher=fetch}
    if(!input||!['verify','consume','probe'].includes(input.action)||!PRODUCTS.has(input.product))return json({error:'invalid_request'},400);
    const headers={Authorization:'Bearer '+await accessToken()};
    if(input.action==='probe'){
-    const r=await fetcher(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/inappproducts/${input.product}`,{headers,signal:AbortSignal.timeout(15000)});
-    if(!r.ok)return json({error:'publisher_unavailable',status:r.status},503);
-    const p=await r.json();return json({ready:p.packageName===PACKAGE&&p.sku===input.product&&p.status==='active'});
+    const r=await fetcher(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/oneTimeProducts/${input.product}`,{headers,signal:AbortSignal.timeout(15000)});
+    if(!r.ok){console.warn('cockro product probe status',r.status);return json({error:'publisher_unavailable',status:r.status},503);}
+    const p=await r.json();return json({ready:p.packageName===PACKAGE&&p.productId===input.product&&p.purchaseOptions?.some(o=>o.state==='ACTIVE'&&o.buyOption)});
    }
    if(typeof input.token!=='string'||input.token.length<10||input.token.length>2048)return json({error:'invalid_request'},400);
    const url=`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/purchases/products/${input.product}/tokens/${encodeURIComponent(input.token)}`;
