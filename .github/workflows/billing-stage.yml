@@ -1,0 +1,50 @@
+name: Stage COCKRO billing fix
+on:
+  push:
+    branches: [fix/cockro-play-verification]
+    paths: ['.github/workflows/billing-stage.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Test and stage without changing production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          node --test tests/play-relay.test.js tests/shop-billing.test.js
+          npm run build:server
+          node --check server/online-server.cjs
+          python3 -m py_compile tools/billing-setup.py
+          sha256sum server/online-server.cjs > bundle.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: billing-server
+          path: |
+            server/online-server.cjs
+            tools/billing-setup.py
+            bundle.sha256
+  stage:
+    needs: build
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 3
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: billing-server
+          path: billing-verified
+      - name: Stage reviewed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd billing-verified
+          sha256sum --check bundle.sha256
+          mkdir -p /srv/cockro-deploy/billing-stage
+          cp server/online-server.cjs tools/billing-setup.py bundle.sha256 /srv/cockro-deploy/billing-stage/
+          sha256sum /srv/cockro-deploy/billing-stage/billing-setup.py /srv/cockro-deploy/billing-stage/online-server.cjs
