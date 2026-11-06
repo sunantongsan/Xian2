@@ -1,9 +1,0 @@
-<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="/play/"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="gift-center.css"><link rel="stylesheet" href="coin-celebration.css"><body><p style="position:fixed;top:0;left:0;color:white;z-index:99999">PREVIEW · ไม่มีการชำระเงินจริง</p><dialog id="modal" open><div id="modalContent"></div></dialog><script type="module">
-import {createGoldStore} from './gold-store.js';import {giftShell} from './gift-center.js';import {celebrateCoins} from './coin-celebration.js';import {GOLD_PRODUCTS} from './gold-products.js';
-import {language} from './i18n.js';language.choose('th');
-if(!location.search){document.body.innerHTML='<iframe title="Mobile purchase preview" src="coin-review.html?frame=1" style="width:800px;height:360px;border:0;display:block;margin:30px auto"></iframe>';}else{
-const profile='a'.repeat(64),other='b'.repeat(64);const net={ready:true,billingEnabled:true,billingOwner:profile,billingProfile:profile,billingRecipients:[{profile,name:'ฮีโร่สุนันท์',level:45},{profile:other,name:'แมงป่องพิฆาต',level:20}],send(){return true;}};
-window.CockroBilling={refresh(){dispatchEvent(new CustomEvent('cockro-billing',{detail:{kind:'products',products:GOLD_PRODUCTS.map(p=>({id:p.id,price:p.thb+' บาท'}))}}));},buy(id,owner,recipient){document.getElementById('modal').close();celebrateCoins({gold:GOLD_PRODUCTS.find(p=>p.id===id).gold,characterName:net.billingRecipients.find(p=>p.profile===recipient).name},{sound:()=>new Audio('audio/upgrade-success.mp3').play()});}};
-createGoldStore({net,show:html=>document.getElementById('modalContent').innerHTML=giftShell('coins',html),escape:s=>String(s).replaceAll('<','&lt;'),onSuccess(){}}).open();
-}
-</script></body></html>
