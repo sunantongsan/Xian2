@@ -14,3 +14,12 @@ function screen({supported=true,ready=true,item='crystal'}={}){
 test('unavailable ad tap creates visible feedback inside the active dialog and refreshes status',()=>{const s=screen({ready:false});s.button.onclick();assert.equal(s.sent.length,0);assert.equal(s.refreshed,1);assert.ok(s.labels[0].textContent.includes('ยังไม่พร้อม'));});
 test('unsupported native bridge explains app update instead of doing nothing',()=>{const s=screen({supported:false});s.button.onclick();assert.ok(s.labels[0].textContent.includes('Play Store'));assert.equal(s.sent.length,0);});
 test('ready ad tap requests exactly one ticket; second tap gives waiting feedback',()=>{const s=screen();s.button.onclick();s.button.onclick();assert.equal(s.sent.length,1);assert.equal(s.sent[0].type,'adTicket');assert.equal(s.sent[0].item,'crystal');assert.ok(s.labels[0].textContent.includes('กรุณารอ'));});
+
+test('offline check-in menu binds its reward button and explains reconnecting',()=>{
+ const s=screen({item:'dailyCheckin'});s.context.onlineMode=false;
+ Object.assign(s.context,{show(){},checkinHTML:()=>'',button:()=>'',close(){}});
+ const start=source.indexOf('function checkinMenu()');
+ vm.runInContext(source.slice(start,source.indexOf('\nlet goldStore',start)),s.context);
+ s.context.checkinMenu();s.button.onclick();
+ assert.equal(s.sent.length,0);assert.ok(s.labels[0].textContent.includes('ออนไลน์'));
+});
