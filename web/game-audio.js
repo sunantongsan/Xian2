@@ -16,7 +16,7 @@ export class GameAudio {
  effect(name,{volume=.25,rate=1,gap=100}={}){if(!this.enabled||!this.unlocked||document.hidden)return;const now=performance.now();if(now-(this.last.get(name)??-Infinity)<gap)return;this.last.set(name,now);
   let a=this.effects.get(name);if(!a){a=new Audio('audio/'+name+'.mp3');a.preload='none';this.effects.set(name,a);}
   // No more than three simultaneous effects, even during crowded combat.
-  const active=[...this.effects.values()].filter(x=>!x.paused&&x!==a);while(active.length>=3)active.shift().pause();
+  const level=this.effects.get('level-up');const active=[...this.effects.values()].filter(x=>!x.paused&&x!==a).sort((a,b)=>Number(a===level)-Number(b===level));while(active.length>=3)active.shift().pause();
   a.pause();a.currentTime=0;a.volume=volume;a.playbackRate=rate;a.preservesPitch=false;this.play(a);
  }
  skill(skill){const v=skillVoice(skill);this.effect(v.name,{...v,gap:160});}
@@ -24,6 +24,8 @@ export class GameAudio {
  hit(){this.effect('hit-soft',{volume:.16,gap:180});}
  tap(){this.effect('ui-tap',{volume:.18,gap:90});}
  buff(){this.effect('upgrade-success',{volume:.32,gap:1500});}
+ failure(){this.effect('upgrade-failure',{volume:.4,rate:1,gap:1200});}
+ levelUp(){this.effect('level-up',{volume:.58,rate:1,gap:1200});}
  success(){this.effect('ui-confirm',{volume:.32,gap:400});}
 }
 

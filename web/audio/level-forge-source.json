@@ -1,0 +1,19 @@
+{
+  "levelUp": {
+    "source": "User supplied freesound_community-level-up-22268.mp3",
+    "excerptSeconds": [
+      0,
+      3.1
+    ],
+    "fadeOutSeconds": 0.25,
+    "pitch": "unchanged",
+    "uses": [
+      "level up",
+      "successful enhancement"
+    ]
+  },
+  "failure": {
+    "source": "Original synthesized descending two-note cue",
+    "durationSeconds": 0.6
+  }
+}
