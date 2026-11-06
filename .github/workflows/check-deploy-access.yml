@@ -1,0 +1,16 @@
+name: Check existing deploy access
+on:
+  push:
+    branches: [feature/coin-recipient-celebration]
+    paths: ['.github/workflows/check-deploy-access.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 2
+    steps:
+      - name: Read existing deployment permissions
+        run: |
+          id
+          sudo -n -l
