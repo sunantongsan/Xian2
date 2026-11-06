@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -53,4 +54,12 @@ test('client rejects malformed successful upstream responses',async t=>{
  const f=config(t),verifier=createPlayRelay({configPath:f.path,fetcher:async()=>Response.json({})});
  await assert.rejects(verifier.verify(product,token),/verification_unavailable/);
  await assert.rejects(verifier.consume(product,token),/verification_unavailable/);
+});
+
+test('hashed server secret authenticates and fails closed on malformed digest',async()=>{
+ const secretHash=createHash('sha256').update(secret).digest('hex');
+ const handler=createRelayHandler({secretHash,accessToken:async()=>'google'});
+ assert.equal((await handler(request({action:'invalid'}))).status,400);
+ assert.equal((await handler(request({},'b'.repeat(64)))).status,401);
+ assert.equal((await createRelayHandler({secretHash:secretHash+'a'})(request({}))).status,503);
 });
