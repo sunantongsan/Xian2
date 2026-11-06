@@ -1,0 +1,69 @@
+name: Deploy verified account identity display
+on:
+  push:
+    branches: [feature/coin-recipient-celebration]
+    paths: ['.github/workflows/account-identity-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+          npm run build:server
+          node --check server/online-server.cjs
+          sha256sum server/online-server.cjs > bundle.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: account-identity-server
+          path: |
+            server/online-server.cjs
+            bundle.sha256
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: account-identity-server
+          path: account-identity-production
+      - name: Install tested bundle with drift guard and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd account-identity-production
+          sha256sum --check bundle.sha256
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = 1002a040733ace0f51aa23659ec2f474644dcdfe51af0cc5dffbd0c290231e9d
+          /opt/cockro-online/node --check server/online-server.cjs
+          grep -q accountIdentityReady server/online-server.cjs
+          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/account-identity-before.cjs
+          cp server/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+          candidate=$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)
+          rollback() {
+            cp /srv/cockro-deploy/online-stage/account-identity-before.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+            sudo -n /usr/local/sbin/cockro-deploy-online 1002a040733ace0f51aa23659ec2f474644dcdfe51af0cc5dffbd0c290231e9d
+          }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online "$candidate"
+          python3 - <<'PY'
+          import json,time,urllib.request
+          for attempt in range(15):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=3) as r: h=json.load(r)
+                  if h.get('ok'):
+                      print('HEALTH_OK')
+                      break
+              except Exception: pass
+              time.sleep(1)
+          else: raise SystemExit('Health check failed')
+          PY
+          systemctl is-active cockro-online.service
+          sha256sum /opt/cockro-online/online-server.cjs
+          trap - ERR

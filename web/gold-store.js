@@ -1,0 +1,27 @@
+import {t,ui} from './i18n.js';
+import {GOLD_PRODUCTS} from './gold-products.js';
+export function createGoldStore({net,show,escape,onSuccess}){
+ let products=[],busy=false,verifying=false,queue=[],selected=null,confirmation=null;const shown=new Set();
+ const recipients=()=>net.billingRecipients||[];
+ function notify(d){if(d.character!==net.billingProfile||shown.has(d.reference))return;shown.add(d.reference);onSuccess(d,()=>net.send({type:'billingNoticeAck',reference:d.reference}));}
+ const supported=()=>typeof globalThis.CockroBilling?.refresh==='function';
+ const message=text=>{const el=document.getElementById('goldStoreStatus');if(el)el.textContent=text;};
+ function render(){
+ if(!recipients().some(c=>c.profile===selected))selected=net.billingProfile;
+ show(ui`<section class="gold-store"><header><span class="market-brand">COCKRO / COIN STORE</span><h2>เติม COCKRO coin • โปรเปิดตัว</h2><p>เลือกกระเป๋าตัวละครที่จะรับเหรียญก่อนชำระเงิน</p></header><label class="coin-recipient">${t('ตัวละครรับเหรียญ')}<select id="coinRecipient" ${busy?'disabled':''}>${recipients().map(c=>`<option value="${escape(c.profile)}" ${selected===c.profile?'selected':''}>${escape(c.name||t('กรุณาตั้งชื่อ'))} · Lv. ${Number(c.level)||1}</option>`).join('')}</select></label><div class="gold-pack-grid">${GOLD_PRODUCTS.map((p,i)=>{const live=products.find(x=>x.id===p.id);return `<article class="gold-pack ${i===3?'gold-best':''}"><small>${i===3?t('คุ้มที่สุด'):p.title}</small><img class="gold-emblem coin-art" src="items/cockro-coin.webp" alt="COCKRO coin"><b>${p.gold.toLocaleString()} <em>COCKRO coin</em></b><button data-gold-pack="${p.id}" ${!live||!net.ready||!net.billingEnabled||busy||!recipients().length?'disabled':''}>${live?escape(live.price):p.thb.toLocaleString()+t(' บาท')}</button>${!live?t('<small>ยังไม่เปิดจำหน่าย</small>'):''}</article>`;}).join('')}</div><p class="gold-store-note">ราคาที่เรียกเก็บจริงแสดงในหน้าชำระเงิน Google Play • ไม่มีการหักเงินเมื่อกดยกเลิก</p><p id="goldStoreStatus" role="status">${!supported()?t('ต้องอัปเดตแอปจาก Google Play เป็นรุ่นที่รองรับการเติม COCKRO coin'):!net.billingEnabled?t('กำลังเตรียมเปิดบริการเติม COCKRO coin ยังไม่มีการเรียกเก็บเงิน'):t('เลือกแพ็ก หรือกดตรวจรายการค้างหากซื้อแล้ว COCKRO coin ยังไม่เข้า')}</p><button id="restoreGold" ${!supported()||!net.billingEnabled?'disabled':''}>ตรวจรายการค้าง / รับ COCKRO coin ที่ซื้อแล้ว</button></section>`);
+ document.getElementById('coinRecipient').onchange=e=>{selected=e.target.value;confirmation=null;};
+ document.querySelectorAll('[data-gold-pack]').forEach(b=>b.onclick=()=>{
+ if(busy||!net.ready||!net.billingEnabled)return;const recipient=recipients().find(c=>c.profile===selected),product=GOLD_PRODUCTS.find(p=>p.id===b.dataset.goldPack),live=products.find(p=>p.id===product?.id);if(!recipient||!live)return;
+ confirmation={owner:net.billingOwner,profile:recipient.profile,product:product.id};
+ show(`<section class="coin-confirm"><img class="coin-confirm-art" src="items/cockro-coin.webp" alt=""><h2>${t('ยืนยันตัวละครรับเหรียญ')}</h2><h3>${escape(recipient.name)}</h3><strong>+${product.gold.toLocaleString()} COCKRO coin</strong><p>${escape(live.price)}</p><p>${t('เหรียญจะเข้าตัวละครนี้ แม้บัญชีชำระเงิน Google Play จะเป็นคนละบัญชี')}</p><div class="coin-confirm-actions"><button id="coinBack">${t('กลับไปเลือก')}</button><button id="coinPay">${t('ยืนยันและไปชำระเงิน')}</button></div></section>`);
+ document.getElementById('coinBack').onclick=()=>{confirmation=null;render();};
+ document.getElementById('coinPay').onclick=()=>{const c=confirmation;if(!c||busy||!net.ready||net.billingOwner!==c.owner)return;confirmation=null;busy=true;render();globalThis.CockroBilling.buy(c.product,c.owner,c.profile);};
+ });
+ document.getElementById('restoreGold').onclick=()=>{message(t('กำลังตรวจรายการ…'));globalThis.CockroBilling.refresh();};
+ }
+ function flush(){if(!net.ready||verifying||!queue.length)return;busy=true;verifying=true;const d=queue[0];if(!net.send({type:'billingPurchase',productId:d.productId,token:d.token})){busy=false;verifying=false;return;}message(t('กำลังตรวจสอบการชำระเงิน…'));}
+ globalThis.addEventListener?.('cockro-billing',e=>{const d=e.detail;if(!d)return;if(d.kind==='products'){products=Array.isArray(d.products)?d.products:[];if(document.querySelector('.gold-store')&&!confirmation)render();}else if(d.kind==='status'){busy=verifying;message(t(d.message));}else if(d.kind==='purchase'){busy=verifying;if(!queue.some(x=>x.token===d.token))queue.push(d);flush();}});
+ net.onBillingResult=d=>{busy=false;verifying=false;queue.shift();if(d.ok){message(d.duplicate?t('รายการนี้รับ COCKRO coin เรียบร้อยแล้ว'):ui`เติมสำเร็จ! ได้รับ ${d.gold.toLocaleString()} COCKRO coin`);if(!d.duplicate){if(d.character===net.billingProfile)notify(d);else message(t('ส่งเหรียญเข้าตัวละครแล้ว: ')+(d.characterName||''));}}else{const msgs={wrong_account:t('รายการนี้ผูกกับบัญชีเกมอื่น หรือตัวละครผู้รับถูกลบ กรุณาติดต่อผู้ดูแล'),payment_pending:t('กำลังรอชำระเงิน'),wallet_full:t('COCKRO coin เต็ม กรุณาใช้ COCKRO coin ก่อนแล้วตรวจรายการค้างอีกครั้ง'),billing_unavailable:t('บริการเติม COCKRO coin ยังไม่พร้อม กรุณาลองใหม่ภายหลัง')};message(msgs[d.message]||t('ยังตรวจสอบรายการไม่ได้ กดตรวจรายการค้างเพื่อลองอีกครั้ง'));}if(queue.length)flush();};
+ return {open(){busy=verifying;render();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();},resume(){for(const d of net.billingNotices||[])notify(d);busy=false;verifying=false;flush();if(supported()&&net.billingEnabled)globalThis.CockroBilling.refresh();}};
+}
+

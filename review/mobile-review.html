@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#152332;color:white;font:16px sans-serif}iframe{border:1px solid gold;display:block;margin:12px 0}pre{white-space:pre-wrap}</style><h1>Mobile layout validation 4.46.4</h1><pre id="result">Running…</pre><div id="frames"></div><script type="module">
+const out=document.querySelector('#result');let results=[];
+try {for(const [width,height] of [[768,354],[800,360],[640,320],[960,432],[360,640]]) {
+const f=document.createElement('iframe');f.width=width;f.height=height;f.src='mobile-fixture.html';document.querySelector('#frames').append(f);await new Promise(r=>f.onload=r);
+const w=f.contentWindow;for(let i=0;!w.qa&&i<200;i++)await new Promise(r=>setTimeout(r,50));await w.qa.init();w.qa.state().gold=8786803;w.qa.state().stones=48524;w.qa.state().level=62;w.qa.state().xp=68302;w.qa.hud();
+const d=w.document,hud=d.querySelector('#characterShortcut').getBoundingClientRect();const art=d.querySelector('.sector-card').getBoundingClientRect();if(art.height!==44||art.width!==96)throw Error('Empty banner should stay small');if(hud.width>133||hud.height>92||hud.left>5)throw Error('HUD too large '+JSON.stringify(hud));
+w.dispatchEvent(new w.CustomEvent('cockro-field-banner',{detail:{loaded:true,width:320,height:50}}));
+if(d.querySelector('.sector-card').getBoundingClientRect().width!==320)throw Error('Loaded ad slot must match SDK width');
+w.dispatchEvent(new w.CustomEvent('cockro-field-banner',{detail:{loaded:false}}));
+if(d.querySelector('.sector-card').getBoundingClientRect().width!==96)throw Error('No-fill must collapse ad slot');
+for(let repeat=0;repeat<2;repeat++){w.qa.language.choose(repeat?'en':'th');w.qa.forge();for(const tab of ['upgrade','gem','special']){d.querySelector(`[data-forge-tab="${tab}"]`).click();await new Promise(r=>setTimeout(r,70));const m=d.querySelector('#modal'),a=m.getBoundingClientRect(),b=d.querySelector('.forge-footer').getBoundingClientRect();if(a.left<0||a.right>width+1||a.bottom>height+1||b.bottom>a.bottom||m.scrollWidth>m.clientWidth+1)throw Error(JSON.stringify({width,height,tab,modal:a,footer:b}));}w.qa.close();}w.qa.forge();d.querySelector('[data-forge-tab="gem"]').click();results.push(width+'×'+height+': PASS 3 forge tabs, reopen, compact HUD');out.textContent=results.join('\n');
+}out.textContent+='\nALL PASS';}catch(e){out.textContent+='\nFAIL '+e.stack;}
+</script>

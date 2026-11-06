@@ -1,0 +1,28 @@
+import {chromium} from '../../browser-tools/node_modules/playwright/index.mjs';
+import {startServer} from '../server/server.js';
+import {createAccounts} from '../server/accounts.js';
+import {fresh} from '../web/core.js';
+import {createHash} from 'node:crypto';
+import {once} from 'node:events';
+import {spawn} from 'node:child_process';
+import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import assert from 'node:assert/strict';
+const dir=mkdtempSync(tmpdir()+'/account-ui-'),token='c'.repeat(64),owner=createHash('sha256').update(token).digest('hex'),save=fresh('sword-cockro');save.name='ทดสอบบัญชี';writeFileSync(dir+'/'+owner+'.json',JSON.stringify(save));
+const api=createAccounts(dir,{adminKey:'',fetcher:async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:'local-ui-only',identities:[{provider:'google'}]}})}),begin=await api.authStart(token),session=await api.authFinish(begin.flow,'local-test-code');
+mkdirSync(dir+'/play-receipts');writeFileSync(dir+'/play-receipts/'+'d'.repeat(64)+'.json',JSON.stringify({owner,character:owner,product:'cockro_gold_5000',gold:5000,created:Date.now(),orderId:'GPA.LOCAL-TEST',credited:true,test:true}));
+const app=startServer({port:0,directory:dir,test:true});await once(app.server,'listening');const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
+const http=spawn('python3',['-m','http.server','8997','--directory','web'],{stdio:'ignore'});let browser;
+try{browser=await chromium.launch({headless:true,args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:844,height:390}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(t=>localStorage.setItem('cockro-online-device-token-v1',t),session.token);
+ await page.route('**/online.js',r=>r.fulfill({contentType:'text/javascript',body:readFileSync('web/online.js','utf8').replace('wss://game.guardscan.xyz/online/world',url)}));
+ await page.goto('http://127.0.0.1:8997');await page.locator('#accountCenter').click();await page.locator('#deletePassword').click();
+ await page.locator('#newDeletePassword').fill('password-429');await page.locator('#repeatDeletePassword').fill('password-429');await page.locator('#saveDeletePassword').click();await page.locator('#purchaseHistory').waitFor();
+ mkdirSync('review/account',{recursive:true});await page.screenshot({path:'review/account/account-center.png'});
+ await page.locator('#purchaseHistory').click();await page.getByText('GPA.LOCAL-TEST',{exact:false}).waitFor();assert(await page.getByText('รายการทดสอบ',{exact:false}).count());await page.screenshot({path:'review/account/purchase-history.png'});await page.locator('#historyBack').click();
+ await page.locator('#deletePassword').click();await page.locator('#oldDeletePassword').fill('wrong');await page.locator('#newDeletePassword').fill('new-password-429');await page.locator('#repeatDeletePassword').fill('new-password-429');await page.locator('#saveDeletePassword').click();await page.getByText('รหัสผ่านไม่ถูกต้อง',{exact:true}).waitFor();await page.locator('#oldDeletePassword').fill('password-429');await page.locator('#saveDeletePassword').click();
+ await page.locator('#deleteAccount').click();await page.locator('#deleteAccountText').fill('wrong');await page.locator('#deleteAccountPassword').fill('new-password-429');await page.locator('#confirmDeleteAccount').click();await page.getByText('พิมพ์คำยืนยันให้ตรงตามที่แสดง',{exact:true}).waitFor();await page.locator('#cancelDeleteAccount').click();
+ await page.locator('#selectDeleteCharacter').click();await page.locator('[data-delete-slot]').click();await page.locator('#deleteName').fill('ทดสอบบัญชี');await page.locator('#deleteSecret').fill('new-password-429');await page.locator('#confirmDeleteCharacter').click();await page.locator('#characterName').waitFor();
+ await page.locator('#accountCenter').click();await page.locator('#deleteAccount').click();await page.locator('#deleteAccountText').fill('ลบบัญชี COCKRO');await page.locator('#deleteAccountPassword').fill('new-password-429');await page.locator('#confirmDeleteAccount').click();await page.getByText('ลบข้อมูลบัญชีเกมแล้ว',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('cockro-online-device-token-v1')),null);assert.deepEqual(errors,[]);
+ console.log('PASS browser: account center, set/change password, wrong password, purchase history, guarded account deletion, delete character, empty roster access, full game deletion, local sign-out; no runtime errors');
+}finally{await browser?.close();http.kill();await app.close();rmSync(dir,{recursive:true,force:true});}

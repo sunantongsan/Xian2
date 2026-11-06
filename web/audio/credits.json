@@ -1,0 +1,44 @@
+{
+  "license": "Pixabay Content License",
+  "licenseUrl": "https://pixabay.com/service/license-summary/",
+  "downloaded": "2026-11-01",
+  "sources": [
+    {
+      "title": "Whoosh Laser Beam",
+      "author": "SoundReality",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-whoosh-laser-beam-247160/",
+      "sha256": "8decdff39a90fda8e3ea7eaae1161752ab883f1bc4dbc05e150ddba9e8755f91",
+      "derivatives": [
+        "skill-wave",
+        "skill-dash",
+        "skill-bolt",
+        "hit-soft"
+      ]
+    },
+    {
+      "title": "Magical Spell Cast",
+      "author": "DavidDumaisAudio",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-magical-spell-cast-190272/",
+      "sha256": "d715147834c2407163f3b3faf615a315d3e5e7cb72bff8e66b8555e4fddf3941",
+      "derivatives": [
+        "skill-circle",
+        "skill-field",
+        "ui-confirm",
+        "ui-tap"
+      ]
+    },
+    {
+      "title": "deep ambient electronic theme music loading screen menu | dejco.art",
+      "author": "dejcomin",
+      "aiGenerated": true,
+      "url": "https://pixabay.com/music/beats-deep-ambient-electronic-theme-music-loading-screen-menu-dejcoart-429846/",
+      "sha256": "286c6b5b8c50855529f731982c2ee0a9cdb990c2a92323e8c78cd0bd01971484",
+      "derivatives": [
+        "welcome-loop",
+        "create-loop",
+        "world-loop"
+      ]
+    }
+  ],
+  "adaptations": "Trimmed, filtered, faded and level-limited for integrated game playback. Not a standalone audio pack."
+}
