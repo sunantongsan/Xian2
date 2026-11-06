@@ -1,0 +1,17 @@
+name: Open all COCKRO map levels
+on:
+  push:
+    branches: [fix/mobile-layout-4.46.3]
+    paths: ['.github/workflows/open-map-access.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Open map access with exact-match guard and rollback
+        run: python3 tools/open-map-access.py

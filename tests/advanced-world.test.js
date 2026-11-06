@@ -13,8 +13,10 @@ test('all twenty distinct species are spawned on the server, in levels 61-120 on
  assert(w.mobs.forest.every(m=>m.def.level<=60));
  assert.equal(w.mobs.star.filter(m=>m.def.boss).length,6);
 });
-test('level 60 cannot enter star; 61 can enter first gate but not 66; 120 can enter core',()=>{
- const w=new World(),s=fresh('sword-cockro'),p=w.join('gate-check',s);s.level=60;assert.equal(w.enter(p,'star',0),false);assert.equal(p.map,'town');s.level=61;assert.equal(w.enter(p,'star',0),true);assert.equal(w.enter(p,'star',1),false);s.level=120;assert.equal(w.enter(p,'star',11),true);assert.equal(p.map,'star');assert(w.snapshot(p).monsters.some(m=>m.def.level>=116));
+test('all levels can enter every map gate while invalid gates stay rejected',()=>{
+ const w=new World(),s=fresh('sword-cockro'),p=w.join('gate-check',s);
+ for(const level of [1,60,61,120]){s.level=level;for(let gate=0;gate<12;gate++)assert.equal(w.enter(p,'star',gate),true);for(let gate=0;gate<6;gate++)assert.equal(w.enter(p,'forest',gate),true);}
+ assert.equal(w.enter(p,'star',99),false);assert.equal(w.enter(p,'forest',99),false);assert.equal(w.enter(p,'unknown',0),false);
 });
 test('advanced enemy kills, boss records and rewards survive save round-trip',()=>{
  const s=fresh('sword-cockro');s.level=61;s.mutationStage=2;for(const m of ADVANCED_MONSTERS)reward(s,m,()=>1);const copy=validSave(s);assert.equal(copy.seen.length,66);assert.equal(copy.bosses.length,6);assert(copy.gold>100000);assert(copy.level>61);
