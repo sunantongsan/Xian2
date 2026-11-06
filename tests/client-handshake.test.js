@@ -16,6 +16,9 @@ test('actual game client enters current server, receives world, and reconnects t
  t.after(()=>{globalThis.WebSocket=OriginalSocket;if(OriginalStorage===undefined)delete globalThis.localStorage;else globalThis.localStorage=OriginalStorage;});
  let state;const client=new OnlineClient(d=>state=d,()=>{});t.after(()=>client.disconnect());
  const save=await client.connect('sword-cockro','main',false,'Handshake Tester');assert.equal(save.name,'Handshake Tester');assert(client.ready);assert(state?.self.map==='town');assert(storage.has('cockro-online-device-token-v1'));
+ const preference=new Promise(resolve=>client.onLanguageResult=resolve);
+ client.send({type:'language',language:'en',requestId:'language-test'});const result=await preference;
+ assert.equal(result.ok,true);assert.equal(result.language,'en');assert.equal(result.requestId,'language-test');assert(client.ready);
  const token=storage.get('cockro-online-device-token-v1');const closed=once(client.socket,'close');client.disconnect();await closed;
  for(let i=0;i<30&&app.world.players.size;i++)await new Promise(r=>setTimeout(r,10));
  const restored=await client.connect('sword-cockro');assert.equal(restored.name,save.name);assert.equal(storage.get('cockro-online-device-token-v1'),token);assert(client.ready);assert.equal(state.self.map,'town');
