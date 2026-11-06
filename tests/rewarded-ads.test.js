@@ -28,9 +28,9 @@ test('tampering, wrong unit/reward, missing signature, duplicate parameter rejec
  await assert.rejects(v(c+'&signature='+sign('sha256',Buffer.from(c),pair.privateKey).toString('base64url')+'&key_id=42'));
  assert.equal(s.upgradeItems.crystal,0);
 });
-test('unknown/expired ticket, duplicate transaction, full inventory and spam rejected',()=>{
+test('unknown/expired ticket, duplicate transaction, full inventory and invalid targets rejected',()=>{
  const s=fresh('sword-cockro'),now=Date.now(),t=issueRewardTicket(s,'meteor',now);
- assert.throws(()=>issueRewardTicket(s,'ruby',now));assert.throws(()=>issueRewardTicket(s,'__proto__',now));
+ assert.notEqual(issueRewardTicket(s,'ruby',now).nonce,t.nonce);assert.throws(()=>issueRewardTicket(s,'__proto__',now));
  assert.throws(()=>applyVerifiedReward(s,callback(t,{custom_data:'f'.repeat(48)})));
  assert.throws(()=>applyVerifiedReward(s,callback(t,{timestamp:String(now+3600001)}),now+3600001));
  assert.throws(()=>applyVerifiedReward(s,callback(t,{timestamp:String(now)}),now+86400001));
@@ -63,7 +63,7 @@ test('console verification requires signed fresh probe and never writes accounts
   assert.equal(app.world.players.size,0);
  }finally{await app.close();rmSync(directory,{recursive:true,force:true});}
 });
-async function connect(port,token){const ws=new WebSocket('ws://127.0.0.1:'+port+'/online/world',{origin:'http://localhost'});await new Promise(ok=>ws.once('open',ok));const ready=next(ws,d=>d.type==='welcome');ws.send(JSON.stringify({type:'hello',version:'cockro-online-2',create:!token,name:'PatchTester',hero:'sword-cockro',token}));return {ws,welcome:await ready};}
+async function connect(port,token){const ws=new WebSocket('ws://127.0.0.1:'+port+'/online/world',{origin:'http://localhost'});await new Promise(ok=>ws.once('open',ok));const ready=next(ws,d=>d.type==='welcome');ws.send(JSON.stringify({type:'hello',version:'cockro-online-4',create:!token,name:'PatchTester',hero:'sword-cockro',token}));return {ws,welcome:await ready};}
 test('HTTP SSV verifies, persists offline, and replay cannot double-grant after restart',async()=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-ads-'));let app;
  try{
@@ -82,3 +82,22 @@ test('HTTP SSV verifies, persists offline, and replay cannot double-grant after 
 });
 
 
+
+
+test('failed or abandoned attempts can retry immediately, even after restoring saved data',()=>{
+ let s=fresh('sword-cockro');const now=Date.now(),first=issueRewardTicket(s,'ruby',now);
+ s=validSave(JSON.parse(JSON.stringify(s)));
+ const retry=issueRewardTicket(s,'ruby',now+1),checkin=issueRewardTicket(s,'dailyCheckin',now+2);
+ assert.notEqual(retry.nonce,first.nonce);assert.notEqual(checkin.nonce,retry.nonce);
+ assert.equal(s.upgradeItems.ruby,0);
+ const proof=callback(retry,{timestamp:String(now+3),transaction_id:'retry-success'});
+ assert.equal(applyVerifiedReward(s,proof,now+3),true);
+ assert.equal(applyVerifiedReward(s,proof,now+4),false);
+ assert.throws(()=>applyVerifiedReward(s,callback(first,{transaction_id:'retry-success'}),now+4));
+ assert.equal(s.upgradeItems.ruby,1);
+});
+test('ticket retry retains the bounded daily request limit',()=>{
+ const s=fresh('sword-cockro'),now=Date.now();
+ for(let i=0;i<100;i++)issueRewardTicket(s,'ruby',now+i);
+ assert.throws(()=>issueRewardTicket(s,'ruby',now+100),/ad_limit/);
+});

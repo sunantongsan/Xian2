@@ -1,3 +1,5 @@
+import {mutationStage} from './mutation.js';
+import {jobFor} from './job-progression.js';
 // Shared, deterministic skill rules: UI and combat consume the same definitions.
 export const FORMS={wave:{name:'คลื่นพลัง',range:320,radius:36,power:1.8,mp:18,cd:5,desc:'แนวตรงตามทิศเป้าหมาย'},circle:{name:'กวาดรอบตัว',range:155,radius:155,power:1.4,mp:22,cd:7,desc:'โจมตีศัตรูรอบตัว'},bolt:{name:'กระสุนพลังงาน',range:400,radius:0,power:2.3,mp:16,cd:4,desc:'โจมตีเป้าหมายเดียวระยะไกล'},dash:{name:'พุ่งแทง',range:230,radius:45,power:1.7,mp:24,cd:8,desc:'พุ่งผ่านศัตรูในแนวตรง'},field:{name:'สนามพลัง',range:300,radius:120,power:.65,mp:32,cd:12,desc:'สร้างพื้นที่โจมตี 4 ครั้งใน 3 วินาที'}};
 export const ELEMENTS={wind:{name:'ลม',color:'#a6f3dd',desc:'ผลักศัตรูออก 45 หน่วย'},fire:{name:'ไฟ',color:'#ff9a50',desc:'เผาไหม้ 3 วินาที รวม 45% พลังโจมตี'},ice:{name:'น้ำแข็ง',color:'#81ddff',desc:'ลดความเร็ว 35% นาน 3 วินาที'},lightning:{name:'สายฟ้า',color:'#d8b4ff',desc:'เพิ่มความเสียหายทันที 20%'},poison:{name:'พิษ',color:'#a8dc64',desc:'พิษ 6 วินาที รวม 60% พลังโจมตี'}};
@@ -49,7 +51,7 @@ export const CRICKET_SKILLS=[
 {id:'s5',name:'โรเตอร์ค้อนโซนิก',level:40,form:'circle',element:'wind',mods:['wide','force']},
 {id:'s6',name:'โดมเรโซแนนซ์',level:55,form:'field',element:'lightning',mods:['wide','force'],combat:{range:200,radius:230,mp:40,cd:14,power:.9}}
 ];
-function classSkills(s){if(s.hero==='sword-dragonfly')return [...DRAGONFLY_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='sword-cricket')return [...CRICKET_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='demon-scorpion')return [...SCORPION_SKILLS,...SCHOOL.filter(r=>r.sect==='demon'&&Number(r.id.slice(1))>=7)];return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
+function baseClassSkills(s){if(s.hero==='sword-dragonfly')return [...DRAGONFLY_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='sword-cricket')return [...CRICKET_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)];if(s.hero==='demon-scorpion')return [...SCORPION_SKILLS,...SCHOOL.filter(r=>r.sect==='demon'&&Number(r.id.slice(1))>=7)];return s.hero==='sword-cockro'?[...COCKRO_SKILLS,...SCHOOL.filter(r=>r.sect==='sword'&&Number(r.id.slice(1))>=7)]:SCHOOL.filter(r=>r.sect===(s.hero.startsWith('sword')?'sword':'demon'));}
 export function normalizeSkills(s,v={}){const sect=s.hero.startsWith('sword')?'sword':'demon';s.recipes=Array.isArray(v.recipes)?v.recipes.slice(0,10).filter(r=>r&&FORMS[r.form]&&ELEMENTS[r.element]&&Array.isArray(r.mods)&&r.mods.length<=2&&r.mods.every(m=>MODS[m]&&m!=='none')).map((r,i)=>({...r,id:'custom'+i,name:String(r.name||'วิชาไร้นาม').slice(0,32),level:r.mods.length>1?120:60})):[];const available=[...classSkills(s),...s.recipes].filter(r=>r.level<=s.level);const used=new Set();s.equipped=Array.isArray(v.equipped)?v.equipped.slice(0,5).map(id=>{if(used.has(id)||!available.some(r=>r.id===id))return null;used.add(id);return id;}):[];if(!s.equipped.some(Boolean))s.equipped=[available[0].id];for(let i=0;i<5;i++){if(s.equipped[i]===undefined)s.equipped[i]=i<3?null:available.find(r=>!s.equipped.includes(r.id))?.id||null;}s.materials={};for(const k of ['ink','core',...Object.keys(ELEMENTS)])s.materials[k]=Math.min(99999,Math.max(0,Math.floor(Number(v.materials?.[k])||0)));}
 export function knownSkills(s){return [...classSkills(s),...s.recipes];}
 export function craft(s,r){if(s.level<60)return 'ต้องถึงเลเวล 60';if(s.recipes.length>=10)return 'บันทึกได้สูงสุด 10 วิชา';if(!r||!FORMS[r.form]||!ELEMENTS[r.element]||!Array.isArray(r.mods)||new Set(r.mods).size!==r.mods.length||r.mods.some(m=>!MODS[m]||m==='none'))return 'สูตรไม่ถูกต้อง';if(r.mods.length>(s.level>=120?2:1))return 'สองคุณสมบัติต้องเลเวล 120';const advanced=r.mods.length===2,cost=advanced?12000:3000;if(s.gold<cost||s.materials.ink<1||s.materials[r.element]<3||(advanced&&s.materials.core<2))return 'เงินหรือวัตถุดิบไม่พอ';s.gold-=cost;s.materials.ink--;s.materials[r.element]-=3;if(advanced)s.materials.core-=2;s.recipes.push({id:'custom'+s.recipes.length,name:String(r.name||'วิชาไร้นาม').trim().slice(0,32)||'วิชาไร้นาม',form:r.form,element:r.element,mods:r.mods,level:advanced?120:60});return null;}
@@ -71,3 +73,21 @@ SCHOOL.push(
 
 
 
+
+// Keep IDs, ranks and equipped slots; derive the current job's cast definition.
+const MUTATION_NAMES={
+ 'sword-cockro':[['ดาบแสงผ่าฝูง','วงดาบสุริยะ','เขตพิฆาตไอออน'],['โล่แสงทะลวง','วงโล่พิทักษ์','ป้อมสนามพลัง']],
+ 'demon-scorpion':[['หมัดพิษทะลวง','วงหมัดชีวพิษ','เขตพิษสังหาร'],['หมัดเกราะทมิฬ','พายุหมัดพิษ','อาณาเขตนาโนพิษ']],
+ 'sword-dragonfly':[['กระสุนโฟตอนทะลวง','ห่ากระสุนโฟตอน','วงระเบิดไอออน'],['ปืนใหญ่โฟตอน','พายุกระสุนปืนใหญ่','สนามปืนใหญ่ไอออน']],
+ 'sword-cricket':[['คลื่นเสียงอัดกระแทก','พัลส์เรโซแนนซ์','บูสต์โซนิก'],['คลื่นชีวกลจักร','พัลส์ชีววิศวกรรม','บูสต์เกราะชีวภาพ']]
+};
+function classSkills(s){
+ const list=baseClassSkills(s),stage=mutationStage(s)||0;
+ if(!stage)return list;
+ return list.map((r,i)=>{
+  if(i>=6)return r;
+  const base={...FORMS[r.form],...(r.combat||{})};
+  return {...r,name:MUTATION_NAMES[s.hero][stage-1][i]||r.name,
+   combat:{...base,power:base.power*(stage===1?1.10:1.20)}};
+ });
+}

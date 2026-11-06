@@ -3,9 +3,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 final class UpdateManifest {
  static final long MAX_BYTES=64L*1024*1024;
+ final JSONObject sparse;
  final String version,sha256,path;final long size;final int minApp;
  UpdateManifest(String json)throws Exception{
-  JSONObject m=new JSONObject(json);
+  JSONObject m=new JSONObject(json);sparse=m.optJSONObject("sparse");
   if(!"cockro".equals(m.getString("game"))||m.getInt("engine")!=88)throw new IOException("แพตช์ไม่ตรงกับเกม");
   version=m.getString("version");versionParts(version);
   sha256=m.getString("sha256");size=m.getLong("size");path=m.getString("path");minApp=m.getInt("minAppVersionCode");
@@ -17,4 +18,5 @@ final class UpdateManifest {
  }
  static int compare(String a,String b)throws IOException{int[] x=versionParts(a),y=versionParts(b);for(int i=0;i<3;i++)if(x[i]!=y[i])return Integer.compare(x[i],y[i]);return 0;}
 }
+
 

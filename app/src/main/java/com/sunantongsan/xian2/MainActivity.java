@@ -41,7 +41,8 @@ public class MainActivity extends ComponentActivity {
     UpdateManifest m=updater.latest();int nativeVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionCode;
     if(m.minApp>nativeVersion)throw new IOException("กรุณาอัปเดตตัวแอปจาก Google Play");
     if(UpdateManifest.compare(m.version,GamePatch.version(this))>0&&!m.version.equals(GamePatch.blocked(this))){
-     archive=updater.download(m,new File(getFilesDir(),"patch-downloads"),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลด "+m.version+" • "+(done*100/total)+"% • "+String.format(java.util.Locale.ROOT,"%.1f / %.1f MB",done/1048576.0,total/1048576.0));}));
+     File reuse=GamePatch.active(this);
+     archive=SparseUpdater.download(updater,m,new File(getFilesDir(),"patch-downloads"),name->reuse==null?getAssets().open(name):new FileInputStream(new File(reuse,name)),(done,total)->runOnUiThread(()->{if(destroyed||gameLoaded)return;progress.setIndeterminate(false);progress.setProgress((int)(done*100/total));status.setText("ดาวน์โหลด "+m.version+" • "+(done*100/total)+"% • "+String.format(java.util.Locale.ROOT,"%.1f / %.1f MB",done/1048576.0,total/1048576.0));}));
      runOnUiThread(()->{if(!destroyed&&!gameLoaded){progress.setIndeterminate(true);status.setText("กำลังตรวจสอบและติดตั้ง…");}});
      GamePatch.installDownloaded(this,archive,m.version,updater);installed=true;message="อัปเดตเป็น "+m.version+" แล้ว";
     }
@@ -78,6 +79,7 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onPause(){foreground=false;if(ads!=null)ads.setForeground(false);if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
  @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }
+
 
 
 

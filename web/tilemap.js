@@ -15,7 +15,13 @@ export function parseTiled(json){
  const ground=layer('ground').data,pl=layer('props')?.data||[],zl=layer('zones')?.data||[];
  for(let i=0;i<count;i++){
   const g=info(ground[i])||{kind:'void',walkable:false};kind[i]=g.kind;color[i]=g.color||null;walk[i]=g.walkable?1:0;variant[i]=g.kind==='ground'&&(g.id-5)%3===1?1:0;
-  const pr=info(pl[i]);if(pr){prop[i]=pr.kind;walk[i]=0;}
+  const pr=info(pl[i]);if(pr){
+   const c=i%N,row=Math.floor(i/N);let nearRoute=false;
+   for(let dy=-2;dy<=2&&!nearRoute;dy++)for(let dx=-2;dx<=2;dx++){const x=c+dx,y=row+dy;if(x<0||y<0||x>=N||y>=rows)continue;if(['road','bridge','plaza'].includes(info(ground[y*N+x])?.kind)){nearRoute=true;break;}}
+   // Deterministic 35% retention, shared by server/client; never open unsafe ground.
+   const keep=((Math.imul(c+1,73856093)^Math.imul(row+1,19349663))>>>0)%100<35;
+   if(!g.walkable||(!nearRoute&&keep)){prop[i]=pr.kind;walk[i]=0;}
+  }
   const z=info(zl[i]);if(z)zone[i]=z.id;if(g.zone>=0&&zone[i]<0)zone[i]=g.zone;
  }
  const zoneSet=json.tilesets.find(t=>t.name==='hero-star-zones');

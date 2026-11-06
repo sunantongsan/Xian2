@@ -1,3 +1,6 @@
+import {mutationVisualLevel} from './mutation.js';
+import {drawMutationHero} from './mutation-art.js';
+import {drawLayeredHero} from './layered-hero.js';
 import {drawFashion} from './fashion-render.js';
 // Whole-body hand-painted animation. A frame is never cut into separate body parts.
 export const HERO_IDS=['sword-male','sword-female','demon-male','demon-female'];
@@ -32,7 +35,8 @@ export function heroFrame(actor={}){
  return {sheet:'actions',frame:back?1:0,flip};
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
- const result=drawBaseHero(ctx,images,hero,actor,x,y,size);if(result)drawFashion(ctx,images,hero,actor,x,y,size,result.frame);return result;
+ const visualActor={...actor,level:mutationVisualLevel({...actor,hero})};
+ const result=drawMutationHero(ctx,images,hero,visualActor,x,y,size)||drawLayeredHero(ctx,images,hero,actor,x,y,size)||drawBaseHero(ctx,images,hero,actor,x,y,size);if(result)drawFashion(ctx,images,hero,actor,x,y,size,result.frame);return result;
 }
 function drawBaseHero(ctx,images,hero,actor,x,y,size){
  if(hero==='sword-cricket'&&actor.anim==='walk'&&images.has('cricket-walk-prepared')){

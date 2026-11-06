@@ -32,7 +32,7 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
  const colorOf=(i,c,r)=>{const k=scene.kind[i],Z=zc(i);if(k==='ground')return groundRgb(i,c,r);if(k==='road')return shade(mix(hexRgb('#cdb98d'),hexRgb(Z.ground[0]),.22),.95+hash(c,r,4)*.1);if(k==='plaza')return shade(hexRgb('#9aa4b0'),.93+hash(c,r,5)*.08);if(k==='bridge')return hexRgb('#8a6a4a');if(LIQUID.has(k))return hexRgb(scene.color[i]||Z.liquid.color);return [0,0,0];};
 
  // ---------- ground chunks ----------
- const chunks=new Map(),order=[];const CW=CH*T;
+ const chunks=new Map();let pinned=new Set();const CW=CH*T;
  const chunkBox=(cx,cy)=>{const x0=cx*CW,y0=cy*CW;return {x0,y0,X:.8*(x0-y0-CW)-PAD,Y:.4*(x0+y0)-PAD,w:1.6*CW+PAD*2,h:.8*CW+FACE+PAD*2};};
  function diamond(g,pts){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<4;k++)g.lineTo(pts[k][0],pts[k][1]);g.closePath();}
  function buildChunk(cx,cy){
@@ -102,7 +102,7 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
   if((z===0||z===7||z===11)&&h<.018){g.fillStyle=rgb(shade(col,.7));g.beginPath();g.ellipse(X,Y,22,10,0,0,7);g.fill();g.fillStyle=rgb(shade(col,.9));g.beginPath();g.ellipse(X+2,Y+2,16,7,0,0,7);g.fill();}
   if(!grassy&&h>.9){g.fillStyle=dark;g.beginPath();g.ellipse(X-8+h*10,Y,2.5,1.4,0,0,7);g.fill();}
  }
- function chunk(cx,cy,budget){const key=cx+','+cy;if(chunks.has(key)){const v=chunks.get(key);return v;}if(budget.n<=0)return undefined;budget.n--;const cv=buildChunk(cx,cy);chunks.set(key,cv);order.push(key);while(order.length>(quality==='low'?14:22)){const old=order.shift();chunks.delete(old);}return cv;}
+ function chunk(cx,cy,budget){const key=cx+','+cy;if(chunks.has(key)){const v=chunks.get(key);chunks.delete(key);chunks.set(key,v);return v;}if(budget.n<=0)return undefined;budget.n--;const cv=buildChunk(cx,cy);chunks.set(key,cv);const cap=Math.max(quality==='low'?14:22,pinned.size+4);for(const old of chunks.keys()){if(chunks.size<=cap)break;if(!pinned.has(old))chunks.delete(old);}return cv;}
 
  // ---------- starfield ----------
  const stars=canvas(512,512);{const g=stars.getContext('2d');for(let n=0;n<170;n++){const a=hash(n,1,500),b=hash(n,2,500),s=hash(n,3,500);g.fillStyle=`rgba(${200+s*55|0},${210+s*45|0},255,${.35+s*.6})`;g.beginPath();g.arc(a*512,b*512,s>.93?1.7:s*.9+.3,0,7);g.fill();}}
@@ -127,7 +127,7 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
   const v=visibleTiles(view,CH);const budget={n:2};const list=[];
   for(let cy=Math.floor(v.r0/CH);cy<=Math.floor(v.r1/CH);cy++)for(let cx=Math.floor(v.c0/CH);cx<=Math.floor(v.c1/CH);cx++){const b=chunkBox(cx,cy),sx=view.ox+b.X*view.scale,sy=view.oy+b.Y*view.scale;if(sx>view.w||sy>view.h||sx+b.w*view.scale<0||sy+b.h*view.scale<0)continue;list.push([cx,cy,sx,sy,b]);}
   list.sort((a,b)=>(a[0]+a[1])-(b[0]+b[1])||Math.hypot(a[2]-view.w/2,a[3]-view.h/2)-Math.hypot(b[2]-view.w/2,b[3]-view.h/2));
-  let missing=0;
+  pinned=new Set(list.map(([cx,cy])=>cx+','+cy));let missing=0;
   for(const [cx,cy,sx,sy,b]of list){const cv=chunk(cx,cy,budget);if(cv===undefined){missing++;continue;}if(cv)ctx.drawImage(cv,sx,sy,b.w*view.scale,b.h*view.scale);}
   return missing;
  }

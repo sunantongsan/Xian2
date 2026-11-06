@@ -28,10 +28,22 @@ test('old online saves migrate once before welcome and persist both balances',as
  const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
  const a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'}),id=a.welcome.id,token=a.welcome.token;
  a.ws.close();await until(()=>!app.world.players.has(id));
- const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.balanceVersion;delete old.mpPotions;old.level=20;old.xp=822;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
+ const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.mutationVersion;delete old.mutationStage;delete old.balanceVersion;delete old.mpPotions;old.level=20;old.xp=822;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
  const b=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>b.ws.terminate());
  assert.equal(b.welcome.save.gold,1234);assert.equal(b.welcome.save.stones,7);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,Math.floor(822/1645*xpNeed(20)));
- const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,2);assert.equal(saved.mpPotions,5);
+ const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,3);assert.equal(saved.mpPotions,5);
+ b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,1234);assert.equal(c.welcome.save.stones,7);
+});
+
+test('v2 online saves preserve half-full XP across reconnect and persist v3 once',async t=>{
+ const directory=mkdtempSync(join(tmpdir(),'cockro-migrate-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
+ const a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'}),id=a.welcome.id,token=a.welcome.token;
+ a.ws.close();await until(()=>!app.world.players.has(id));
+ const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.mutationVersion;delete old.mutationStage;old.balanceVersion=2;delete old.mpPotions;old.level=20;old.xp=3060;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
+ const b=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>b.ws.terminate());
+ assert.equal(b.welcome.save.gold,1234);assert.equal(b.welcome.save.stones,7);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,3978);
+ const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,3);assert.equal(saved.mpPotions,5);
  b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,1234);assert.equal(c.welcome.save.stones,7);
 });
 
@@ -54,3 +66,16 @@ test('internal demo ticket persists once, replies after snapshot, and is disable
 });
 
 
+
+
+
+test('doctor socket operation persists refunded points and mutation across reconnect without duplicate refunds',async t=>{
+ const {DOCTOR_UV}=await import('../web/mutation.js');
+ const directory=mkdtempSync(join(tmpdir(),'cockro-mutation-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Mutator',hero:'sword-cockro'});t.after(()=>a.ws.terminate());
+ const p=app.world.players.get(a.welcome.id);Object.assign(p.s,{level:20,xp:0,statPoints:46,attributes:{str:12,vit:8,int:4,agi:6}});Object.assign(p,shopWorld(DOCTOR_UV,SHOP_MAPS.town));
+ a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await until(()=>a.messages.some(m=>m.type==='state'&&m.self.save.mutationStage===1));
+ const saved=JSON.parse(readFileSync(join(directory,p.id+'.json')));assert.equal(saved.statPoints,76);assert.equal(saved.xp,0);assert.deepEqual(saved.attributes,{str:0,vit:0,int:0,agi:0});
+ a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await new Promise(r=>setTimeout(r,100));assert.equal(p.s.statPoints,76);
+ a.ws.close();await until(()=>!app.world.players.has(p.id));const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.mutationStage,1);assert.equal(b.welcome.save.statPoints,76);assert.equal(b.welcome.save.xp,0);
+});

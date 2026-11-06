@@ -69,3 +69,9 @@ test('star monsters have new persistent IDs, distinct art and six advanced bosse
 });
 
 
+
+test('prop clutter is thinned consistently without making liquids or chasms walkable',()=>{
+ const original=json.layers.find(l=>l.name==='props').data.filter(Boolean).length,remaining=star.prop.filter(Boolean).length;
+ assert(remaining<original*.5,`${remaining}/${original}`);assert.deepEqual(parseTiled(json).walk,star.walk);
+ for(let i=0;i<star.walk.length;i++){if(['void','chasm','water','lava','acid'].includes(star.kind[i]))assert.equal(star.walk[i],0);if(star.prop[i])assert.equal(star.walk[i],0);}
+});

@@ -8,7 +8,7 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function createRoamers(world){
  const result=new Map();
  ROSTER.forEach(([name,level],i)=>{
-  const s=fresh(HEROES[i%HEROES.length]);Object.assign(s,{name,level,gold:0,stones:0,potions:0,mpPotions:0});
+  const s=fresh(HEROES[i%HEROES.length]);Object.assign(s,{name,level,mutationStage:level>=60?2:level>=20?1:0,gold:0,stones:0,potions:0,mpPotions:0});
   s.equipped=knownSkills(s).filter(k=>k.level<=level).slice(0,5).map(k=>k.id);
   const p=world.makeActor('roamer-'+(i+1),s),map=i<8?'town':'forest';
   const center=toWorld(map==='town'?MAPS.town.spawn:REGIONS[0].entry,MAPS[map]);
