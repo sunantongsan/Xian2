@@ -11,3 +11,5 @@ h=(r/"web/index.html").read_text().replace('src="game.js"','src="mobile-qa-game.
 (out/"road-review.html").write_text((r/"review/road-review.html").read_text())
 
 (out/"exit-review.html").write_text((r/"review/exit-review.html").read_text())
+
+(out/"combat-performance.html").write_text((r/"review/combat-performance.html").read_text())

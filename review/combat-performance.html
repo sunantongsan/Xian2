@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#152332;color:white;font:17px sans-serif}canvas{background:#23323e;max-width:100%}</style><h1>Combat rendering • 4.46.7</h1><pre id="result">Running comparison…</pre><canvas width="768" height="354"></canvas><script type="module">
+import {drawAdvancedMonster} from './monster-render.js';import {createMonsterCache} from './monster-cache.js';import {ADVANCED_MONSTERS} from './advanced-monsters.js';
+const cv=document.querySelector('canvas'),g=cv.getContext('2d'),cache=createMonsterCache(),actors=Array.from({length:48},(_,i)=>({def:ADVANCED_MONSTERS.find(m=>m.species===16+i%4),hp:100,face:i%2?-1:1,moving:true,walkDistance:(i%6)*22}));
+function frame(cached,n){g.clearRect(0,0,768,354);actors.forEach((e,i)=>{e.walkDistance=(i%6+n%24)*22*Math.PI*2/24;(cached?cache.draw:drawAdvancedMonster)(g,e,45+i%12*62,105+Math.floor(i/12)*78,65,n/12);});g.getImageData(0,0,1,1);}
+async function measure(cached){const a=[];for(let n=0;n<96;n++){await new Promise(requestAnimationFrame);const start=performance.now();frame(cached,n);if(n>=48)a.push(performance.now()-start);}a.sort((x,y)=>x-y);return {median:a[Math.floor(a.length/2)],p95:a[Math.floor(a.length*.95)]};}
+try{const before=await measure(false),after=await measure(true);document.querySelector('#result').textContent=JSON.stringify({monsters:48,beforeMs:before,afterMs:after,cacheEntries:cache.size,medianReductionPercent:Math.round((1-after.median/before.median)*100)},null,2);}catch(e){document.querySelector('#result').textContent='FAIL '+e.message;}
+</script>
