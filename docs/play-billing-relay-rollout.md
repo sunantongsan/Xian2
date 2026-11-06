@@ -7,7 +7,7 @@ This change adds a narrowly scoped server-to-server verifier at the existing Sup
 ## Activation steps
 
 1. Grant `nova-play-billing@nova-login-512211.iam.gserviceaccount.com` app access to **COCKRO MAN** only, with view financial data and manage orders/subscriptions permissions required by the Play Billing API. Do not grant account administrator or release permissions.
-2. Generate a random 32-byte hex secret through a secure server channel. Store it as `COCKRO_PLAY_RELAY_TOKEN` in Supabase and as the `token` in a service-readable, mode-0600 JSON file on the VPS. Never commit the secret, print it in logs, or put it in the Android app.
+2. Generate a random 32-byte hex secret through a secure server channel. Store the raw secret only as `token` in a service-readable, mode-0600 JSON file on the VPS. Set its SHA-256 digest as `secretHash` in the relay entrypoint; the digest is not a credential. Never commit the secret, print it in logs, or put it in the Android app.
 3. The JSON `url` must be `https://uzinxxeadejmzxqmqqtx.supabase.co/functions/v1/cockro-play-relay`. Configure `COCKRO_PLAY_RELAY_CONFIG` with the file path in the systemd service.
 4. Deploy `supabase/functions/cockro-play-relay/index.ts` and `handler.mjs` as a new `cockro-play-relay` function. Disable the platform JWT check only for this function: the handler authenticates its own server secret and fails closed when absent. Preserve all existing functions.
 5. Probe each product through the authenticated endpoint, using `{action:"probe",product:"cockro_gold_5000"}` and the other three IDs. Require readiness for all four. Confirm unauthenticated requests fail. A successful product probe is not proof of a completed purchase.
