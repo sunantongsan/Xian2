@@ -1,7 +1,7 @@
 name: Validate rewarded ad feedback
 on:
   push:
-    branches: [fix/ad-retry-no-cooldown]
+    branches: [feature/free-checkin-gifts]
 permissions:
   contents: read
 jobs:
@@ -19,7 +19,16 @@ jobs:
       - run: sha256sum server/online-server.cjs server/smoke.cjs
       - uses: actions/upload-artifact@v4
         with:
-          name: cockro-4444-server
+          name: cockro-4450-server
           path: |
             server/online-server.cjs
             server/smoke.cjs
+
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium --only-shell
+      - run: node tools/review-gifts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cockro-gift-review
+          path: review/*.png
