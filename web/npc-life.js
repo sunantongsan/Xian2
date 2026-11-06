@@ -1,10 +1,11 @@
+import {t,ui} from './i18n.js';
 // Slow idle cycles and short calls; never put permanent instructions over the map.
 export function npcLife(time,kind='merchant',near=false){
  const phase=(time+(kind==='buff'?0:5))%12;
  return {wave:phase<3?Math.sin(phase*Math.PI)*.7:Math.sin(time*.9)*.04,
   lean:Math.sin(time*.9)*.018,
   speak:near&&phase<3.8,
-  message:kind==='buff'?'รับบัฟฟรีที่นี่! แตะที่ตัวฉันได้เลย':'อาวุธ ยา และอัญมณี พร้อมขายครับ!'};
+  message:kind==='buff'?t('รับบัฟฟรีที่นี่! แตะที่ตัวฉันได้เลย'):t('อาวุธ ยา และอัญมณี พร้อมขายครับ!')};
 }
 export function drawNpcCall(g,x,y,text,k=1){
  g.save();g.font=`${Math.max(9,Math.min(11,10*k))}px GameThai,sans-serif`;g.textAlign='center';

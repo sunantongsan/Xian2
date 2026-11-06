@@ -1,13 +1,14 @@
+import {t,ui} from './i18n.js';
 // Shared by the authoritative server and offline training.
 export const ENHANCE_SLOTS=['weapon','ring','amulet'];
 export const MAX_PLUS=9;
 export const SPECIALS=[
- {id:'hp25',name:'ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%)',stat:'hpRegen',value:.02,weight:5},
- {id:'mp10',name:'ฟื้น MP 10% ทุก 2 วินาที',stat:'mpRegen',value:.1,weight:20},
- {id:'crit5',name:'โอกาสคริติคอล +5%',stat:'crit',value:.05,weight:20},
- {id:'atk30',name:'โจมตี +30',stat:'atk',value:30,weight:25},
- {id:'def20',name:'ป้องกัน +20',stat:'def',value:20,weight:20},
- {id:'hp300',name:'HP สูงสุด +300',stat:'hp',value:300,weight:10}
+ {id:'hp25',get name(){return t('ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%)');},stat:'hpRegen',value:.02,weight:5},
+ {id:'mp10',get name(){return t('ฟื้น MP 10% ทุก 2 วินาที');},stat:'mpRegen',value:.1,weight:20},
+ {id:'crit5',get name(){return t('โอกาสคริติคอล +5%');},stat:'crit',value:.05,weight:20},
+ {id:'atk30',get name(){return t('โจมตี +30');},stat:'atk',value:30,weight:25},
+ {id:'def20',get name(){return t('ป้องกัน +20');},stat:'def',value:20,weight:20},
+ {id:'hp300',get name(){return t('HP สูงสุด +300');},stat:'hp',value:300,weight:10}
 ];
 export const specialInfo=id=>SPECIALS.find(x=>x.id===id);
 export const auraLevel=s=>Math.max(0,...ENHANCE_SLOTS.map(k=>Math.min(9,s.equip?.[k]?.plus||0)));

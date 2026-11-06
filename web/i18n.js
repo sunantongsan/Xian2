@@ -1,7 +1,8 @@
+import {EN} from './locales/en.js';
 import {createLanguage} from './language.js';
 export const language = createLanguage({
   storage: typeof localStorage === 'undefined' ? undefined : localStorage,
-  deviceLocale: typeof navigator === 'undefined' ? 'th' : navigator.language,
+  deviceLocale: typeof window === 'undefined' ? 'th' : navigator.language,
   onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; }
 });
 export const messages = {
@@ -37,23 +38,25 @@ export const messages = {
  'เปิดกระเป๋า':'Open inventory', 'เปิดคลังร่วม':'Open shared vault', 'ซูมออก':'Zoom out', 'ซูมเข้า':'Zoom in', 'เปิดแชทในเกม':'Open chat',
  'บัฟหุ่นยนต์ AURA-01':'AURA-01 buff', 'จอยเดิน':'Movement joystick', 'ใช้ยา MP':'Use MP potion', 'ปิดหน้าต่าง':'Close window'
 };
-export function t(text) { return language.current === 'en' ? (messages[text] ?? text) : text; }
-// Translate only authored template segments. Interpolated names, chat and input stay untouched.
-export function ui(parts, ...values) {
-  return parts.map((part, i) => translateSegment(part) + (i < values.length ? values[i] : '')).join('');
+export const THAI_RUN = /[\u0e00-\u0e7f]+(?:[ \t]+[\u0e00-\u0e7f]+)*/g;
+export const missingTranslations = new Set();
+export function t(text) {
+  if (typeof text !== 'string' || language.current !== 'en') return text;
+  if (Object.hasOwn(messages,text)) return messages[text];
+  return text.replace(THAI_RUN, (part,offset,whole) => {
+    const translated = EN[part];
+    if (translated === undefined) { missingTranslations.add(part); return part; }
+    const before = offset > 0 && /[A-Za-z0-9]/.test(whole[offset-1]) ? ' ' : '';
+    const after = /[A-Za-z0-9]/.test(whole[offset+part.length] || '') ? ' ' : '';
+    return before + translated + after;
+  });
 }
-export function translateSegment(text) {
-  if(language.current !== 'en') return text;
-  const phrase = value => {
-    const trimmed=value.trim();
-    if(messages[trimmed])return value.replace(trimmed,messages[trimmed]);
-    const numbered=trimmed.match(/^(วิชา) (\d+)$/);
-    return numbered?value.replace(trimmed,'Skill '+numbered[2]):value;
-  };
-  return text.split(/(<[^>]*>)/g).map(part=>part.startsWith('<')
-    ? part.replace(/(aria-label|title|placeholder)="([^"]*)"/g,(_,attr,value)=>attr+'="'+phrase(value)+'"')
-    : phrase(part)).join('');
+// Only authored segments are translated; interpolated player data is untouched.
+export function ui(parts,...values) {
+  return parts.map((part,i)=>t(part)+(i<values.length?values[i]:'')).join('');
 }
+export const translateSegment=t;
+export const formatLocale=()=>language.current==='th'?'th-TH':'en-US';
 export function localizeStatic(root) {
   if (!root) return;
   const visit = node => {
@@ -64,4 +67,10 @@ export function localizeStatic(root) {
     }
   };
   visit(root);
+}
+
+// These protocol messages contain server-authored notices only. Never process chat.
+export function localizeNotice(packet) {
+ if (['opResult','commerceResult','billingResult','adError'].includes(packet?.type) && typeof packet.message === 'string') return {...packet,message:t(packet.message)};
+ return packet;
 }

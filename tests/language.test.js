@@ -30,3 +30,17 @@ test('server preference survives restart and invalid values cannot replace it',a
 test('UI localizes authored text without changing interpolated player names',()=>{
  language.choose('en');assert.equal(t('กลับ'),'Back');assert.equal(ui`<h2>ตั้งค่า</h2><b>${'กลับ'}</b>`,'<h2>Settings</h2><b>กลับ</b>');language.choose('th');assert.equal(t('กลับ'),'กลับ');
 });
+
+test('catalogue labels switch both ways without changing gameplay identities',async()=>{
+ const {HERO_CLASSES}=await import('../web/hero-ui.js');const {SLOTS,TIERS}=await import('../web/gear.js');const {UPGRADE_ITEMS}=await import('../web/upgrade-items.js');
+ const records=[...HERO_CLASSES,...Object.values(SLOTS),...TIERS,...Object.values(UPGRADE_ITEMS)];
+ language.choose('th');const thai=records.map(r=>r.name),ids=HERO_CLASSES.map(h=>h.id);
+ language.choose('en');for(const r of records)assert.doesNotMatch(r.name,/[\u0e00-\u0e7f]/);
+ language.choose('th');assert.deepEqual(records.map(r=>r.name),thai);assert.deepEqual(HERO_CLASSES.map(h=>h.id),ids);
+});
+test('server notices translate while chat and player payloads remain byte-identical',async()=>{
+ const {localizeNotice}=await import('../web/i18n.js');language.choose('en');
+ assert.equal(localizeNotice({type:'opResult',message:'แต้มไม่พอหรือจำนวนไม่ถูกต้อง'}).message,'Insufficient points or invalid amount');
+ for(const type of ['chat','state','roster']){const payload={type,name:'กลับ',text:'ตั้งค่า',message:'ภาษา'};assert.equal(localizeNotice(payload),payload);}
+ language.choose('th');
+});

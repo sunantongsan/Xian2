@@ -1,3 +1,4 @@
+import {t,ui} from './i18n.js';
 import {reward} from './core.js';
 import {rollDrop,itemName,BAG_SIZE} from './gear.js';
 import {UPGRADE_ITEMS} from './upgrade-items.js';
@@ -9,7 +10,7 @@ export function monsterRewards(s,m,rng=Math.random){
  if(s.upgradeItems.alloy>alloy)rewards.push({kind:'material',itemId:'alloy',count:s.upgradeItems.alloy-alloy});
  s.gold=gold;s.upgradeItems.alloy=alloy;const item=rollDrop(m,rng);if(item)rewards.push({kind:'gear',item,count:1});return rewards;
 }
-export function lootName(d,hero){return d.kind==='gold'?'เงิน G':d.kind==='material'?UPGRADE_ITEMS[d.itemId].name:itemName(d.item,hero);}
+export function lootName(d,hero){return d.kind==='gold'?t('เงิน G'):d.kind==='material'?UPGRADE_ITEMS[d.itemId].name:itemName(d.item,hero);}
 export function collectLoot(s,d){
  if(d.kind==='gear'){if(s.bag.length>=BAG_SIZE)return false;s.bag.push(d.item);}
  else if(d.kind==='gold')s.gold=Math.min(1e10,s.gold+d.count);

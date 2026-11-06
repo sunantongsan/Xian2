@@ -1,25 +1,26 @@
+import {t,ui,language} from './i18n.js';
 import {countActivity} from './daily-activities.js';
 import {ENHANCE_SLOTS,MAX_PLUS,specialInfo,specialFields} from './enhancement.js';
 import {UPGRADE_ITEMS,GEM_IDS,normalizeGems,normalizeUpgradeItems} from './upgrade-items.js';
 // Equipment: eight slots, six tiers by level, four rarities (MU-style colours), drops, bag, equip and sell.
 // Pure rules (no DOM) so saves, combat and the paper-doll UI share one definition.
 export const SLOTS={
- weapon:{name:'อาวุธ',atk:9},helm:{name:'หมวกเกราะ',def:1.2,hp:22},armor:{name:'เกราะอก',def:2.2,hp:40},gloves:{name:'ถุงมือ',def:.8,atk:3},
- boots:{name:'รองเท้า',def:.8,speed:3},wings:{name:'ปีกพลังงาน',atk:4,def:1.2,hp:20},ring:{name:'แหวน',crit:.012},amulet:{name:'สร้อยพลัง',mp:14,spell:.03}
+ weapon:{get name(){return t('อาวุธ');},atk:9},helm:{get name(){return t('หมวกเกราะ');},def:1.2,hp:22},armor:{get name(){return t('เกราะอก');},def:2.2,hp:40},gloves:{get name(){return t('ถุงมือ');},def:.8,atk:3},
+ boots:{get name(){return t('รองเท้า');},def:.8,speed:3},wings:{get name(){return t('ปีกพลังงาน');},atk:4,def:1.2,hp:20},ring:{get name(){return t('แหวน');},crit:.012},amulet:{get name(){return t('สร้อยพลัง');},mp:14,spell:.03}
 };
 export const SLOT_ORDER=['helm','armor','gloves','boots','weapon','wings','ring','amulet'];
 export const TIERS=[
- {name:'ฝึกหัด',level:1},{name:'เหล็กดาว',level:10},{name:'ไคตินอำพัน',level:20},
- {name:'คริสตัลไซเบอร์',level:30},{name:'นีออนโคร',level:40},{name:'แกนดาวเพลิง',level:50},
- ...Array.from({length:16},(_,i)=>({name:'ควอนตัม Mk.'+(i+6),level:(i+6)*10}))
+ {get name(){return t('ฝึกหัด');},level:1},{get name(){return t('เหล็กดาว');},level:10},{get name(){return t('ไคตินอำพัน');},level:20},
+ {get name(){return t('คริสตัลไซเบอร์');},level:30},{get name(){return t('นีออนโคร');},level:40},{get name(){return t('แกนดาวเพลิง');},level:50},
+ ...Array.from({length:16},(_,i)=>({get name(){return t('ควอนตัม Mk.')+(i+6);},level:(i+6)*10}))
 ];
 export const RARITY=[
- {name:'ธรรมดา',color:'#e9e4d6',mult:1},{name:'ดีเยี่ยม',color:'#5aa8ff',mult:1.25},
- {name:'หายาก',color:'#4ff08a',mult:1.6},{name:'ตำนาน',color:'#ffb440',mult:2.1}
+ {get name(){return t('ธรรมดา');},color:'#e9e4d6',mult:1},{get name(){return t('ดีเยี่ยม');},color:'#5aa8ff',mult:1.25},
+ {get name(){return t('หายาก');},color:'#4ff08a',mult:1.6},{get name(){return t('ตำนาน');},color:'#ffb440',mult:2.1}
 ];
 export const BAG_SIZE=40;
-const NOUN={weapon:{'sword-cockro':'ดาบพลาสมา','demon-scorpion':'มีดคู่นาโนชีวพิษ','sword-dragonfly':'ธนูเรลกัน','sword-cricket':'ค้อนโซนิก'}};
-export function itemName(it,hero){const noun=it.slot==='weapon'?(NOUN.weapon[hero]||'อาวุธฮีโร่'):SLOTS[it.slot].name;return `${noun}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'');}
+const NOUN={weapon:{get 'sword-cockro'(){return t('ดาบพลาสมา');},get 'demon-scorpion'(){return t('มีดคู่นาโนชีวพิษ');},get 'sword-dragonfly'(){return t('ธนูเรลกัน');},get 'sword-cricket'(){return t('ค้อนโซนิก');}}};
+export function itemName(it,hero){const noun=it.slot==='weapon'?(NOUN.weapon[hero]||t('อาวุธฮีโร่')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'');}
 export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
 export function itemStats(it){
  const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult*(1+Math.max(it.plus||0,it.legacyPlus||0)*.08),o={};
@@ -46,8 +47,8 @@ export function rollDrop(m,rng=Math.random){
 }
 export function addToBag(s,it){if(s.bag.length>=BAG_SIZE){s.gold+=sellPrice(it);return false;}s.bag.push(it);return true;}
 export function canEquip(s,it){return s.level>=TIERS[it.tier].level;}
-export function equip(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return 'ไม่พบไอเท็ม';const it=s.bag[i];if(!canEquip(s,it))return `ต้องเลเวล ${TIERS[it.tier].level}`;s.bag.splice(i,1);const old=s.equip[it.slot];if(old)s.bag.push(old);s.equip[it.slot]=it;return null;}
-export function unequip(s,slot){const it=s.equip[slot];if(!it)return 'ช่องว่าง';if(s.bag.length>=BAG_SIZE)return 'กระเป๋าเต็ม';s.bag.push(it);s.equip[slot]=null;return null;}
+export function equip(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return t('ไม่พบไอเท็ม');const it=s.bag[i];if(!canEquip(s,it))return ui`ต้องเลเวล ${TIERS[it.tier].level}`;s.bag.splice(i,1);const old=s.equip[it.slot];if(old)s.bag.push(old);s.equip[it.slot]=it;return null;}
+export function unequip(s,slot){const it=s.equip[slot];if(!it)return t('ช่องว่าง');if(s.bag.length>=BAG_SIZE)return t('กระเป๋าเต็ม');s.bag.push(it);s.equip[slot]=null;return null;}
 export function sell(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return 0;const [it]=s.bag.splice(i,1),g=sellPrice(it);s.gold+=g;return g;}
 export function freshGear(s){s.equip=Object.fromEntries(SLOT_ORDER.map(k=>[k,null]));s.equip.weapon=makeItem('weapon',0,0);s.equip.armor=makeItem('armor',0,0);s.bag=[makeItem('helm',0,1),makeItem('boots',0,0),makeItem('wings',0,1)];return s;}
 const validItem=it=>it&&typeof it.id==='string'&&SLOTS[it.slot]&&Number.isInteger(it.tier)&&it.tier>=0&&it.tier<TIERS.length&&Number.isInteger(it.rarity)&&it.rarity>=0&&it.rarity<RARITY.length;

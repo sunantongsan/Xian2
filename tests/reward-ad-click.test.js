@@ -1,9 +1,10 @@
+import {t,ui} from '../web/i18n.js';
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import vm from 'node:vm';
 import {rewardAdBlockReason} from '../web/reward-ad-status.js';
 const source=readFileSync(new URL('../web/game.js',import.meta.url),'utf8');
 function screen({supported=true,ready=true,item='crystal'}={}){
  const button={dataset:{rewardItem:item}},messages=[],sent=[],labels=[];let refreshed=0;
- const context={rewardAdBlockReason,adPending:false,adTimeout:null,adMessage:'',onlineMode:true,modal:{open:true},
+ const context={t,ui,rewardAdBlockReason,adPending:false,adTimeout:null,adMessage:'',onlineMode:true,modal:{open:true},
   document:{getElementById:()=>labels[0],createElement:()=>({setAttribute(){}}),querySelectorAll:()=>[button]},
   $:()=>({prepend:label=>labels.push(label)}),toast:message=>messages.push(message),
   ads:{supported,state:{ready},refresh:()=>refreshed++},net:{ready:true,adsEnabled:true,send:data=>{sent.push(data);return true;}},
