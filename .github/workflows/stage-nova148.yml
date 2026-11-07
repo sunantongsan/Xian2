@@ -1,0 +1,24 @@
+name: Stage Nova patch 148 on existing VPS
+on:
+  push:
+    branches: [codex/stage-nova148]
+    paths: [.github/workflows/stage-nova148.yml]
+permissions: {}
+jobs:
+  stage:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - name: Download and verify the reviewed Nova artifact only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,pathlib,hashlib
+          p=pathlib.Path("/srv/cockro-deploy")
+          b=urllib.request.urlopen("https://sdmntprseasia.oaiusercontent.com/files/00000000-d9d4-8207-93e2-9ada1f69c08a/raw?se=2026-11-07T06%3A41%3A54Z&sp=r&sv=2026-02-06&sr=b&scid=20556e2d-106e-46d4-97a8-9af5dbf97b2a&skoid=54865dd2-31dc-44cc-a877-635aa4250446&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-07T00%3A38%3A45Z&ske=2026-11-08T00%3A38%3A45Z&sks=b&skv=2026-02-06&sig=7hsrdCAh3VZWF8/XrEROPTtQaHbh/sWOt79Z8kiW3R0%3D",timeout=90).read()
+          assert hashlib.sha256(b).hexdigest()=="c686d494f066b4216b97818601e444cae21ac493038d19b8295d5e52b3f20c5d"
+          (p/"nova148.zip").write_bytes(b)
+          (p/"nova148.py").write_text("import urllib.request,hashlib,zipfile,io,json,pathlib,os,shutil,time\nraw=pathlib.Path(\"/srv/cockro-deploy/nova148.zip\").read_bytes()\nassert hashlib.sha256(raw).hexdigest()==\"c686d494f066b4216b97818601e444cae21ac493038d19b8295d5e52b3f20c5d\"\nz=zipfile.ZipFile(io.BytesIO(raw))\nmanifests={}\nfor v in range(19,39):\n p=\"patches/test/native-\"+str(v)+\"/manifest.json\"\n b=z.read(p);m=json.loads(b)\n assert m[\"contentVersion\"]==148 and m[\"nativeVersion\"]==v and len(m[\"files\"])==48\n ident=m.pop(\"id\")\n assert hashlib.sha256(json.dumps(m,ensure_ascii=False,separators=(\",\",\":\")).encode()).hexdigest()==ident\n manifests[p]=b\nfor f in m[\"files\"]:\n b=z.read(\"objects/\"+f[\"sha256\"])\n assert len(b)==f[\"size\"] and hashlib.sha256(b).hexdigest()==f[\"sha256\"]\nroot=pathlib.Path(\"/srv/nova-patches\")\nbackup=pathlib.Path(\"/srv/nova-patches-backups\")/(\"before148-\"+str(int(time.time())))\nshutil.copytree(root/\"patches\",backup)\ndef put(p,b):\n dst=root/p;dst.parent.mkdir(parents=True,exist_ok=True)\n tmp=dst.with_name(dst.name+\".148tmp\")\n tmp.write_bytes(b);os.replace(tmp,dst)\nfor f in m[\"files\"]:put(\"objects/\"+f[\"sha256\"],z.read(\"objects/\"+f[\"sha256\"]))\nfor p,b in manifests.items():put(p,b)\nprint(\"NOVA148_READY: 48 verified objects; 20 manifests; backup\",backup,flush=True)\n\n")
+          print("NOVA148_STAGED",len(b))
+          
+          PY
