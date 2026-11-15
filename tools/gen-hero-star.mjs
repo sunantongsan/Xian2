@@ -76,7 +76,7 @@ for(const [a,b] of pairs){
 for(let i=0;i<N*N;i++)if(terrain[i]===T.BRIDGE){const c=i%N,r=Math.floor(i/N);for(const [dx,dy]of N8){const x=c+dx,y=r+dy;if(inMap(x,y)&&zoneOf[idx(x,y)]<0){terrain[i]=T.CHASM;break;}}}
 
 // 7. Plazas around warp gates — always clear. Gate 1 is the heroes' home base (spawn, shops, portals), so it is larger.
-for(const [z,[hc,hr]]of hubs.entries()){const R=z===0?22.4:5.4;for(let dy=-23;dy<=23;dy++)for(let dx=-23;dx<=23;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>R)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}}
+for(const [z,[hc,hr]]of hubs.entries()){const R=z===0?12.4:5.4;for(let dy=-23;dy<=23;dy++)for(let dx=-23;dx<=23;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>R)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}}
 {const core=keep.slice();for(let i=0;i<N*N;i++)if(core[i]){const c=i%N,r=Math.floor(i/N);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=c+dx,y=r+dy;if(inMap(x,y))keep[idx(x,y)]||=2;}}}
 
 // 8. Lakes (water/lava/acid/mist/inner chasms) and props.
@@ -87,19 +87,31 @@ for(let i=0;i<N*N;i++){const z=zoneOf[i];if(z<0||keep[i]||terrain[i]===T.CHASM||
  const cluster=fbm(c/6,r/6,seed+41);const chance=Z.density*(cluster>.58?3.2:cluster>.48?1:.25)+(depth[i]<=2?.18:0);
  if(rnd()<chance){const kinds=propKinds[z];prop[i]=kinds[Math.floor(rnd()*kinds.length)];}}
 
-// Sandstone houses around the oasis square; broad axial streets stay open.
+// One compact town on the hunting map. Two five-tile-wide openings, no scene switch.
+// Fill internal ravines into continuous desert; retain the outer map boundary.
+for(let i=0;i<N*N;i++)if(zoneOf[i]>=0&&(terrain[i]===T.CHASM||terrain[i]===T.BRIDGE)){
+ const c=i%N,r=Math.floor(i/N);
+ if(N8.every(([dx,dy])=>inMap(c+dx,r+dy)&&zoneOf[idx(c+dx,r+dy)]>=0))terrain[i]=roads[i]?T.ROAD:terrainId(zoneOf[i],0);
+}
 {const [hc,hr]=hubs[0];
- for(const [dx,dy] of [[-14,-8],[-14,0],[-14,8],[14,-8],[14,0],[14,8],[-8,-14],[0,-14],[8,-14],[-8,14],[0,14],[8,14]]){
-  const c=hc+dx,r=hr+dy;
-  if(![-1,0,1].every(y=>[-1,0,1].every(x=>terrain[idx(c+x,r+y)]===T.PLAZA&&!roads[idx(c+x,r+y)])))continue;
-  for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++)prop[idx(c+x,r+y)]=PROPS.indexOf('foundation');
-  prop[idx(c,r)]=PROPS.indexOf('desert-house');
+ for(let dy=-13;dy<=13;dy++)for(let dx=-16;dx<=16;dx++){
+  const i=idx(hc+dx,hr+dy);if(zoneOf[i]<0)continue;
+  prop[i]=-1;keep[i]=1;terrain[i]=Math.abs(dx)<=12&&Math.abs(dy)<=11?T.PLAZA:terrainId(0,0);
+  if(Math.abs(dy)<=2){terrain[i]=T.ROAD;roads[i]=1;}
  }
- // A small protected oasis beside the square, outside all service points.
- for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
-  const c=hc-10+dx,r=hr-10+dy,i=idx(c,r);
-  if(Math.hypot(dx,dy)<3.3&&!roads[i]&&prop[i]<0)terrain[i]=terrainId(0,2);
+ // Low sandstone boundary keeps the exits readable without obscuring the plaza.
+ for(let dy=-11;dy<=11;dy++)for(let dx=-12;dx<=12;dx++){
+  if(Math.abs(dx)!==12&&Math.abs(dy)!==11)continue;
+  if(Math.abs(dx)===12&&Math.abs(dy)<=2)continue;
+  prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('town-wall');
  }
+ for(const [dx,dy] of [[-8,-6],[-8,6],[-3,-7],[3,-7],[8,-6],[8,6],[-3,7],[3,7]]){
+  for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++)prop[idx(hc+dx+x,hr+dy+y)]=PROPS.indexOf('foundation');
+  prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('desert-house');
+ }
+ // Small ornamental pool, never across the east-west main street.
+ for(let dy=-1;dy<=1;dy++)for(let dx=-2;dx<=2;dx++)terrain[idx(hc+dx,hr+5+dy)]=terrainId(0,2);
+ for(const [dx,dy] of [[-10,-3],[-10,3],[10,-3],[10,3],[-5,5],[5,5]])prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('palm');
 }
 
 // 9. Keep only what the start can reach; unreachable pockets become rock props so nothing is visible-but-stuck.
@@ -125,12 +137,12 @@ for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
  zoneStats.push({zone:z,camps:camps.length,boss});
 }
 
-// 11. Points of interest: warp gate per zone (gate 0 is the arrival point) and the portal back to town beside it.
-const pois=hubs.map(([c,r],z)=>({name:'ประตูวาร์ป • '+STAR_ZONES[z].name,type:'warp',c,r,zone:z}));
-// Home base services around gate 1 (offsets inside the radius-9 plaza; nudged onto plaza tiles if needed).
+// Keep the legacy warp identifier for saves/protocol; these are walking landmarks.
+const pois=hubs.map(([c,r],z)=>({name:z===0?'เมืองโอเอซิส • จุดกลับเมือง 2':'เส้นทาง • '+STAR_ZONES[z].name,type:'warp',c,r,zone:z}));
 {const [hc,hr]=hubs[0];
- const svc=[['คลังเสบียง','shop',-6,1],['โรงอัปเกรด','forge',1,-6],['ศูนย์ฝึกฮีโร่','skills',-4,-5],['สถานีออโรรา','town',6,-1],['ประตูป่าชีวะแสง','forest',4,5]];
- for(const [name,type,dx,dy] of svc){let c=hc+dx,r=hr+dy;for(let k=0;k<8&&terrain[idx(c,r)]!==T.PLAZA;k++){c-=Math.sign(dx);r-=Math.sign(dy);}pois.push({name,type,c,r,zone:0});}}
+ const svc=[['พ่อค้าโอเอซิส','shop',-5,0],['ช่างตีเหล็กโอเอซิส','forge',0,-4],['ลานฝึกโอเอซิส','skills',5,-3],['ไปเมืองทุ่งกุลา','town',15,0],['ไปล่ามอนสเตอร์ 61–120','hunt',-15,0]];
+ for(const [name,type,dx,dy]of svc)pois.push({name,type,c:hc+dx,r:hr+dy,zone:0});
+}
 
 // 12. Write Tiled JSON.
 const prop1=(name,type,value)=>({name,type,value});
@@ -161,4 +173,5 @@ map.nextlayerid=map.layers.length+1;map.nextobjectid=oid;
 const walkable=[...terrain].filter((t,i)=>tilesMeta.get(t).walkable&&prop[i]<0).length;
 fs.writeFileSync(new URL('../web/maps/hero-star.json',import.meta.url),JSON.stringify(map));
 console.log(JSON.stringify({seed,size:N,walkableTiles:walkable,spawns:spawns.length,monsters:spawns.reduce((a,s)=>a+s.count,0),zones:zoneStats},null,0));
+
 

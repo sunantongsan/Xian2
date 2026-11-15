@@ -1,0 +1,61 @@
+name: Deploy compact oasis city 4.50.0
+on:
+  push:
+    branches: [feature/oasis-city-seamless]
+    paths: ['.github/workflows/oasis-4500.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cockro-online-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          ref: 31706f9d09d50e458f456177e17bfd8562bac203
+          sparse-checkout: server
+      - name: Verify staged client and deploy matching server with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate=b12bc07b523f8df99da37cd1ba987437357573aab9367ceab4148cc5b78b82ee
+          before=a6b6dc36ee01bcfd11fb19c2a2c8c3f8b7068bd52dc6225750e2dcfee52d4e18
+          test "$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)" = "$candidate"
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = "$before"
+          /opt/cockro-online/node --check server/online-server.cjs
+          python3 - <<'PY'
+          import json,urllib.request
+          with urllib.request.urlopen('https://cockro-game-updates-g7v7bon7c-sunans-projects-4868df82.vercel.app/latest.json',timeout=20) as r: feed=json.load(r)
+          assert feed['version']=='4.50.0' and feed['sha256']=='dd3a9df8b1cac3f7449370dd6d3264e3276e54a1031f9be94c213adf3f94b524'
+          with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=5) as r: h=json.load(r)
+          assert h.get('ok') and h.get('release')=='4.49.0' and h.get('desertPopulation')==818
+          print('Verified staged 4.50.0 and existing desert server')
+          PY
+          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-oasis-4500.cjs
+          test "$(sha256sum /srv/cockro-deploy/online-stage/before-oasis-4500.cjs | cut -d ' ' -f 1)" = "$before"
+          cp server/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+          rollback() {
+            cp /srv/cockro-deploy/online-stage/before-oasis-4500.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+            sudo -n /usr/local/sbin/cockro-deploy-online "$before"
+          }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online "$candidate"
+          python3 - <<'PY'
+          import json,time,urllib.request
+          for attempt in range(20):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=3) as r: h=json.load(r)
+                  if h.get('ok') and h.get('release')=='4.50.0' and h.get('oasisCity') and h.get('desertMapRevision')==20261116 and h.get('desertTiles')==384 and h.get('desertPopulation')==855 and h.get('suitTypes')==10:
+                      print('OASIS_HEALTH_OK',h['release'],h['desertTiles'],h['desertPopulation'])
+                      break
+              except Exception: pass
+              time.sleep(1)
+          else: raise SystemExit('Health check failed')
+          PY
+          systemctl is-active cockro-online.service
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = "$candidate"
+          trap - ERR

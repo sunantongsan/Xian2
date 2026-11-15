@@ -3,8 +3,8 @@ import {t,ui} from './i18n.js';
 // Sci-fi insect-hero planet for COCKRO: landing fields, alien groves, termite hills, mech graveyards, neon ruins, iron hives.
 import {advancedMonster} from './advanced-monsters.js';
 
-export const STAR_REVISION=20261115;
-export const STAR_HOME_RADIUS=1080;
+export const STAR_REVISION=20261116;
+export const STAR_HOME_RADIUS=600;
 export const STAR_TILE=48;          // world units per tile edge (same projection as actors)
 export const STAR_SIZE=384;         // tiles per side
 
@@ -13,7 +13,7 @@ export const T={VOID:0,CHASM:1,ROAD:2,BRIDGE:3,PLAZA:4};
 export const ZONE_TERRAIN_BASE=5;
 export const terrainId=(zone,part)=>ZONE_TERRAIN_BASE+zone*3+part;
 
-export const PROPS=['bulbtree','mushroom','crystal','crystaltree','rock','meteor','pine','reed','lantern','mound','deadtree','pillar','obelisk','spire','wreck','hive','pylon','palm','cactus','sandstone','desert-house','foundation'];
+export const PROPS=['bulbtree','mushroom','crystal','crystaltree','rock','meteor','pine','reed','lantern','mound','deadtree','pillar','obelisk','spire','wreck','hive','pylon','palm','cactus','sandstone','desert-house','foundation','town-wall'];
 
 // Twelve zones, five levels each.
 export const STAR_ZONES=[
@@ -37,5 +37,6 @@ export const bossZone=z=>STAR_ZONES[z].max%10===0;
 
 // Hero Star is the advanced map, levels 61–120; identities match the bestiary.
 export const starMonster=advancedMonster;
+
 
 
