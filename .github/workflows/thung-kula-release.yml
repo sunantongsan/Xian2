@@ -1,0 +1,76 @@
+name: Deploy verified Thung Kula world 4.47.0
+on:
+  push:
+    branches: [feature/thung-kula-release]
+    paths: ['.github/workflows/thung-kula-release.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cockro-production-world
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm run check
+          npm run build:server
+          node --check server/online-server.cjs
+          echo 'f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e  server/online-server.cjs' | sha256sum --check
+          sha256sum server/online-server.cjs > bundle.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: thung-kula-server-4470
+          retention-days: 1
+          path: |
+            server/online-server.cjs
+            bundle.sha256
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: thung-kula-server-4470
+          path: thung-kula-production
+      - name: Install exact tested world with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd thung-kula-production
+          sha256sum --check bundle.sha256
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = eb1b05a23a471d7812ebebd802d45f8c809956119faf380af96e44dd541bd7d2
+          /opt/cockro-online/node --check server/online-server.cjs
+          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-thung-kula-4470.cjs
+          cp server/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+          rollback() {
+            cp /srv/cockro-deploy/online-stage/before-thung-kula-4470.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+            sudo -n /usr/local/sbin/cockro-deploy-online eb1b05a23a471d7812ebebd802d45f8c809956119faf380af96e44dd541bd7d2
+          }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e
+          python3 - <<'PY'
+          import json,time,urllib.request
+          for attempt in range(15):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=3) as r: h=json.load(r)
+                  if h.get('ok') and h.get('release')=='4.47.0' and h.get('forestPopulation')==1213:
+                      print('THUNG_KULA_HEALTH_OK')
+                      break
+              except Exception: pass
+              time.sleep(1)
+          else: raise SystemExit('Health check failed')
+          PY
+          systemctl is-active cockro-online.service
+          sha256sum /opt/cockro-online/online-server.cjs
+          trap - ERR

@@ -337,7 +337,7 @@ const tx=qa.x+dx*.27,ty=qa.y+dy*.27;
 ctx.translate(tx,ty);ctx.scale(scale,scale*.9);
 ctx.font='bold 40px GameThai,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.lineWidth=5;ctx.strokeStyle='#172c3e';ctx.fillStyle=ink;
-for(const [text,y] of [[t('เลเวล'),-25],[road.id==='forest'?'1–60':road.id==='aurora'?t('ดันเจียน'):'61–120',25]]){ctx.strokeText(text,0,y,150);ctx.fillText(text,0,y,150);}ctx.restore();
+for(const [text,y] of [[road.id==='aurora'?t('ดันเจียน'):t('เลเวล'),-25],[road.id==='forest'?'1–60':road.id==='aurora'?'AURORA':'61–120',25]]){ctx.strokeText(text,0,y,150);ctx.fillText(text,0,y,150);}ctx.restore();
 const ux=dx/len,uy=dy/len,ax=qa.x+dx*.43,ay=qa.y+dy*.43,shaft=20*scale,wing=13*scale;
 ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle=ink;ctx.lineWidth=5*scale;ctx.lineJoin='round';ctx.lineCap='round';
 ctx.beginPath();ctx.moveTo(ax-ux*shaft,ay-uy*shaft);ctx.lineTo(ax+ux*shaft,ay+uy*shaft);
