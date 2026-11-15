@@ -1,1 +1,5 @@
-{"game":"cockro","engine":88,"version":"4.46.7"}
+{
+  "game": "cockro",
+  "engine": 88,
+  "version": "4.47.0"
+}

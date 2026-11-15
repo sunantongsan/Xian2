@@ -17,12 +17,12 @@ const localPoly=(col,row,poly)=>poly.map(([u,v])=>[(col+u)/FOREST_COLS,(row+v)/F
 const forestWalk=[rect(.012,.012,.988,.988)];
 
 export const REGIONS=[
- {id:0,get name(){return t('ชายป่าแสงแรก');},min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
- {id:1,get name(){return t('ทุ่งสปอร์อำพัน');},min:11,max:20,center:[.50,.75],entry:[.50,.90]},
- {id:2,get name(){return t('สวนรากคริสตัล');},min:21,max:30,center:[5/6,.75],entry:[5/6,.90]},
- {id:3,get name(){return t('ดงบุปผากินพลัง');},min:31,max:40,center:[5/6,.25],entry:[5/6,.40]},
- {id:4,get name(){return t('แอ่งชีวะแสง');},min:41,max:50,center:[.50,.25],entry:[.50,.40]},
- {id:5,get name(){return t('หัวใจป่าดาวไกล');},min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
+ {id:0,get name(){return t('ทุ่งหญ้ารุ่งอรุณ');},min:1,max:10,center:[1/6,.75],entry:[1/6,.90]},
+ {id:1,get name(){return t('นาข้าวสีทอง');},min:11,max:20,center:[.50,.75],entry:[.50,.90]},
+ {id:2,get name(){return t('ทุ่งบุปผา');},min:21,max:30,center:[5/6,.75],entry:[5/6,.90]},
+ {id:3,get name(){return t('ไร่มนตรา');},min:31,max:40,center:[5/6,.25],entry:[5/6,.40]},
+ {id:4,get name(){return t('ลำธารภูต');},min:41,max:50,center:[.50,.25],entry:[.50,.40]},
+ {id:5,get name(){return t('ทุ่งผู้พิทักษ์');},min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
 ];
 export const MAPS={
  town:{id:'town',get name(){return t('หมู่บ้านฮีโร่ • สถานีออโรรา');},image:'maps/aurora-outpost.webp',width:4000,height:2666,spawn:[.50,.445],walk:[
@@ -36,6 +36,29 @@ export const MAPS={
  forest:{id:'forest',get name(){return t('ป่าชีวะแสง • Lv.1–60');},image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],get name(){return t('ถนนกลับสถานีออโรรา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]}
 
 };
+
+// Historical maps are retained as dungeons, including their original collision geometry.
+MAPS.aurora={...MAPS.town,id:'aurora',get name(){return t('ดันเจียนออโรรา');},pois:[{uv:[.5,.94],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},{uv:[.94,.54],get name(){return t('ดันเจียนป่าชีวะแสง');},action:'road',road:'ruins'}]};
+MAPS.ruins={...MAPS.forest,id:'ruins',get name(){return t('ดันเจียนป่าชีวะแสง • Lv.1–60');},pois:[{uv:[1/6,.95],get name(){return t('กลับดันเจียนออโรรา');},action:'road',road:'aurora'}]};
+MAPS.town={...MAPS.town,get name(){return t('เมืองแห่งทุ่งกุลา');},image:'maps/thung-kula-town.webp',theme:'fantasy',
+ walk:[rect(.012,.012,.988,.988)],
+ // Building silhouettes are solid. Irrigation water, paddy fields and bridges are walkable.
+ blocked:[rect(.18,.01,.77,.205),[[.04,.17],[.15,.10],[.25,.21],[.23,.30],[.04,.33]],
+ [[.015,.29],[.10,.22],[.22,.34],[.19,.45],[.015,.45]],
+ [[.77,.19],[.84,.12],[.95,.21],[.98,.39],[.79,.41],[.75,.30]],
+ [[.04,.53],[.15,.50],[.23,.60],[.20,.70],[.035,.70]],
+ [[.80,.53],[.88,.50],[.98,.60],[.98,.71],[.79,.71],[.76,.63]],
+ [[.46,.25],[.51,.22],[.55,.27],[.55,.31],[.51,.33],[.46,.31]]],
+ pois:[{uv:BUFF_NPC_UV,get name(){return t('แม่มดบุปผา • รับบัฟ');},action:'buff'},
+ {uv:MERCHANT_UV,get name(){return t('พ่อค้าทุ่งกุลา');},action:'shop'},
+ {uv:[.85,.505],get name(){return t('ช่างตีเหล็ก');},action:'forge'},
+ {uv:DOCTOR_UV,get name(){return t('ปราชญ์แห่งทุ่งกุลา');},action:'mutation'},
+ {uv:[.50,.37],get name(){return t('ลานฝึกเวทมนตร์');},action:'skills'},
+ {uv:[.50,.94],get name(){return t('ทุ่งกุลา • เลเวล 1–60');},action:'road',road:'forest'},
+ {uv:[.94,.50],get name(){return t('ดันเจียนฮีโร่ • เลเวล 61–120');},action:'road',road:'star'},
+ {uv:[.06,.50],get name(){return t('ดันเจียนออโรรา');},action:'road',road:'aurora'}]};
+MAPS.forest={...MAPS.forest,get name(){return t('ทุ่งกุลา • เลเวล 1–60');},theme:'fantasy',image:'maps/thung-kula-fields.webp',pois:[{uv:[1/6,.95],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]};
+
 export function regionAt(point){const [u,v]=toUV(point,MAPS.forest);return REGIONS.reduce((best,r)=>Math.hypot(u-r.center[0],v-r.center[1])<Math.hypot(u-best.center[0],v-best.center[1])?r:best,REGIONS[0]);}
 function inside(u,v,poly){let hit=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>v)!==(b[1]>v)&&u<(b[0]-a[0])*(v-a[1])/(b[1]-a[1])+a[0])hit=!hit;}return hit;}
 // Broad-phase bounds avoid testing every polygon for each movement sample.
@@ -46,7 +69,7 @@ export function walkable(scene,point){
  if(scene?.type==='tiles')return tileWalkable(scene,point);
  if(!scene)return Math.abs(point.x)<=850&&Math.abs(point.y)<=850;
  const u=.5+.8*(point.x-point.y)/(scene.width||MAP_W),v=.6+.4*(point.x+point.y)/(scene.height||MAP_H),polys=geometry(scene);
- for(const [du,dv]of FOOT_OFFSETS){const x=u+du,y=v+dv;let hit=false;for(const p of polys){if(x>=p.l&&x<=p.r&&y>=p.t&&y<=p.b&&inside(x,y,p.poly)){hit=true;break;}}if(!hit)return false;}return true;
+ for(const [du,dv]of FOOT_OFFSETS){const x=u+du,y=v+dv;if(scene.blocked?.some(poly=>inside(x,y,poly)))return false;let hit=false;for(const p of polys){if(x>=p.l&&x<=p.r&&y>=p.t&&y<=p.b&&inside(x,y,p.poly)){hit=true;break;}}if(!hit)return false;}return true;
 }
 export function traceStep(scene,from,to){const d=Math.hypot(to.x-from.x,to.y-from.y),steps=Math.max(1,Math.ceil(d/10));let p={x:from.x,y:from.y};for(let i=1;i<=steps;i++){const q={x:from.x+(to.x-from.x)*i/steps,y:from.y+(to.y-from.y)*i/steps};if(!walkable(scene,q))break;p=q;}return p;}
 const COLS=120,ROWS=80,cache=new WeakMap();
