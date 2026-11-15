@@ -1,0 +1,60 @@
+name: Deploy full character suits 4.48.4
+on:
+  push:
+    branches: [feature/mantis-four-directions-4481]
+    paths: ['.github/workflows/full-suits-4484.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cockro-online-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          ref: c25fe56a80389fd5af97fd2bf83acb3a809629c9
+          sparse-checkout: server
+      - name: Install locally tested bundle with checksum, backup and health checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate=2140675b89a5bdb842159a165ac1dd34e551b76cce5a7b2de0186aa12ab78a0b
+          test "$(sha256sum server/online-server.cjs | cut -d ' ' -f 1)" = "$candidate"
+          /opt/cockro-online/node --check server/online-server.cjs
+          python3 - <<'PY'
+          import json,urllib.request
+          with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=5) as r: h=json.load(r)
+          assert h.get('ok') and h.get('release')=='4.48.0', 'Server changed; deployment stopped'
+          print('Confirmed source server',h['release'])
+          PY
+          before=$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)
+          mkdir -p /srv/cockro-deploy/online-stage
+          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-full-suits-4484.cjs
+          test "$(sha256sum /srv/cockro-deploy/online-stage/before-full-suits-4484.cjs | cut -d ' ' -f 1)" = "$before"
+          cp server/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = "$before"
+          rollback() {
+            cp /srv/cockro-deploy/online-stage/before-full-suits-4484.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+            sudo -n /usr/local/sbin/cockro-deploy-online "$before"
+          }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online "$candidate"
+          python3 - <<'PY'
+          import json,time,urllib.request
+          for attempt in range(20):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=3) as r: h=json.load(r)
+                  if h.get('ok') and h.get('release')=='4.48.4' and h.get('fullSuitDrops') and h.get('suitTypes')==10:
+                      print('HEALTH_OK',h['release'],'full suits',h['suitTypes'])
+                      break
+              except Exception: pass
+              time.sleep(1)
+          else: raise SystemExit('Health check failed')
+          PY
+          systemctl is-active cockro-online.service
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = "$candidate"
+          trap - ERR
