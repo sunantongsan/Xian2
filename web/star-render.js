@@ -2,7 +2,7 @@
 // depth-sorted props, warp gates, a parallax starfield and the minimap. No image assets are required.
 import {STAR_ZONES} from './star-data.js';
 
-const CH=12, PAD=10, FACE=180;
+const CH=8, PAD=10, FACE=180;
 const hexRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 const shade=(a,f)=>a.map(v=>Math.max(0,Math.min(255,v*f)));
@@ -17,7 +17,7 @@ const ROADLIKE=new Set(['road','bridge','plaza']);
 function canvas(w,h){const c=typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(Math.max(1,Math.ceil(w)),Math.max(1,Math.ceil(h))):Object.assign(document.createElement('canvas'),{width:Math.max(1,Math.ceil(w)),height:Math.max(1,Math.ceil(h))});return c;}
 
 export function createStarRenderer(scene,{quality='auto',art={},images=new Map()}={}){
- const {N,rows,T}=scene,res=quality==='low'?.6:1;
+ const {N,rows,T}=scene,res=quality==='low'?.6:.8;
  // Painted art (tools/pack-star-art.py): seamless ground textures mapped through the isometric projection,
  // and per-zone prop atlases. Zones without art keep the procedural look.
  const TEX_WORLD=520;
@@ -95,7 +95,7 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
   if(h>.32){g.strokeStyle=rgb(shade(col,1.13),.5);g.lineWidth=1.2;g.beginPath();g.moveTo(X-22,Y+2);g.quadraticCurveTo(X-2,Y-7,X+22,Y-1);g.stroke();}
   if(h>.84){g.fillStyle=rgb(shade(col,.78),.65);g.beginPath();g.ellipse(X-9,Y+4,2.8,1.2,0,0,7);g.fill();}
  }
- function chunk(cx,cy,budget){const key=cx+','+cy;if(chunks.has(key)){const v=chunks.get(key);chunks.delete(key);chunks.set(key,v);return v;}if(budget.n<=0)return undefined;budget.n--;const cv=buildChunk(cx,cy);chunks.set(key,cv);const cap=Math.max(quality==='low'?14:22,pinned.size+4);for(const old of chunks.keys()){if(chunks.size<=cap)break;if(!pinned.has(old))chunks.delete(old);}return cv;}
+ function chunk(cx,cy,budget){const key=cx+','+cy;if(chunks.has(key)){const v=chunks.get(key);chunks.delete(key);chunks.set(key,v);return v;}if(budget.n<=0||(budget.deadline&&performance.now()>budget.deadline))return undefined;budget.n--;const cv=buildChunk(cx,cy);chunks.set(key,cv);const cap=Math.max(quality==='low'?14:22,pinned.size+4);for(const old of chunks.keys()){if(chunks.size<=cap)break;if(!pinned.has(old))chunks.delete(old);}return cv;}
 
  // ---------- starfield ----------
  const stars=canvas(512,512);{const g=stars.getContext('2d');for(let n=0;n<170;n++){const a=hash(n,1,500),b=hash(n,2,500),s=hash(n,3,500);g.fillStyle=`rgba(${200+s*55|0},${210+s*45|0},255,${.35+s*.6})`;g.beginPath();g.arc(a*512,b*512,s>.93?1.7:s*.9+.3,0,7);g.fill();}}
@@ -117,14 +117,16 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
  }
  function drawGround(ctx,view){
   drawSpace(ctx,view);
-  const v=visibleTiles(view,CH);const budget={n:2};const list=[];
+  const v=visibleTiles(view,CH);const budget={n:2,deadline:performance.now()+5};const list=[];
   for(let cy=Math.floor(v.r0/CH);cy<=Math.floor(v.r1/CH);cy++)for(let cx=Math.floor(v.c0/CH);cx<=Math.floor(v.c1/CH);cx++){const b=chunkBox(cx,cy),sx=view.ox+b.X*view.scale,sy=view.oy+b.Y*view.scale;if(sx>view.w||sy>view.h||sx+b.w*view.scale<0||sy+b.h*view.scale<0)continue;list.push([cx,cy,sx,sy,b]);}
   list.sort((a,b)=>(a[0]+a[1])-(b[0]+b[1])||Math.hypot(a[2]-view.w/2,a[3]-view.h/2)-Math.hypot(b[2]-view.w/2,b[3]-view.h/2));
   pinned=new Set(list.map(([cx,cy])=>cx+','+cy));let missing=0;
+  // Build before blitting: cached drawing must not starve chunks later in depth order.
+  budget.deadline=performance.now()+5;for(const [cx,cy]of list)chunk(cx,cy,budget);budget.n=0;
   for(const [cx,cy,sx,sy,b]of list){const cv=chunk(cx,cy,budget);if(cv===undefined){missing++;continue;}if(cv)ctx.drawImage(cv,sx,sy,b.w*view.scale,b.h*view.scale);}
   return missing;
  }
- function warm(view){const v=visibleTiles(view,CH),budget={n:999};for(let cy=Math.floor(v.r0/CH);cy<=Math.floor(v.r1/CH);cy++)for(let cx=Math.floor(v.c0/CH);cx<=Math.floor(v.c1/CH);cx++)chunk(cx,cy,budget);}
+ function warm(view){/* Draw loop fills visible chunks within its per-frame budget. */}
 
  // ---------- props ----------
  const sprites=new Map();
@@ -140,10 +142,14 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
  function props(view,out,g){
   const v=visibleTiles(view,1);
   for(let r=v.r0;r<=v.r1;r++)for(let c=v.c0;c<=v.c1;c++){const i=r*N+c,k=scene.prop[i];if(!k||k==='foundation')continue;const x=(c+.5)*T,y=(r+.5)*T,[X,Y]=iso(x,y),sx=view.ox+X*view.scale,sy=view.oy+Y*view.scale;if(sx<-90*view.scale||sx>view.w+90*view.scale||sy<-20||sy>view.h+200*view.scale)continue;
-   const h=hash(c,r,123),flip=hash(c,r,125)>.5,z=scene.zone[i],atlas=art[z]?.props,aim=atlas&&images.get(atlas.file);
+   if(k==='desert-house'&&images.has('maps/star/oasis-buildings.webp')){
+    const im=images.get('maps/star/oasis-buildings.webp'),cw=im.width/2,ch=im.height/2,n=Math.floor(hash(c,r,143)*4),size=194*view.scale;
+    out.push({sort:x+y,fn:()=>g.drawImage(im,(n%2)*cw,Math.floor(n/2)*ch,cw,ch,sx-size/2,sy-size*.92,size,size)});continue;
+   }
+   const h=hash(c,r,123),flip=k!=='town-wall'&&hash(c,r,125)>.5,z=scene.zone[i],atlas=art[z]?.props,aim=atlas&&images.get(atlas.file);
    if(aim){const [cw,ch]=atlas.cell,base=atlas.base,n=paintedProp(k,c,r,h),target=n<3?205:n<5?120:n<7?230:190,sc=target/atlas.heights[n]*(.85+hash(c,r,124)*.3)*view.scale,sx0=n%4*cw,sy0=Math.floor(n/4)*ch;
     out.push({sort:x+y,fn:flip&&n<5?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(aim,sx0,sy0,cw,ch,-cw/2*sc,-base*sc,cw*sc,ch*sc);g.restore();}:()=>g.drawImage(aim,sx0,sy0,cw,ch,sx-cw/2*sc,sy-base*sc,cw*sc,ch*sc)});continue;}
-   const sp=sprite(k,scene.zone[i],Math.floor(h*3)),sc=(.82+hash(c,r,124)*.32)*view.scale;
+   const sp=sprite(k,scene.zone[i],Math.floor(h*3)),sc=(k==='town-wall'?1:.82+hash(c,r,124)*.32)*view.scale;
    out.push({sort:x+y,fn:flip?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(sp.cv,-sp.ax*sc,-sp.ay*sc,sp.W*sc,sp.H*sc);g.restore();}:()=>g.drawImage(sp.cv,sx-sp.ax*sc,sy-sp.ay*sc,sp.W*sc,sp.H*sc)});}
  }
  return {drawGround,warm,props,visibleTiles,chunkCount:()=>chunks.size};
@@ -159,6 +165,14 @@ function drawProp(g,kind,Z,v){
  const s=1+v*.12;
  switch(kind){
  case 'foundation':break;
+ case 'town-wall':{
+  const face=(pts,col)=>{g.fillStyle=col;g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fill();};
+  face([[-39,-5],[0,15],[0,-13],[-39,-33]],'#d9af7e');
+  face([[0,15],[39,-5],[39,-33],[0,-13]],'#ba8e60');
+  face([[-39,-33],[0,-53],[39,-33],[0,-13]],'#ffe2b0');
+  g.strokeStyle='#f6d6a4';g.lineWidth=2;g.beginPath();g.moveTo(-39,-19);g.lineTo(0,1);g.lineTo(39,-19);g.stroke();break;
+ }
+
  case 'desert-house':{
   shadow(g,48,18);
   const poly=(points,color)=>{g.fillStyle=color;g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fill();};
@@ -222,7 +236,9 @@ function drawProp(g,kind,Z,v){
 }
 
 // ---------- warp gates ----------
-export function drawGate(g,sx,sy,scale,time,{town=false,locked=false}={}){
+export function drawGate(g,sx,sy,scale,time,{town=false,locked=false,landmark=false,home=false,direction=1}={}){
+ if(landmark){g.save();g.translate(sx,sy);g.scale(scale,scale);if(home){g.fillStyle='#e6ca91';g.beginPath();g.ellipse(0,0,72,32,0,0,7);g.fill();g.fillStyle='#61c9c7';g.beginPath();g.ellipse(0,-5,56,23,0,0,7);g.fill();g.strokeStyle='#fff3c8';g.lineWidth=3;g.stroke();g.fillStyle='#f5dca6';g.fillRect(-7,-35,14,30);}else{g.scale(direction,1);g.fillStyle='#a2744e';g.fillRect(-4,-47,8,47);g.fillStyle=town?'#e8b27a':'#65b9b4';g.beginPath();g.moveTo(-34,-55);g.lineTo(26,-55);g.lineTo(40,-42);g.lineTo(26,-29);g.lineTo(-34,-29);g.closePath();g.fill();g.strokeStyle='#fff0c9';g.lineWidth=3;g.beginPath();g.moveTo(-18,-42);g.lineTo(22,-42);g.lineTo(13,-48);g.moveTo(22,-42);g.lineTo(13,-36);g.stroke();}g.restore();return;}
+
  const col=town?[255,214,120]:locked?[150,150,165]:[110,225,255];
  g.save();g.translate(sx,sy);g.scale(scale,scale);
  g.strokeStyle=rgb(col,.7);g.lineWidth=2;g.beginPath();g.ellipse(0,0,62,26,0,0,7);g.stroke();
@@ -244,5 +260,6 @@ export function buildMinimap(scene,art={}){
  return cv;
 }
 export function minimapPoint(scene,x,y){const c=x/scene.T,r=y/scene.T;return {x:c-r+scene.rows,y:(c+r)/2};}
+
 
 

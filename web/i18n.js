@@ -6,6 +6,16 @@ export const language = createLanguage({
   onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; try { globalThis.CockroLanguage?.setLanguage(value); } catch {} }
 });
 export const messages = {
+ 'เมืองโอเอซิส • เมือง 2':'Oasis City • Town 2',
+ 'เมืองโอเอซิส • จุดกลับเมือง 2':'Oasis City • Return point',
+ 'กลับเมืองโอเอซิส':'Return to Oasis City',
+ 'พ่อค้าโอเอซิส':'Oasis Merchant',
+ 'ช่างตีเหล็กโอเอซิส':'Oasis Blacksmith',
+ 'ลานฝึกโอเอซิส':'Oasis Training',
+ 'ไปเมืองทุ่งกุลา':'To Thung Kula',
+ 'ไปล่ามอนสเตอร์ 61–120':'Hunting grounds 61–120',
+ 'นครทะเลทราย • เส้นทางเดิน':'Desert Kingdom • Walking routes',
+
  'นครโอเอซิส':'Oasis City',
  'สวนอินทผลัม':'Date Palm Gardens',
  'ทะเลทรายทอง':'Golden Dunes',
@@ -94,4 +104,5 @@ export function localizeNotice(packet) {
  if (['opResult','commerceResult','billingResult','adError'].includes(packet?.type) && typeof packet.message === 'string') return {...packet,message:t(packet.message)};
  return packet;
 }
+
 

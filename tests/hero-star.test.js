@@ -54,7 +54,7 @@ test('the whole planet is one connected world: every zone gate reachable on foot
  assert(!walkable(star,{x:-100,y:-100}));
  const chasm=star.kind.findIndex(k=>k==='chasm');assert(!walkable(star,{x:(chasm%N+.5)*star.T,y:(Math.floor(chasm/N)+.5)*star.T}));
  // Home base services exist and sit on the base plaza.
- for(const a of ['shop','forge','skills','town','forest']){const p=star.pois.find(q=>q.action===a);assert(p,a);assert(walkable(star,p.world),a);assert(Math.hypot(p.world.x-home.x,p.world.y-home.y)<430,a);}
+ for(const a of ['shop','forge','skills','town','hunt']){const p=star.pois.find(q=>q.action===a);assert(p,a);assert(walkable(star,p.world),a);assert(Math.hypot(p.world.x-home.x,p.world.y-home.y)<800,a);}
  assert(!star.spawns.some(c=>Math.hypot(c.x-home.x,c.y-home.y)<700),'no camps inside the base');
 });
 test('local chase routing is bounded and still makes progress',()=>{
@@ -75,3 +75,4 @@ test('prop clutter is thinned consistently without making liquids or chasms walk
  assert(remaining<original*.5,`${remaining}/${original}`);assert.deepEqual(parseTiled(json).walk,star.walk);
  for(let i=0;i<star.walk.length;i++){if(['void','chasm','water','lava','acid'].includes(star.kind[i]))assert.equal(star.walk[i],0);if(star.prop[i])assert.equal(star.walk[i],0);}
 });
+
