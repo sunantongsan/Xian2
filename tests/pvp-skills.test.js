@@ -10,10 +10,10 @@ import {resolvePvpImpacts,tickPvp} from '../server/pvp.js';
 function pair(hero='sword-cockro'){const w=new World(),s=fresh(hero);s.level=210;s.equipped=knownSkills(s).slice(0,5).map(k=>k.id);const a=w.join('a',s),b=w.join('b',{...fresh('sword-cockro'),level:210});b.x=a.x+40;b.y=a.y;return {w,a,b};}
 test('all five equipped slots of every playable hero cast in PvP, consume MP and have independent cooldowns',()=>{
  for(const hero of HEROES){const {w,a,b}=pair(hero);for(let slot=0;slot<5;slot++){
-  const now=100+slot,k=compileSkill(knownSkills(a.s).find(k=>k.id===a.s.equipped[slot])),mp=a.mp,hp=b.hp;
+  const now=100+slot,k=compileSkill(knownSkills(a.s).find(k=>k.id===a.s.equipped[slot])),mp=a.mp,hp=b.hp;if(k.effect==='heal')a.hp=1;
   w.command(a,{type:'skillPlayer',target:b.id,slot},now);
   assert.equal(a.castId,k.id,hero+' slot '+slot);assert.equal(a.mp,mp-k.mp);assert.equal(a.cd[k.id],now+k.cd);assert.equal(b.hp,hp);
-  assert(w.events.some(e=>e.kind==='skill'&&e.skillId===k.id));resolvePvpImpacts(w,now+.56);assert(b.hp<hp);b.hp=maxHP(b.s);
+  assert(w.events.some(e=>e.kind==='skill'&&e.skillId===k.id));resolvePvpImpacts(w,now+.56);if(k.effect==='heal'){assert(a.hp>1);assert.equal(b.hp,hp);}else assert(b.hp<hp);b.hp=maxHP(b.s);
  }
  }
 });
@@ -46,3 +46,4 @@ test('queued skill cannot switch targets, run after expiry, or cast a replaced s
  if(mode==='target')context.pvpTarget='another';if(mode==='expiry')context.time=103;if(mode==='replace')context.s.equipped[3]='s6';
  vm.runInContext('castPvpSkill()',context);assert.equal(calls.length,0);assert.equal(context.pvpManualSkill,null);}
 });
+

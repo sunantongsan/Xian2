@@ -1314,3 +1314,15 @@ export const EN = {
   "จอยเดิน": "Movement joystick",
   "ปิดหน้าต่าง": "Close window"
 };
+
+Object.assign(EN,{
+ 'เลือกเส้นทางอาชีพของคุณ':'Choose your profession path',
+ 'เลือกอาชีพ':'Profession',
+ 'เปลี่ยนอาชีพแล้วเริ่มเก็บ EXP ใหม่ได้<br>คืนแต้มค่าสถานะทั้งหมด ':'Resume earning EXP after promotion.<br>Refund all stat points: ',
+ 'ยืนยันเปลี่ยนอาชีพ • ฟรี':'Promote • Free',
+ 'เกราะแมลง • ดรอปจากมอนสเตอร์และบอส • ทุกอาชีพ':'Insect armor • Monster and boss drops • All professions',
+ 'ฟื้น HP ตัวเอง 22% × พลังเวท • ไม่ทำความเสียหาย':'Restore your HP by 22% × spell power • No damage',
+ 'เกราะแมลงหาได้จากมอนสเตอร์และบอส':'Find insect armor from monsters and bosses',
+ 'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
+ 'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
+});

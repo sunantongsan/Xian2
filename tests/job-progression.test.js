@@ -15,7 +15,7 @@ test('all four species advance at 20 and 60, including returning high-level char
    ids.add(jobFor(hero,level).id);
   }
  }
- assert.equal(ids.size,12);assert.equal(jobFor('sword-male',60),null);
+ assert.equal(ids.size,18);assert.equal(jobFor('sword-male',60),null);
 });
 test('legacy allocated and unspent points, inventory and balances survive repeated migrations',()=>{
  for(const level of [1,19,20,59,60,120,210]){
@@ -48,3 +48,4 @@ test('new players earn four points per level and cannot spend beyond their budge
  const copy=validSave(s);assert.equal(copy.attributes.int,8);assert.equal(copy.statPoints,0);
  assert.equal(copy.legacyStatLevels,0);
 });
+

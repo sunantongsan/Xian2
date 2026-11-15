@@ -1,7 +1,7 @@
-name: Deploy verified Thung Kula world 4.47.0
+name: Deploy verified insect armor and professions 4.48.0
 on:
   push:
-    branches: [feature/thung-kula-release]
+    branches: [feature/insect-jobs-4480]
     paths: ['.github/workflows/thung-kula-release.yml']
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
           npm run check
           npm run build:server
           node --check server/online-server.cjs
-          echo 'f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e  server/online-server.cjs' | sha256sum --check
+          echo '5f739739bff34707b60cec2a0c8dfbb53f48864a3b1d3961ab5ae7f2d4543530  server/online-server.cjs' | sha256sum --check
           sha256sum server/online-server.cjs > bundle.sha256
   deploy:
     needs: build
@@ -43,23 +43,23 @@ jobs:
         run: |
           set -euo pipefail
           cd thung-kula-production
-          echo 'f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e  server/online-server.cjs' | sha256sum --check
-          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = eb1b05a23a471d7812ebebd802d45f8c809956119faf380af96e44dd541bd7d2
+          echo '5f739739bff34707b60cec2a0c8dfbb53f48864a3b1d3961ab5ae7f2d4543530  server/online-server.cjs' | sha256sum --check
+          test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e
           /opt/cockro-online/node --check server/online-server.cjs
-          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-thung-kula-4470.cjs
+          cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-insect-jobs-4480.cjs
           cp server/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs
           rollback() {
-            cp /srv/cockro-deploy/online-stage/before-thung-kula-4470.cjs /srv/cockro-deploy/online-stage/online-server.cjs
-            sudo -n /usr/local/sbin/cockro-deploy-online eb1b05a23a471d7812ebebd802d45f8c809956119faf380af96e44dd541bd7d2
+            cp /srv/cockro-deploy/online-stage/before-insect-jobs-4480.cjs /srv/cockro-deploy/online-stage/online-server.cjs
+            sudo -n /usr/local/sbin/cockro-deploy-online f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e
           }
           trap rollback ERR
-          sudo -n /usr/local/sbin/cockro-deploy-online f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e
+          sudo -n /usr/local/sbin/cockro-deploy-online 5f739739bff34707b60cec2a0c8dfbb53f48864a3b1d3961ab5ae7f2d4543530
           python3 - <<'PY'
           import json,time,urllib.request
           for attempt in range(15):
               try:
                   with urllib.request.urlopen('http://127.0.0.1:8091/online/health',timeout=3) as r: h=json.load(r)
-                  if h.get('ok') and h.get('release')=='4.47.0' and h.get('forestPopulation')==1213:
+                  if h.get('ok') and h.get('release')=='4.48.0' and h.get('forestPopulation')==1213:
                       print('THUNG_KULA_HEALTH_OK')
                       break
               except Exception: pass
@@ -69,3 +69,4 @@ jobs:
           systemctl is-active cockro-online.service
           sha256sum /opt/cockro-online/online-server.cjs
           trap - ERR
+

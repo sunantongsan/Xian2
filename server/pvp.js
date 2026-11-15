@@ -1,3 +1,5 @@
+import {castHealing} from './healing.js';
+import {baseAttackRange} from '../web/jobs.js';
 import {maxHP,combatStats,damage} from '../web/core.js';
 import {knownSkills,compileSkill} from '../web/skills.js';
 import {traceStep} from '../web/maps.js';
@@ -14,8 +16,8 @@ export function pvpAttack(world,p,d,now){
  const reject=reason=>{if(d.type==='skillPlayer'&&d.manual===true)world.event(p,{kind:'pvpSkillRejected',reason});return false;};
  const target=world.getActor(d.target);if(!target||target===p||target.hp<=0||p.hp<=0||target.map!==p.map||now<(target.pvpShield||0))return reject('target');
  if(now<p.actionUntil||p.pendingPvp)return reject('busy');
- let range=p.s.hero==='sword-dragonfly'?340:120,power=1,k;
- if(d.type==='skillPlayer'){if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return reject('skill');const r=knownSkills(p.s).find(r=>r.id===p.s.equipped[d.slot]&&r.level<=p.s.level);if(!r)return reject('skill');k=compileSkill(r);if(now<(p.cd[r.id]||0))return reject('cooldown');if(p.mp<k.mp)return reject('mana');range=k.form==='circle'?k.radius:k.range;power=k.power*combatStats(p.s).spell*(1+(p.s.skillRanks[r.id]||0)*.06);}
+ let range=baseAttackRange(p.s.hero),power=1,k;
+ if(d.type==='skillPlayer'){if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return reject('skill');const r=knownSkills(p.s).find(r=>r.id===p.s.equipped[d.slot]&&r.level<=p.s.level);if(!r)return reject('skill');k=compileSkill(r);if(k.effect==='heal')return castHealing(world,p,k,now);if(now<(p.cd[r.id]||0))return reject('cooldown');if(p.mp<k.mp)return reject('mana');range=k.form==='circle'?k.radius:k.range;power=k.power*combatStats(p.s).spell*(1+(p.s.skillRanks[r.id]||0)*.06);}
  else if(now<(p.cd.attack||0))return false;
  if(distance(p,target)>range||distance(traceStep(world.maps[p.map],p,target),target)>1)return reject('range');
  const key=[p.id,target.id].sort().join(':');let f=world.fights.get(key);
@@ -67,3 +69,4 @@ export function tickPvp(world,dt,now){
   else if(a.map!==b.map||distance(a,b)>650||now-f.last>10)finishFight(world,key,'escaped','escaped',now);
  }
 }
+
