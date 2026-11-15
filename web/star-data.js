@@ -3,30 +3,32 @@ import {t,ui} from './i18n.js';
 // Sci-fi insect-hero planet for COCKRO: landing fields, alien groves, termite hills, mech graveyards, neon ruins, iron hives.
 import {advancedMonster} from './advanced-monsters.js';
 
+export const STAR_REVISION=20261115;
+export const STAR_HOME_RADIUS=1080;
 export const STAR_TILE=48;          // world units per tile edge (same projection as actors)
-export const STAR_SIZE=192;         // tiles per side
+export const STAR_SIZE=384;         // tiles per side
 
 // Terrain tileset (firstgid 1). Zone grounds follow at ZONE_TERRAIN_BASE + zone*3 + (0 ground, 1 ground variant, 2 liquid).
 export const T={VOID:0,CHASM:1,ROAD:2,BRIDGE:3,PLAZA:4};
 export const ZONE_TERRAIN_BASE=5;
 export const terrainId=(zone,part)=>ZONE_TERRAIN_BASE+zone*3+part;
 
-export const PROPS=['bulbtree','mushroom','crystal','crystaltree','rock','meteor','pine','reed','lantern','mound','deadtree','pillar','obelisk','spire','wreck','hive','pylon'];
+export const PROPS=['bulbtree','mushroom','crystal','crystaltree','rock','meteor','pine','reed','lantern','mound','deadtree','pillar','obelisk','spire','wreck','hive','pylon','palm','cactus','sandstone','desert-house','foundation'];
 
 // Twelve zones, five levels each.
 export const STAR_ZONES=[
- {get name(){return t('ลานจอดยานฮีโร่');},en:'Hero Landing Fields',min:61,max:65,ground:['#6f9e5c','#86b468'],liquid:{kind:'water',color:'#4f9fc0'},props:{bulbtree:4,meteor:2,pylon:1},density:.07,lakes:.66},
- {get name(){return t('ป่าเห็ดเรืองแสง');},en:'Glowcap Grove',min:66,max:70,ground:['#3f7a6c','#4d8b74'],liquid:{kind:'water',color:'#3f8fb0'},props:{mushroom:5,bulbtree:2,rock:1},density:.09,lakes:.68},
- {get name(){return t('ทุ่งสปอร์อำพัน');},en:'Amber Spore Fields',min:71,max:75,ground:['#9c9a4e','#b0aa5c'],liquid:{kind:'acid',color:'#f0b43a'},props:{mushroom:3,bulbtree:2,rock:1},density:.08,lakes:.68},
- {get name(){return t('เนินรังปลวกยักษ์');},en:'Termite Mound Hills',min:76,max:80,ground:['#a87652','#b98762'],liquid:{kind:'water',color:'#4f9fbd'},props:{mound:5,rock:2,deadtree:1},density:.08,lakes:.7},
- {get name(){return t('หนองน้ำกรด');},en:'Acid Swamp',min:81,max:85,ground:['#4f6e4a','#5b7c52'],liquid:{kind:'acid',color:'#8fdc4e'},props:{reed:4,deadtree:2,mushroom:1},density:.08,lakes:.6},
- {get name(){return t('ป่าคริสตัลไซเบอร์');},en:'Cyber Crystal Woods',min:86,max:90,ground:['#3f5f7a','#4b6d88'],liquid:{kind:'water',color:'#39b6d6'},props:{crystaltree:4,crystal:3,pylon:1},density:.09,lakes:.67,crystal:'#7ff5ff'},
- {get name(){return t('สุสานหุ่นรบ');},en:'Mech Graveyard',min:91,max:95,ground:['#7d8288','#8b9096'],liquid:{kind:'chasm',color:'#0b1430'},props:{wreck:4,rock:2,pylon:1},density:.08,lakes:.67},
- {get name(){return t('หุบรังแมงป่อง');},en:'Scorpion Canyon',min:96,max:100,ground:['#b9714a','#c7805a'],liquid:{kind:'chasm',color:'#0b1430'},props:{rock:4,meteor:2,deadtree:1},density:.08,lakes:.68},
- {get name(){return t('นครนีออนร้าง');},en:'Neon Ruins',min:101,max:105,ground:['#4a4f66','#565b74'],liquid:{kind:'water',color:'#2fc8f0'},props:{pillar:3,obelisk:2,lantern:2},density:.08,lakes:.69,crystal:'#ff5fd2'},
- {get name(){return t('รังผึ้งเหล็ก');},en:'Iron Hive',min:106,max:110,ground:['#8a6f3c','#9a7d46'],liquid:{kind:'acid',color:'#f2b230'},props:{hive:4,pylon:2,rock:1},density:.08,lakes:.69},
- {get name(){return t('รอยแยกพลังมืด');},en:'Void Rift',min:111,max:115,ground:['#5a4b6e','#665579'],liquid:{kind:'acid',color:'#b58cff'},props:{crystal:3,obelisk:2,deadtree:2},density:.09,lakes:.67,crystal:'#c79bff'},
- {get name(){return t('แกนดาวเพลิง');},en:'Planet Core',min:116,max:120,ground:['#4a3a3c','#574446'],liquid:{kind:'lava',color:'#ff7a2e'},props:{spire:4,crystal:2,meteor:1},density:.09,lakes:.65,crystal:'#ff8a5c'},
+ {get name(){return t('นครโอเอซิส');},en:'Oasis City',min:61,max:65,ground:['#dbb778','#edcf93'],liquid:{kind:'water',color:'#55b6bc'},props:{palm:4,cactus:2,sandstone:1},density:.045,lakes:0.78},
+ {get name(){return t('สวนอินทผลัม');},en:'Date Palm Gardens',min:66,max:70,ground:['#c5b477','#e1c88b'],liquid:{kind:'water',color:'#55b6bc'},props:{palm:5,cactus:1,sandstone:1},density:.045,lakes:0.68},
+ {get name(){return t('ทะเลทรายทอง');},en:'Golden Dunes',min:71,max:75,ground:['#dfb66f','#f0d190'],liquid:{kind:'water',color:'#55b6bc'},props:{cactus:4,sandstone:2},density:.045,lakes:0.94},
+ {get name(){return t('เนินรังปลวก');},en:'Termite Dunes',min:76,max:80,ground:['#cf9d65','#e2b97e'],liquid:{kind:'water',color:'#55b6bc'},props:{mound:4,cactus:2,sandstone:2},density:.045,lakes:0.94},
+ {get name(){return t('โอเอซิสโบราณ');},en:'Ancient Oasis',min:81,max:85,ground:['#c8b87e','#e0cb94'],liquid:{kind:'water',color:'#55b6bc'},props:{palm:4,sandstone:2},density:.045,lakes:0.65},
+ {get name(){return t('ทะเลแก้วทราย');},en:'Glass Sand Basin',min:86,max:90,ground:['#ddd0ad','#f2e5c4'],liquid:{kind:'water',color:'#55b6bc'},props:{crystal:3,sandstone:4,cactus:1},density:.045,lakes:0.93},
+ {get name(){return t('สุสานกองคาราวาน');},en:'Caravan Graveyard',min:91,max:95,ground:['#cdb08a','#e2c7a0'],liquid:{kind:'water',color:'#55b6bc'},props:{wreck:2,sandstone:4,deadtree:1},density:.045,lakes:0.96},
+ {get name(){return t('หุบเขาแมงป่อง');},en:'Scorpion Canyon',min:96,max:100,ground:['#c18b62','#dda777'],liquid:{kind:'water',color:'#55b6bc'},props:{sandstone:6,cactus:2},density:.045,lakes:0.94},
+ {get name(){return t('นครทรายสาบสูญ');},en:'Lost Sand City',min:101,max:105,ground:['#d3b480','#e8cca0'],liquid:{kind:'water',color:'#55b6bc'},props:{pillar:3,obelisk:2,sandstone:4},density:.045,lakes:0.96},
+ {get name(){return t('รังแมลงสุริยะ');},en:'Sun Hive',min:106,max:110,ground:['#c59c5c','#ddb777'],liquid:{kind:'water',color:'#55b6bc'},props:{hive:4,sandstone:3,cactus:1},density:.045,lakes:0.95},
+ {get name(){return t('หุบเขาราชัน');},en:'Kings Canyon',min:111,max:115,ground:['#bf986f','#d8b58c'],liquid:{kind:'water',color:'#55b6bc'},props:{obelisk:3,sandstone:4},density:.045,lakes:0.96},
+ {get name(){return t('วิหารสุริยะ');},en:'Sun Temple',min:116,max:120,ground:['#ddb979','#f0d69e'],liquid:{kind:'water',color:'#55b6bc'},props:{pillar:4,obelisk:2,sandstone:3},density:.045,lakes:0.97},
 ];
 
 export const zoneAtLevel=level=>STAR_ZONES.findIndex(z=>level>=z.min&&level<=z.max);
@@ -35,4 +37,5 @@ export const bossZone=z=>STAR_ZONES[z].max%10===0;
 
 // Hero Star is the advanced map, levels 61–120; identities match the bestiary.
 export const starMonster=advancedMonster;
+
 

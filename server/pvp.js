@@ -1,3 +1,4 @@
+import {STAR_REVISION} from '../web/star-data.js';
 import {castHealing} from './healing.js';
 import {baseAttackRange} from '../web/jobs.js';
 import {maxHP,combatStats,damage} from '../web/core.js';
@@ -7,7 +8,7 @@ function checkpointFight(world,key,f,now){
  for(const id of [f.a,f.b]){const p=world.getActor(id);if(!p)continue;const other=id===f.a?f.b:f.a,rid=`${key}-${Math.round(f.started*1000)}`;p.s.pvpReports??=[];const report={id:rid,at:now*1000,opponent:f.names[other],result:'interrupted',...f.stats[id],unread:false,pending:true};const i=p.s.pvpReports.findIndex(r=>r.id===rid);if(i<0)p.s.pvpReports.push(report);else p.s.pvpReports[i]=report;p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;}
 }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export function capturePresence(p){p.s.worldState={map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};}
+export function capturePresence(p){p.s.worldState={mapRevision:p.map==='star'?STAR_REVISION:0,map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};}
 export function finishFight(world,key,resultA,resultB,now){
  const f=world.fights.get(key);if(!f)return;world.fights.delete(key);
  for(const [id,other,result] of [[f.a,f.b,resultA],[f.b,f.a,resultB]]){const p=world.getActor(id);if(!p)continue;const record=f.stats[id];p.s.pvpReports??=[];p.s.pvpReports=p.s.pvpReports.filter(r=>r.id!==`${key}-${Math.round(f.started*1000)}`);p.s.pvpReports.push({id:`${key}-${Math.round(f.started*1000)}`,at:now*1000,opponent:f.names[other],result,...record,unread:true});p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;world.event(p,{kind:'pvpResult',result,opponent:f.names[other]});}
@@ -69,4 +70,5 @@ export function tickPvp(world,dt,now){
   else if(a.map!==b.map||distance(a,b)>650||now-f.last>10)finishFight(world,key,'escaped','escaped',now);
  }
 }
+
 

@@ -26,7 +26,7 @@ import {rollDrop,addToBag,equip,unequip,sell,upgradeGear,buyShopGear} from '../w
 import {MAPS,REGIONS,toWorld,traceStep,walkable} from '../web/maps.js';
 import {makePopulation} from '../web/alien-population.js';
 import {parseTiled} from '../web/tilemap.js';
-import {STAR_ZONES,starMonster} from '../web/star-data.js';
+import {STAR_ZONES,starMonster,STAR_HOME_RADIUS,STAR_REVISION} from '../web/star-data.js';
 import mapJSON from '../web/maps/hero-star.json' with {type:'json'};
 export const HEROES=['sword-cockro','sword-dragonfly','sword-cricket','demon-scorpion','sword-mage','sword-acolyte'];
 export const PROTOCOL='cockro-online-4';
@@ -41,13 +41,13 @@ export class World {
  }
  getActor(id){return this.players.get(id)||this.sleepers.get(id)||this.roamers.get(id);}
  actors(){return [...this.players.values(),...this.sleepers.values(),...this.roamers.values()];}
- makeActor(id,s){normalizeFashion(s);const p={id,s,name:s.name||'กรุณาตั้งชื่อ',map:'town',...toWorld(MAPS.town.spawn,MAPS.town),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',walkDX:.707,walkDY:.707,walkDistance:0,animTime:0,cd:{},moveAt:Date.now()/1000,actionUntil:0,seq:0};const w=s.worldState;if(w&&this.maps[w.map]&&walkable(this.maps[w.map],w)){Object.assign(p,{map:w.map,x:w.x,y:w.y,hp:Math.min(maxHP(s),w.hp),mp:Math.min(combatStats(s).mp,w.mp),cd:{...w.cd},offlineSince:w.offlineSince||0});}return p;}
+ makeActor(id,s){normalizeFashion(s);const p={id,s,name:s.name||'กรุณาตั้งชื่อ',map:'town',...toWorld(MAPS.town.spawn,MAPS.town),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',walkDX:.707,walkDY:.707,walkDistance:0,animTime:0,cd:{},moveAt:Date.now()/1000,actionUntil:0,seq:0};let w=s.worldState;if(w?.map==='star'&&w.mapRevision!==STAR_REVISION){w={...w,...this.maps.star.spawn,mapRevision:STAR_REVISION};s.worldState=w;}if(w&&this.maps[w.map]&&walkable(this.maps[w.map],w)){Object.assign(p,{map:w.map,x:w.x,y:w.y,hp:Math.min(maxHP(s),w.hp),mp:Math.min(combatStats(s).mp,w.mp),cd:{...w.cd},offlineSince:w.offlineSince||0});}return p;}
  restore(id,s){if(!s.worldState||this.getActor(id))return;const p=this.makeActor(id,s);p.offline=true;for(const r of p.s.pvpReports||[])if(r.pending){r.pending=false;r.unread=true;}this.sleepers.set(id,p);return p;}
  join(id,s){if(this.players.has(id))throw Error('already_online');if(this.players.size>=this.maxPlayers)throw Error('room_full');const p=this.sleepers.get(id)||this.makeActor(id,s);this.sleepers.delete(id);p.s=s;p.name=s.name||p.name;Object.assign(p,{offline:false,seq:0,moveAt:Date.now()/1000,entered:true});this.players.set(id,p);return p;}
  disconnect(p){if(this.players.get(p.id)!==p)return;this.players.delete(p.id);p.offline=true;p.offlineSince=Date.now();p.anim='idle';this.sleepers.set(p.id,p);capturePresence(p);p.dirty=true;}
  spawnLoot(p,e,now){const rewards=monsterRewards(p.s,e.def);rewards.forEach((item,i)=>this.loot.push({...item,id:`loot-${++this.lootSequence}`,owner:p.id,hero:p.s.hero,map:p.map,x:e.x+Math.cos(i*Math.PI*2/rewards.length)*40,y:e.y+Math.sin(i*Math.PI*2/rewards.length)*40,created:now,expires:now+LOOT_SECONDS}));}
  collectGround(now){this.loot=this.loot.filter(d=>{if(now>=d.expires)return false;if(now-d.created<.35)return true;const p=this.players.get(d.owner);if(p&&p.hp>0&&p.map===d.map&&((dist(p,d)<=LOOT_RADIUS&&dist(traceStep(this.maps[p.map],p,d),d)<1)||(p.pet&&dist(p.pet,d)<=PET_PICKUP_RADIUS&&dist(p,d)<=400&&dist(traceStep(this.maps[p.map],p.pet,d),d)<1))&&collectLoot(p.s,d)){p.dirty=true;this.event(p,{kind:'lootPickup',loot:d});return false;}return true;});}
- home(p){return p.map==='town'||(p.map==='star'&&dist(p,this.maps.star.spawn)<430);}
+ home(p){return p.map==='town'||(p.map==='star'&&dist(p,this.maps.star.spawn)<STAR_HOME_RADIUS);}
  enter(p,map,gate=0){if(!Object.hasOwn(this.maps,map))return false;gate=Number.isInteger(gate)?gate:0;let pos;if(map==='star'){if(!STAR_ZONES[gate])return false;const g=this.maps.star.pois.find(q=>q.action==='warp'&&q.zone===gate);pos={x:g.world.x+40,y:g.world.y+70};}else if(map==='forest'){if(!REGIONS[gate])return false;pos=toWorld(REGIONS[gate].entry,MAPS.forest);}else pos=toWorld(this.maps[map].spawn,this.maps[map]);Object.assign(p,pos,{map,hp:maxHP(p.s),mp:combatStats(p.s).mp,anim:'idle',moveAt:Date.now()/1000});return true;}
  event(p,data){this.events.push({id:++this.sequence,map:p.map,player:p.id,x:p.x,y:p.y,...data});if(this.events.length>80)this.events.shift();}
  hit(p,e,amount,now){if(e.hp<=0)return;e.hp=Math.max(0,e.hp-amount);e.flash=.15;e.aggro=p.id;this.event(p,{kind:'hit',target:e.id,x:e.x,y:e.y,amount:Math.round(amount)});if(!e.hp){e.respawnAt=now+(e.def.boss?25:8);e.state='dead';e.clock=1;const before=p.s.level;this.spawnLoot(p,e,now);if(p.s.level>before){this.event(p,{kind:'levelUp',level:p.s.level});p.hp=maxHP(p.s);for(const r of knownSkills(p.s).filter(r=>r.level>before&&r.level<=p.s.level)){const slot=[0,1,2,3,4].find(i=>!p.s.equipped[i]);if(slot!==undefined)p.s.equipped[slot]=r.id;}}p.dirty=true;}}
@@ -97,6 +97,7 @@ export class World {
  }
  snapshot(p,now=Date.now()/1000){const actor=q=>({id:q.id,pet:q.pet?{...q.pet}:null,offline:!!q.offline,shopTitle:q.offline?'':q.shopTitle||'',name:q.name,hero:q.s.hero,weaponLook:equippedWeaponLook(q.s),townBuffUntil:q.s.townBuffUntil||0,auraLevel:auraLevel(q.s),appearance:appearance(q.s),level:q.s.level,mutationVersion:q.s.mutationVersion,mutationStage:mutationStage(q.s),jobBranch:q.s.jobBranch,insectArmor:q.s.equip?.armor?.insect||null,x:q.x,y:q.y,hp:q.hp,maxHp:maxHP(q.s),face:q.face,anim:q.hp<=0?'dead':q.anim,animTime:q.animTime,walkDX:q.walkDX,walkDY:q.walkDY,walkDistance:q.walkDistance,back:q.back,castId:q.castId});const self={...actor(p),map:p.map,mp:p.mp,actionRemaining:Math.max(0,p.actionUntil-now),save:p.s,moveAck:p.seq,correction:!!p.entered,cooldowns:Object.fromEntries(Object.entries(p.cd).map(([k,v])=>[k,Math.max(0,v-now)]))};p.entered=false;return {type:'state',serverTime:now*1000,self,online:this.players.size,loot:this.loot.filter(d=>d.map===p.map&&dist(p,d)<1700).map(d=>({...d,owner:undefined})),players:this.actors().filter(q=>q!==p&&q.map===p.map&&dist(p,q)<1800).sort((a,b)=>dist(p,a)-dist(p,b)).slice(0,32).map(actor),monsters:this.mobs[p.map].filter(e=>dist(p,e)<1700).map(e=>({id:e.id,x:e.x,y:e.y,def:e.def,hp:e.hp,state:e.state,clock:e.clock,angle:e.angle,aimX:e.aimX,aimY:e.aimY,face:e.face,flash:e.flash,moving:e.moving,walkDistance:e.walkDistance})),events:this.events.filter(e=>e.map===p.map&&dist(p,e)<1800)};}
 }
+
 
 
 

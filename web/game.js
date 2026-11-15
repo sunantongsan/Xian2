@@ -52,7 +52,7 @@ import {HERO_CLASSES,uiArt,menuTile,heroIdentity} from './hero-ui.js';
 import {MAPS,REGIONS,regionAt,mapSize,MAP_W,MAP_H,toWorld,toUV,walkable,traceStep,routeTo} from './maps.js';
 import {parseTiled,zoneAt} from './tilemap.js';
 import {createStarRenderer,drawGate,buildMinimap,minimapPoint} from './star-render.js';
-import {STAR_ZONES,starMonster} from './star-data.js';
+import {STAR_ZONES,starMonster,STAR_HOME_RADIUS} from './star-data.js';
 import {updateActor,renderPosition} from './render-motion.js';
 import {SLOTS,SLOT_ORDER,TIERS,RARITY,BAG_SIZE,itemName,itemStats,itemPower,sellPrice,rollDrop,addToBag,canEquip,equip,unequip,sell,heroPower,gearUpgradeCost,gearUpgradeG,upgradeMaterial,upgradeChance,upgradeGear,buyShopGear,gearShopPrice,tierForLevel} from './gear.js';
 import {drawHero,CLASS_SHEETS} from './hero-animation.js';
@@ -80,7 +80,7 @@ document.addEventListener('pointerdown',e=>{gameAudio.unlock(soundEnabled());if(
 document.addEventListener('visibilitychange',()=>gameAudio.sync(soundEnabled()));
 let travelBusy=false, bookRequest=0,scene=null,route=[],pendingPoi=null;
 let mapZoom=.8;
-// ดาวฮีโร่ open world: parsed tile map, renderer, camps (spawn points) and minimap.
+// นครทะเลทราย open world: parsed tile map, renderer, camps (spawn points) and minimap.
 let star=null,starRender=null,starMini=null,starZone=-1,starCamps=[],starClock=0;
 const isStar=()=>scene?.type==='tiles';
 const SAVE='road-to-immortality-v1';
@@ -525,7 +525,7 @@ function draw(){drawWorld();const rival=onlineMode&&net.players.find(e=>e.id===p
 }
 
 
-// ---------- ดาวฮีโร่ ----------
+// ---------- นครทะเลทราย ----------
 function view(){const c=camera();return {scale,ox:screenW/2-c.x*scale,oy:screenH*.55-c.y*scale,w:screenW,h:screenH,camX:c.x,camY:c.y};}
 let starArt={};
 async function loadStar(){if(star)return star;const r=await fetch('maps/hero-star.json');if(!r.ok)throw new Error('map');const parsed=parseTiled(await r.json());
@@ -533,9 +533,9 @@ async function loadStar(){if(star)return star;const r=await fetch('maps/hero-sta
  try{const a=await fetch('maps/star/art.json');if(a.ok)starArt=await a.json();}catch{starArt={};}
  star=parsed;starMini=buildMinimap(star,starArt);return star;}
 async function loadStarArt(){const files=Object.values(starArt).flatMap(z=>Object.values(z).map(v=>v.file));await Promise.all(files.map(f=>loadImage(f).catch(()=>null)));}
-function starLabel(){if(atHome())return t('ฐานฮีโร่ • เมืองแห่งทุ่งกุลา');const Z=STAR_ZONES[zoneAt(scene,p)];return Z?ui`ดาวฮีโร่ • ${Z.name} • Lv.${Z.min}–${Z.max}`:t('ดาวฮีโร่');}
+function starLabel(){if(atHome())return t('ฐานฮีโร่ • นครโอเอซิส');const Z=STAR_ZONES[zoneAt(scene,p)];return Z?ui`นครทะเลทราย • ${Z.name} • Lv.${Z.min}–${Z.max}`:t('นครทะเลทราย');}
 // Home base: the large plaza at gate 1 with shop, upgrade, training and portals. The whole planet is reachable on foot from here.
-const HOME_RADIUS=430;
+const HOME_RADIUS=STAR_HOME_RADIUS;
 function homeGate(){return star?.pois.find(q=>q.action==='warp'&&q.zone===0)?.world;}
 function atHome(){const h=isStar()&&homeGate();return !!h&&Math.hypot(p.x-h.x,p.y-h.y)<HOME_RADIUS;}
 function goHome(){autoHunt.reset();return travel(0,true);}
@@ -544,7 +544,7 @@ async function travelStar(gate=0,home=false){
  const Z=STAR_ZONES[gate];if(!Z)return false;
  if(!home&&isStar()&&enemies.some(e=>e.hp>0&&Math.hypot(e.x-p.x,e.y-p.y)<400&&time<(e.aggroUntil||0))){toast(t('ออกจากระยะต่อสู้ก่อนวาร์ป'));return false;}
  travelBusy=true;paused=true;bookRequest++;keys.clear();attackHeld=false;
- show(ui`<h2>กำลังเดินทาง…</h2><p>${home?t('กลับฐานฮีโร่'):t('มุ่งสู่ดาวฮีโร่ • ')+Z.name}</p>`);
+ show(ui`<h2>กำลังเดินทาง…</h2><p>${home?t('กลับฐานฮีโร่'):t('มุ่งสู่นครทะเลทราย • ')+Z.name}</p>`);
  try{
   await loadStar();await Promise.all([loadZone(),loadStarArt()]);
   scene=star;starRender=createStarRenderer(star,{quality:s.quality,art:starArt,images});resize();$('zoomControls').hidden=false;route=[];pendingPoi=null;fields=[];town=false;
@@ -552,9 +552,9 @@ async function travelStar(gate=0,home=false){
   enemies=[];effects=[];projectiles=[];drops=[];target=null;move=null;spawnClock=0;starZone=zoneAt(star,p);
   starCamps=star.spawns.map(c=>({...c,members:[],respawn:0}));starClock=0;if(!onlineMode)populateStar();starRender.warm(view());
   for(const key of [...images.keys()])if(key.startsWith('maps/')&&!key.startsWith('maps/star/'))images.delete(key);
-  travelBusy=false;close();if(onlineMode)net.send({type:'enter',map:'star',gate});save();if(!home)toast(ui`ดาวฮีโร่ • เขต ${gate+1} ${Z.name} Lv.${Z.min}–${Z.max}`);return true;
+  travelBusy=false;close();if(onlineMode)net.send({type:'enter',map:'star',gate});save();if(!home)toast(ui`นครทะเลทราย • เขต ${gate+1} ${Z.name} Lv.${Z.min}–${Z.max}`);return true;
  }catch(e){
-  travelBusy=false;show(ui`<h2>เดินทางไม่สำเร็จ</h2><p>โหลดแผนที่ดาวฮีโร่ไม่ได้</p>${button('tryTravel',t('ลองอีกครั้ง'))}${button('backTravel',t('กลับ'))}`);
+  travelBusy=false;show(ui`<h2>เดินทางไม่สำเร็จ</h2><p>โหลดแผนที่นครทะเลทรายไม่ได้</p>${button('tryTravel',t('ลองอีกครั้ง'))}${button('backTravel',t('กลับ'))}`);
   $('tryTravel').onclick=()=>travelStar(gate);$('backTravel').onclick=close;return false;
  }
 }
@@ -595,13 +595,13 @@ function drawStarMini(g,X,Y,W,H,big){
 }
 async function warpMenu(){
  if(!s||!p||travelBusy)return;
- show(ui`<h2>ดาวฮีโร่ • ประตูวาร์ป</h2><p class="sub">โลกเปิด 12 เขต เลเวล 61–120 • เข้าได้ทุกเลเวล • บอสต่างดาวอยู่ในเขต 2, 4, 6, 8, 10, 12</p><canvas id="starMap" class="star-map" width="760" height="380"></canvas><div class="grid warp-grid">${STAR_ZONES.map((Z,i)=>`<button id="warp-${i}" >${i+1}. ${Z.name}<br><small>Lv.${Z.min}–${Z.max}</small></button>`).join('')}</div>${isStar()?button('warpTown',t('กลับฐานฮีโร่')):''}${button('return',t('กลับ'))}`);
+ show(ui`<h2>นครทะเลทราย • ประตูวาร์ป</h2><p class="sub">โลกเปิด 12 เขต เลเวล 61–120 • เข้าได้ทุกเลเวล • บอสต่างดาวอยู่ในเขต 2, 4, 6, 8, 10, 12</p><canvas id="starMap" class="star-map" width="760" height="380"></canvas><div class="grid warp-grid">${STAR_ZONES.map((Z,i)=>`<button id="warp-${i}" >${i+1}. ${Z.name}<br><small>Lv.${Z.min}–${Z.max}</small></button>`).join('')}</div>${isStar()?button('warpTown',t('กลับฐานฮีโร่')):''}${button('return',t('กลับ'))}`);
  STAR_ZONES.forEach((Z,i)=>$('warp-'+i).onclick=()=>travelStar(i));$('return').onclick=close;if(isStar())$('warpTown').onclick=()=>goHome();
  try{await loadStar();const c=$('starMap');drawStarMini(c.getContext('2d'),0,0,c.width,c.height,true);}catch{}
 }
 function menu(){if(!s||!p||travelBusy)return;show(ui`<h2>ศูนย์บัญชาการฮีโร่</h2><p>${realm(s.level)} • เลเวล ${s.level}<br>ปราบศัตรู ${s.kills} ตัว • พบ ${s.seen.filter(id=>id>=1000).length}/${MONSTERS.length} รายการ</p><div class="hq-menu">${menuTile('stats',t('ฮีโร่และอุปกรณ์'),5)}${menuTile('wardrobe',t('กระเป๋าแฟชั่น'),5)}${menuTile('map',t('แผนที่ภารกิจ'),4)}${menuTile('book',t('ข้อมูลศัตรู'),8)}${menuTile('shop',t('ร้านเสบียง'),2)}${menuTile('vault',t('คลังร่วม'),2)}${menuTile('playerMarket',t('ร้านผู้เล่น'),2)}${menuTile('forge',t('อัปเกรดอาวุธ'),7)}${menuTile('skills',t('ทักษะและพลัง'),6)}${menuTile('settings',t('ตั้งค่า'),11)}${menuTile('pvpLog',t('ประวัติการต่อสู้'),8)}${menuTile('help',t('คู่มือฮีโร่'),8)}${menuTile('resume',t('กลับเข้าสนาม'),0)}</div>`);$('vault').onclick=()=>openCommerce();$('playerMarket').onclick=()=>openCommerce('own');$('wardrobe').onclick=wardrobe;$('stats').onclick=statMenu;$('map').onclick=map;$('book').onclick=()=>bestiary(zone);$('shop').onclick=()=>town||atHome()?shop():toast(t('กลับฐานฮีโร่เพื่อซื้อของ'));$('forge').onclick=()=>town||atHome()?forge():toast(t('กลับฐานฮีโร่เพื่อเสริมอาวุธ'));$('skills').onclick=skillMenu;$('settings').onclick=settings;$('pvpLog').onclick=pvpReports;$('help').onclick=help;$('resume').onclick=close;}
-function map(){show(ui`<h2>เมืองแห่งทุ่งกุลาและดันเจียน</h2><button id="paintedStar" class="star-entry"><span class="star-preview">✦</span><b>ดาวฮีโร่</b> • โลกเปิด 12 เขต • มอนสเตอร์ใหม่ 20 ชนิด Lv.61–120 • ประตูวาร์ปทุกเขต</button><div class="grid"><button id="paintedTown"><img class="map-preview" src="${MAPS.town.image}" alt="หมู่บ้านฮีโร่">เมืองแห่งทุ่งกุลา • ต่อสู้ผู้เล่นได้</button><button id="paintedForest"><div class="world-overview" aria-label="แผนที่ป่าชีวะแสง">${REGIONS.map(r=>`<span style="left:${r.center[0]*100}%;top:${r.center[1]*100}%">${r.min}–${r.max}</span>`).join('')}${scene?.id==='forest'?ui`<i style="left:${toUV(p,MAPS.forest)[0]*100}%;top:${toUV(p,MAPS.forest)[1]*100}%" title="คุณอยู่ที่นี่"></i>`:''}</div>แผนที่ใหญ่ • มอนสเตอร์ Lv.1–60</button></div><p class="sub">พื้นที่ทั้งหมดเชื่อมถึงกัน เดินสำรวจได้ • ทุกเลเวลเดินทางได้ทุกเขต • ใช้จุดส่งตัวเมื่ออยู่ฐานหรือพ้นระยะต่อสู้</p><div class="grid">${REGIONS.map(r=>ui`<button id="region-${r.id}" >${r.name}<br><small>Lv.${r.min}–${r.max} • ฝูงมอนสเตอร์และบอส</small></button>`).join('')}</div><div class="grid"><button id="dungeonAurora">${t('ดันเจียนออโรรา')}</button><button id="dungeonRuins">${t('ดันเจียนป่าชีวะแสง • Lv.1–60')}</button></div>${button('return',t('กลับ'))}`);$('dungeonAurora').onclick=()=>travelDungeon('aurora');$('dungeonRuins').onclick=()=>travelDungeon('ruins');$('paintedStar').onclick=warpMenu;$('paintedTown').onclick=()=>travel(0,true);$('paintedForest').onclick=()=>travel(0);REGIONS.forEach(r=>$('region-'+r.id).onclick=()=>{if(!town&&enemies.some(e=>e.hp>0&&Math.hypot(e.x-p.x,e.y-p.y)<400)){toast(t('ออกจากระยะต่อสู้ก่อนส่งตัว'));return;}travel(0,false,r.id);});$('return').onclick=menu;}
-async function bestiary(region=0){const request=++bookRequest;try{await loadZone();if(request!==bookRequest)return;const regions=[...REGIONS,...Array.from({length:6},(_,i)=>({id:6+i,get name(){return t('ดาวฮีโร่ • ')+STAR_ZONES[i*2].name;},min:61+i*10,max:70+i*10}))],r=regions[region]||regions[0],list=MONSTERS.filter(m=>m.region===r.id);show(ui`<h2>สิ่งมีชีวิตต่างดาว • ${r.name}</h2>${button('starBook',region<6?t('มอนสเตอร์ใหม่ 20 ชนิด • Lv.61–120'):t('ป่าชีวะแสง • Lv.1–60'))}<div class="bar">${button('prevBook','‹')}${button('nextBook','›')}<b>Lv.${r.min}–${r.max}</b></div><div class="grid">${list.map(m=>`<div class="card monster-card"><canvas id="m-${m.id}" width="140" height="110"></canvas><b>${m.name}</b><p class="sub">Lv.${m.level} ${m.boss?t('• บอส'):''}<br>${s.seen.includes(m.id)?t('พิชิตแล้ว'):t('ยังไม่พิชิต')}</p></div>`).join('')}</div>${button('return',t('กลับ'))}`);list.forEach(m=>{const c=$('m-'+m.id);drawAlien(c.getContext('2d'),images.get('sprites/alien-forest.webp'),{def:m,state:'idle',face:1},70,105,100);});$('starBook').onclick=()=>bestiary(region<6?6:0);$('prevBook').onclick=()=>bestiary((region+11)%12);$('nextBook').onclick=()=>bestiary((region+1)%12);$('return').onclick=menu;}catch{toast(t('โหลดข้อมูลศัตรูไม่ได้'));}}
+function map(){show(ui`<h2>เมืองแห่งทุ่งกุลาและดันเจียน</h2><button id="paintedStar" class="star-entry"><span class="star-preview">✦</span><b>นครทะเลทราย</b> • โลกเปิด 12 เขต • มอนสเตอร์ใหม่ 20 ชนิด Lv.61–120 • ประตูวาร์ปทุกเขต</button><div class="grid"><button id="paintedTown"><img class="map-preview" src="${MAPS.town.image}" alt="หมู่บ้านฮีโร่">เมืองแห่งทุ่งกุลา • ต่อสู้ผู้เล่นได้</button><button id="paintedForest"><div class="world-overview" aria-label="แผนที่ป่าชีวะแสง">${REGIONS.map(r=>`<span style="left:${r.center[0]*100}%;top:${r.center[1]*100}%">${r.min}–${r.max}</span>`).join('')}${scene?.id==='forest'?ui`<i style="left:${toUV(p,MAPS.forest)[0]*100}%;top:${toUV(p,MAPS.forest)[1]*100}%" title="คุณอยู่ที่นี่"></i>`:''}</div>แผนที่ใหญ่ • มอนสเตอร์ Lv.1–60</button></div><p class="sub">พื้นที่ทั้งหมดเชื่อมถึงกัน เดินสำรวจได้ • ทุกเลเวลเดินทางได้ทุกเขต • ใช้จุดส่งตัวเมื่ออยู่ฐานหรือพ้นระยะต่อสู้</p><div class="grid">${REGIONS.map(r=>ui`<button id="region-${r.id}" >${r.name}<br><small>Lv.${r.min}–${r.max} • ฝูงมอนสเตอร์และบอส</small></button>`).join('')}</div><div class="grid"><button id="dungeonAurora">${t('ดันเจียนออโรรา')}</button><button id="dungeonRuins">${t('ดันเจียนป่าชีวะแสง • Lv.1–60')}</button></div>${button('return',t('กลับ'))}`);$('dungeonAurora').onclick=()=>travelDungeon('aurora');$('dungeonRuins').onclick=()=>travelDungeon('ruins');$('paintedStar').onclick=warpMenu;$('paintedTown').onclick=()=>travel(0,true);$('paintedForest').onclick=()=>travel(0);REGIONS.forEach(r=>$('region-'+r.id).onclick=()=>{if(!town&&enemies.some(e=>e.hp>0&&Math.hypot(e.x-p.x,e.y-p.y)<400)){toast(t('ออกจากระยะต่อสู้ก่อนส่งตัว'));return;}travel(0,false,r.id);});$('return').onclick=menu;}
+async function bestiary(region=0){const request=++bookRequest;try{await loadZone();if(request!==bookRequest)return;const regions=[...REGIONS,...Array.from({length:6},(_,i)=>({id:6+i,get name(){return t('นครทะเลทราย • ')+STAR_ZONES[i*2].name;},min:61+i*10,max:70+i*10}))],r=regions[region]||regions[0],list=MONSTERS.filter(m=>m.region===r.id);show(ui`<h2>สิ่งมีชีวิตต่างดาว • ${r.name}</h2>${button('starBook',region<6?t('มอนสเตอร์ใหม่ 20 ชนิด • Lv.61–120'):t('ป่าชีวะแสง • Lv.1–60'))}<div class="bar">${button('prevBook','‹')}${button('nextBook','›')}<b>Lv.${r.min}–${r.max}</b></div><div class="grid">${list.map(m=>`<div class="card monster-card"><canvas id="m-${m.id}" width="140" height="110"></canvas><b>${m.name}</b><p class="sub">Lv.${m.level} ${m.boss?t('• บอส'):''}<br>${s.seen.includes(m.id)?t('พิชิตแล้ว'):t('ยังไม่พิชิต')}</p></div>`).join('')}</div>${button('return',t('กลับ'))}`);list.forEach(m=>{const c=$('m-'+m.id);drawAlien(c.getContext('2d'),images.get('sprites/alien-forest.webp'),{def:m,state:'idle',face:1},70,105,100);});$('starBook').onclick=()=>bestiary(region<6?6:0);$('prevBook').onclick=()=>bestiary((region+11)%12);$('nextBook').onclick=()=>bestiary((region+1)%12);$('return').onclick=menu;}catch{toast(t('โหลดข้อมูลศัตรูไม่ได้'));}}
 function upgradeItemCards(online=false){return ui`<p id="adMessage" role="status" aria-live="polite">${escapeHTML(adMessage)}</p><h3>วัตถุดิบอัปเกรด • ซื้อหรือดูโฆษณา</h3><div class="grid upgrade-shop">${Object.entries(UPGRADE_ITEMS).map(([id,it])=>ui`<article class="card upgrade-card"><img src="${it.icon}" alt="${it.name}" width="112" height="112"><h3>${it.name}</h3><p>${it.description}</p><p data-stock="${id}">มี ${s.upgradeItems?.[id]||0} ชิ้น</p><button ${online?'data-op="buyUpgradeItem"':'data-buy-item="true"'} data-id="${id}" ${s[it.currency||'stones']<it.price?'disabled':''}>ซื้อ 1 ชิ้น • ${it.price} ${it.currency==='gold'?'G':'COCKRO coin'}</button><button data-reward-item="${id}" >${ads.state.test?t('ดูโฆษณาทดสอบ • รับ 1 ชิ้น'):t('ดูโฆษณา • รับ 1 ชิ้น')}</button></article>`).join('')}</div><p class="sub">เกม 4.33.0 • แอป <span id="adsNativeVersion">${Number.isInteger(ads.state.nativeCode)?ads.state.nativeCode:"—"}</span></p><p class="sub">${ads.supported?(ads.state.test?t('โฆษณาทดสอบ • ดูจบรับไอเท็ม 1 ชิ้น • สูงสุด 20 ครั้งต่อ 24 ชั่วโมง'):t('รับรางวัลในโหมดออนไลน์ เมื่อดูจบและเซิร์ฟเวอร์ยืนยัน • หากไม่มีโฆษณา กรุณาลองใหม่')):t('ดูโฆษณาได้ในแอป Android รุ่นที่รองรับ')}</p>`;}
 function confirmExchange(b){const n=Number(b.dataset.amount);if(Number(b.dataset.confirmUntil)>Date.now()){delete b.dataset.confirmUntil;b.textContent=`${n.toLocaleString()} COCKRO coin → ${(n*10000).toLocaleString()} G`;return true;}b.dataset.confirmUntil=Date.now()+10000;b.textContent=t('ยืนยันแลก ')+n.toLocaleString()+' COCKRO coin';const status=$('purchaseStatus');if(status)status.textContent=t('กดปุ่มเดิมอีกครั้งภายใน 10 วินาทีเพื่อยืนยัน • แลกกลับไม่ได้');setTimeout(()=>{if(Number(b.dataset.confirmUntil)<=Date.now()){delete b.dataset.confirmUntil;b.textContent=`${n.toLocaleString()} COCKRO coin → ${(n*10000).toLocaleString()} G`;}},10100);return false;}
 function shopHTML(){return merchantHTML(s,slotIcon,escapeHTML);}
@@ -992,5 +992,6 @@ function doctorMenu(){
  $('closeDoctor').onclick=close;if($('walkToDoctor'))$('walkToDoctor').onclick=visitDoctor;
  if($('confirmMutation'))$('confirmMutation').onclick=()=>{if(!onlineMode){toast(t('กรุณาเชื่อมต่อออนไลน์เพื่อเปลี่ยนอาชีพ'));return;}const b=$('confirmMutation');b.disabled=true;if(!net.send({type:'op',op:'mutate',branch:$('jobBranch')?.value})){b.disabled=false;toast(t('รอเชื่อมต่อเซิร์ฟเวอร์'));return;}setTimeout(()=>{if(b.isConnected)b.disabled=false;},5000);};
 }
+
 
 

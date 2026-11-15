@@ -1,0 +1,16 @@
+name: Inspect desert deploy checksum contract
+on:
+  push:
+    branches: [feature/desert-kingdom-61-120]
+    paths: ['.github/workflows/desert-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 2
+    steps:
+      - name: Read deployment helper and staged checksums
+        run: |
+          cat /usr/local/sbin/cockro-deploy-online
+          sha256sum /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/online-server.cjs

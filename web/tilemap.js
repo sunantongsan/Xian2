@@ -21,7 +21,7 @@ export function parseTiled(json){
    for(let dy=-2;dy<=2&&!nearRoute;dy++)for(let dx=-2;dx<=2;dx++){const x=c+dx,y=row+dy;if(x<0||y<0||x>=N||y>=rows)continue;if(['road','bridge','plaza'].includes(info(ground[y*N+x])?.kind)){nearRoute=true;break;}}
    // Deterministic 35% retention, shared by server/client; never open unsafe ground.
    const keep=((Math.imul(c+1,73856093)^Math.imul(row+1,19349663))>>>0)%100<35;
-   if(!g.walkable||(!nearRoute&&keep)){prop[i]=pr.kind;walk[i]=0;}
+   if(['desert-house','foundation'].includes(pr.kind)||!g.walkable||(!nearRoute&&keep)){prop[i]=pr.kind;walk[i]=0;}
   }
   const z=info(zl[i]);if(z)zone[i]=z.id;if(g.zone>=0&&zone[i]<0)zone[i]=g.zone;
  }
@@ -64,4 +64,5 @@ export function tileRoute(scene,from,to,limit=60000,trace){
  while(k<pts.length){let far=k;for(let m=Math.min(pts.length-1,k+24);m>k;m--){const e=trace(scene,anchor,pts[m]);if(Math.hypot(e.x-pts[m].x,e.y-pts[m].y)<1){far=m;break;}}out.push(pts[far]);anchor=pts[far];k=far+1;}
  return out;
 }
+
 
