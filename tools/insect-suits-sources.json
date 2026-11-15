@@ -1,0 +1,62 @@
+{
+  "cockroach-male": {
+    "source": "exec-3b09bed2-75cf-4a7f-a8e8-7cec24082b4a.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 507306
+  },
+  "cockroach-female": {
+    "source": "exec-b085dfaf-821f-45b3-888e-ce683d926660.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 566934
+  },
+  "ladybug-male": {
+    "source": "exec-d6e55728-fa03-4469-9c5c-2d71d3fbcc8b.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 559454
+  },
+  "ladybug-female": {
+    "source": "exec-5e43b0db-4186-4cca-86e8-7b2a5eddf6ff.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 577950
+  },
+  "scorpion-male": {
+    "source": "exec-5f95e232-6e40-44f7-b994-c1d531edfb19.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 581122,
+    "sourcePoses": 50,
+    "note": "Side defeat entry holds the last standing pose; source side rows have 12 poses."
+  },
+  "scorpion-female": {
+    "source": "exec-e5b86c07-f413-4cc8-b06e-0016637e8f05.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 606132,
+    "sourcePoses": 50,
+    "note": "Side defeat entry holds the last standing pose; source side rows have 12 poses."
+  },
+  "beetle-female": {
+    "source": "exec-65a5009f-54a8-4d39-b61d-6a5c987f1e54.png",
+    "columns": 12,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 574060
+  },
+  "dragonfly-female": {
+    "source": "exec-863adf10-b540-4836-bcd1-d510ab6ce7ff.png",
+    "columns": 13,
+    "rows": 4,
+    "cell": 192,
+    "bytes": 622974
+  }
+}

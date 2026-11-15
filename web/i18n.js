@@ -6,6 +6,7 @@ export const language = createLanguage({
   onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; try { globalThis.CockroLanguage?.setLanguage(value); } catch {} }
 });
 export const messages = {
+ 'รูปลักษณ์ตัวละคร':'Character appearance', 'ตามเกราะที่สวม':'Use equipped armor', 'เปลี่ยนภาพเท่านั้น ค่าพลังตามอุปกรณ์':'Appearance only. Stats follow equipment.',
  'รูปลักษณ์เกราะตั๊กแตน':'Mantis armor appearance',
  'ตั้งค่า':'Settings', 'ภาษา':'Language', 'กลับ':'Back', 'บันทึก':'Save', 'ยกเลิก':'Cancel',
  'เสียง: เปิด':'Sound: On', 'เสียง: ปิด':'Sound: Off', 'ภาพ: ประหยัดเครื่อง':'Graphics: Low', 'ภาพ: อัตโนมัติ':'Graphics: Auto',
