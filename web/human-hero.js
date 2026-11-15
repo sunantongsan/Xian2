@@ -1,3 +1,4 @@
+import {drawMantisHero} from './mantis-hero.js';
 import {drawInsectArmor} from './insect-render.js';
 import {drawFashion} from './fashion-render.js';
 import {HUMAN_JOINTS} from './human-joints.js';
@@ -22,6 +23,7 @@ export function drawHumanHero(ctx,images,hero,actor,x,y,size){
  if(!HUMAN_HEROES.includes(hero)||!Number.isFinite(size)||size<=0)return false;
  if(actor.receivedAt!==undefined){const dt=Math.max(0,Math.min(.2,(performance.now()-actor.receivedAt)/1000));actor={...actor,animTime:(actor.visualAnimTime||0)+dt,walkDistance:actor.renderFrom?actor.renderFrom.walkDistance+(actor.walkDistance-actor.renderFrom.walkDistance)*Math.min(1,dt/.1):actor.walkDistance};}
  if(actor.anim==='idle'&&actor.hurtAt&&performance.now()-actor.hurtAt<260)actor={...actor,anim:'hurt',animTime:(performance.now()-actor.hurtAt)/1000};
+ const mantis=drawMantisHero(ctx,images,actor,x,y,size);if(mantis)return mantis;
  const f=humanFrame(actor),im=images.get(`heroes/human/${f.clip}.webp`);if(!im)return false;
  const j=HUMAN_JOINTS[f.clip]?.[HUMAN_DIRECTIONS[f.direction]]?.[f.frame];if(!j)return false;
  const drawSize=size*j.ortho/1.6,unit=drawSize/128;

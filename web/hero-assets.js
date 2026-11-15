@@ -1,3 +1,4 @@
+import {MANTIS_FILES} from './mantis-hero.js';
 import {humanFiles} from './human-hero.js';
 import {mutationFiles} from './mutation-art.js';
 import {layeredHeroFiles} from './layered-hero.js';
@@ -8,7 +9,7 @@ export function createHeroAssetLoader(loadImage,onReady=()=>{}){
  return function loadHero(hero,level=1){
   const files=heroAssetFiles(hero,level),key=files.join('|');
   if(completed.has(key))return Promise.resolve();if(pending.has(key))return pending.get(key);
-  const task=Promise.all(files.map(loadImage)).then(()=>{completed.add(key);onReady(hero);}).finally(()=>pending.delete(key));
+  const task=Promise.all([...files.map(loadImage),...(humanFiles(hero).length?MANTIS_FILES.map(file=>Promise.resolve().then(()=>loadImage(file)).catch(()=>null)):[])]).then(()=>{completed.add(key);onReady(hero);}).finally(()=>pending.delete(key));
   pending.set(key,task);return task;
  };
 }

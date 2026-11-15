@@ -1,3 +1,4 @@
+import {mantisVariant,setMantisVariant} from './mantis-hero.js';
 import {baseAttackRange,JOBS,BRANCHES} from './jobs.js';
 import {createMonsterCache} from './monster-cache.js';
 import {createFrameLoop} from './frame-loop.js';
@@ -616,7 +617,7 @@ async function exitGame(){
  };
 }
 function settings(){
- show(ui`<section class="text-settings"><h2>${t('ตั้งค่า')}</h2><label for="gameLanguage">${t('ภาษา')}</label><select id="gameLanguage"><option value="th" ${language.current==='th'?'selected':''}>${'ไทย'}</option><option value="en" ${language.current==='en'?'selected':''}>English</option></select><p id="languageStatus" role="status"></p>${button('toggleSound',t(s.sound?t('เสียง: เปิด'):t('เสียง: ปิด')))}${button('toggleQuality',t(s.quality==='low'?t('ภาพ: ประหยัดเครื่อง'):t('ภาพ: อัตโนมัติ')))}${button('switchCharacter',t('เปลี่ยนตัวละคร'))}${button('accountCenter',t('จัดการบัญชี / ประวัติเติมเงิน'))}${button('privacyButton',t('ความเป็นส่วนตัว'))}${button('settingsBack',t('กลับ'))}</section>`);
+ show(ui`<section class="text-settings"><h2>${t('ตั้งค่า')}</h2><label for="gameLanguage">${t('ภาษา')}</label><select id="gameLanguage"><option value="th" ${language.current==='th'?'selected':''}>${'ไทย'}</option><option value="en" ${language.current==='en'?'selected':''}>English</option></select><p id="languageStatus" role="status"></p><label for="mantisVariant">${t('รูปลักษณ์เกราะตั๊กแตน')}</label><select id="mantisVariant"><option value="male" ${mantisVariant()==='male'?'selected':''}>${t('ชาย')}</option><option value="female" ${mantisVariant()==='female'?'selected':''}>${t('หญิง')}</option></select>${button('toggleSound',t(s.sound?t('เสียง: เปิด'):t('เสียง: ปิด')))}${button('toggleQuality',t(s.quality==='low'?t('ภาพ: ประหยัดเครื่อง'):t('ภาพ: อัตโนมัติ')))}${button('switchCharacter',t('เปลี่ยนตัวละคร'))}${button('accountCenter',t('จัดการบัญชี / ประวัติเติมเงิน'))}${button('privacyButton',t('ความเป็นส่วนตัว'))}${button('settingsBack',t('กลับ'))}</section>`);
  $('gameLanguage').onchange=()=>{
   const control=$('gameLanguage'),selected=control.value,previous=language.current,requestId=String(Date.now());
   $('gameLanguage').disabled=true;$('languageStatus').textContent=t('กำลังบันทึกภาษา…');
@@ -627,6 +628,7 @@ function settings(){
   net.onLanguageResult=done;timer=setTimeout(()=>done({ok:false}),10000);
   if(!net.send({type:'language',language:selected,requestId}))done({ok:false});
  };
+ $('mantisVariant').onchange=()=>{setMantisVariant($('mantisVariant').value);if($('portrait'))$('portrait').dataset.hero='';};
  $('toggleSound').onclick=()=>{s.sound=!s.sound;try{localStorage.setItem('cockro-sound',s.sound?'on':'off');}catch{}gameAudio.sync(s.sound);save();settings();};
  $('toggleQuality').onclick=()=>{s.quality=s.quality==='low'?'auto':'low';resize();save();settings();};
  $('switchCharacter').onclick=title;$('accountCenter').onclick=accountCenter;$('privacyButton').onclick=privacy;$('settingsBack').onclick=menu;
