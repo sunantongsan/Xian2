@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {mutationArtFor,drawMutationHero} from '../web/mutation-art.js';
 import {MUTATION_ART} from '../web/mutation-art-data.js';
+import {MANTIS_FILES} from '../web/mantis-hero.js';
 import {heroAssetFiles,createHeroAssetLoader} from '../web/hero-assets.js';
 import {fresh,validSave} from '../web/core.js';
 import {heroAppearance} from '../web/hero-appearance.js';
@@ -29,10 +30,11 @@ test('equipment snapshot and local inventory select same mutation without new sa
  const remote=w.snapshot(q).players.find(v=>v.id==='a');assert.equal(mutationArtFor(remote.hero,remote.level),mutationArtFor(s.hero,heroAppearance(s).level));assert.equal(remote.hero,s.hero);
 });
 test('asset loading deduplicates in-flight requests, retries failure and invalidates portrait on success',async()=>{
+ const expectedRequests=2*(heroAssetFiles('sword-cricket',20).length+MANTIS_FILES.length);
  let count=0,ready=0,rejectFirst=true;const load=createHeroAssetLoader(async()=>{count++;if(rejectFirst)throw Error('offline');},()=>ready++);
  await assert.rejects(load('sword-cricket',20));rejectFirst=false;
- await Promise.all([load('sword-cricket',20),load('sword-cricket',59)]);assert.equal(count,12);assert.equal(ready,1);
- await load('sword-cricket',30);assert.equal(count,12);await load('sword-cricket',60);assert.equal(count,12);assert.equal(ready,1);
+ await Promise.all([load('sword-cricket',20),load('sword-cricket',59)]);assert.equal(count,expectedRequests);assert.equal(ready,1);
+ await load('sword-cricket',30);assert.equal(count,expectedRequests);await load('sword-cricket',60);assert.equal(count,expectedRequests);assert.equal(ready,1);
 });
 test('human rig clips are shared across classes and evolution levels',()=>{
  assert.deepEqual(heroAssetFiles('sword-cricket',60),heroAssetFiles('sword-cockro',1));
