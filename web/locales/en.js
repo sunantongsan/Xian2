@@ -116,7 +116,7 @@ export const EN = {
   "จ้าว": "Lord",
   "หัวหน้า": "Leader",
   "ป่าชีวะแสง": "Bioluminescent Forest",
-  "ดาวฮีโร่": "Hero Planet",
+  "นครทะเลทราย": "Hero Planet",
   "หยดพลังอำพัน": "Amber Energy Slime",
   "เกราะผลึกสามขา": "Crystal Tripod",
   "บุปผากินพลัง": "Energy Eater Blossom",
@@ -574,9 +574,9 @@ export const EN = {
   "ได้": "available",
   "ออกจากระยะต่อสู้ก่อนวาร์ป": "Leave combat range before warping",
   "กลับฐานฮีโร่": "Return to hero base",
-  "มุ่งสู่ดาวฮีโร่": "Travel to Hero Planet",
+  "มุ่งสู่นครทะเลทราย": "Travel to Hero Planet",
   "เขต": "Area",
-  "โหลดแผนที่ดาวฮีโร่ไม่ได้": "Could not load Hero Planet",
+  "โหลดแผนที่นครทะเลทรายไม่ได้": "Could not load Hero Planet",
   "อันตราย": "Danger",
   "ล็อก": "Locked",
   "ประตูวาร์ป": "Warp gate",
@@ -998,7 +998,7 @@ export const EN = {
   "ไม่ต้องดูโฆษณา": "No ad required",
   "กล่องของขวัญประจำวัน": "Daily gift box",
   "ขาดวันเริ่มนับใหม่": "Missing a day resets the streak",
-  "เริ่มต้นฮีโร่": "Hero Starter",
+  "เริ่มต้นฮีโร่": "Desert Kingdomter",
   "เสริมพลัง": "Power Boost",
   "ยอดนักรบ": "Elite Warrior",
   "พลังระดับเทพ": "Divine Power",
@@ -1326,3 +1326,4 @@ Object.assign(EN,{
  'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
  'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
 });
+

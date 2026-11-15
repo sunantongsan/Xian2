@@ -6,6 +6,22 @@ export const language = createLanguage({
   onChange(value) { if (typeof document !== 'undefined') document.documentElement.lang = value; try { globalThis.CockroLanguage?.setLanguage(value); } catch {} }
 });
 export const messages = {
+ 'นครโอเอซิส':'Oasis City',
+ 'สวนอินทผลัม':'Date Palm Gardens',
+ 'ทะเลทรายทอง':'Golden Dunes',
+ 'เนินรังปลวก':'Termite Dunes',
+ 'โอเอซิสโบราณ':'Ancient Oasis',
+ 'ทะเลแก้วทราย':'Glass Sand Basin',
+ 'สุสานกองคาราวาน':'Caravan Graveyard',
+ 'หุบเขาแมงป่อง':'Scorpion Canyon',
+ 'นครทรายสาบสูญ':'Lost Sand City',
+ 'รังแมลงสุริยะ':'Sun Hive',
+ 'หุบเขาราชัน':'Kings Canyon',
+ 'วิหารสุริยะ':'Sun Temple',
+ 'นครทะเลทราย • Lv.61–120':'Desert Kingdom • Lv.61–120',
+ 'นครทะเลทราย':'Desert Kingdom',
+ 'ฐานฮีโร่ • นครโอเอซิส':'Hero Base • Oasis City',
+
  'ชุดเต็มตัว':'Full-body suit',
  'รูปลักษณ์ตัวละคร':'Character appearance', 'ตามเกราะที่สวม':'Use equipped armor', 'เปลี่ยนภาพเท่านั้น ค่าพลังตามอุปกรณ์':'Appearance only. Stats follow equipment.',
  'รูปลักษณ์เกราะตั๊กแตน':'Mantis armor appearance',
@@ -78,3 +94,4 @@ export function localizeNotice(packet) {
  if (['opResult','commerceResult','billingResult','adError'].includes(packet?.type) && typeof packet.message === 'string') return {...packet,message:t(packet.message)};
  return packet;
 }
+

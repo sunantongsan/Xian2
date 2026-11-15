@@ -12,7 +12,8 @@ function noise(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=smooth(x-xi),yf
 const fbm=(x,y,s)=>(noise(x,y,s)*.55+noise(x*2.1,y*2.1,s+1)*.3+noise(x*4.3,y*4.3,s+2)*.15);
 
 const idx=(c,r)=>r*N+c, inMap=(c,r)=>c>=0&&r>=0&&c<N&&r<N;
-const C=N/2-.5, RADIUS=88;
+const SCALE=N/192;
+const C=N/2-.5, RADIUS=88*SCALE;
 const terrain=new Uint8Array(N*N), zoneOf=new Int8Array(N*N).fill(-1), prop=new Int16Array(N*N).fill(-1), keep=new Uint8Array(N*N);
 const N4=[[1,0],[-1,0],[0,1],[0,-1]], N8=[...N4,[1,1],[-1,-1],[1,-1],[-1,1]];
 
@@ -21,8 +22,8 @@ const planet=(c,r)=>{const dx=c-C,dy=r-C,a=Math.atan2(dy,dx);return Math.hypot(d
 
 // 2. Zone seeds: outer ring 0..7 starts at the bottom of the screen (+x,+y), inner ring 8..10, core 11.
 const base=Math.PI/4, seeds=[];
-for(let i=0;i<8;i++){const a=base+i*Math.PI/4;seeds.push([C+Math.cos(a)*66,C+Math.sin(a)*66]);}
-for(let i=0;i<3;i++){const a=base+7*Math.PI/4+i*2*Math.PI/3;seeds.push([C+Math.cos(a)*36,C+Math.sin(a)*36]);}
+for(let i=0;i<8;i++){const a=base+i*Math.PI/4;seeds.push([C+Math.cos(a)*66*SCALE,C+Math.sin(a)*66*SCALE]);}
+for(let i=0;i<3;i++){const a=base+7*Math.PI/4+i*2*Math.PI/3;seeds.push([C+Math.cos(a)*36*SCALE,C+Math.sin(a)*36*SCALE]);}
 seeds.push([C,C]);
 for(let r=0;r<N;r++)for(let c=0;c<N;c++){
  if(!planet(c,r)){terrain[idx(c,r)]=T.VOID;continue;}
@@ -30,7 +31,7 @@ for(let r=0;r<N;r++)for(let c=0;c<N;c++){
  let best=0,bd=Infinity;
  for(let z=0;z<12;z++){const ring=z<8?'outer':z<11?'inner':'core';
   // Ring bands keep progression readable: outer/inner/core use different radii.
-  if(ring==='outer'&&d<50-8*fbm(c/9,r/9,seed+3))continue; if(ring==='inner'&&(d>=58||d<17))continue; if(ring==='core'&&d>=22)continue;
+  if(ring==='outer'&&d<50*SCALE-8*fbm(c/9,r/9,seed+3))continue; if(ring==='inner'&&(d>=58*SCALE||d<17*SCALE))continue; if(ring==='core'&&d>=22*SCALE)continue;
   const dist=Math.hypot(wx-seeds[z][0],wy-seeds[z][1]);if(dist<bd){bd=dist;best=z;}}
  zoneOf[idx(c,r)]=best;
 }
@@ -75,7 +76,7 @@ for(const [a,b] of pairs){
 for(let i=0;i<N*N;i++)if(terrain[i]===T.BRIDGE){const c=i%N,r=Math.floor(i/N);for(const [dx,dy]of N8){const x=c+dx,y=r+dy;if(inMap(x,y)&&zoneOf[idx(x,y)]<0){terrain[i]=T.CHASM;break;}}}
 
 // 7. Plazas around warp gates — always clear. Gate 1 is the heroes' home base (spawn, shops, portals), so it is larger.
-for(const [z,[hc,hr]]of hubs.entries()){const R=z===0?9.4:5.4;for(let dy=-10;dy<=10;dy++)for(let dx=-10;dx<=10;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>R)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}}
+for(const [z,[hc,hr]]of hubs.entries()){const R=z===0?22.4:5.4;for(let dy=-23;dy<=23;dy++)for(let dx=-23;dx<=23;dx++){const x=hc+dx,y=hr+dy;if(!inMap(x,y)||Math.hypot(dx,dy)>R)continue;const j=idx(x,y);if(zoneOf[j]<0||terrain[j]===T.CHASM)continue;terrain[j]=T.PLAZA;keep[j]=1;}}
 {const core=keep.slice();for(let i=0;i<N*N;i++)if(core[i]){const c=i%N,r=Math.floor(i/N);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=c+dx,y=r+dy;if(inMap(x,y))keep[idx(x,y)]||=2;}}}
 
 // 8. Lakes (water/lava/acid/mist/inner chasms) and props.
@@ -85,6 +86,21 @@ const propKinds=STAR_ZONES.map(Z=>Object.entries(Z.props).flatMap(([k,w])=>Array
 for(let i=0;i<N*N;i++){const z=zoneOf[i];if(z<0||keep[i]||terrain[i]===T.CHASM||terrain[i]===terrainId(z,2))continue;const c=i%N,r=Math.floor(i/N),Z=STAR_ZONES[z];
  const cluster=fbm(c/6,r/6,seed+41);const chance=Z.density*(cluster>.58?3.2:cluster>.48?1:.25)+(depth[i]<=2?.18:0);
  if(rnd()<chance){const kinds=propKinds[z];prop[i]=kinds[Math.floor(rnd()*kinds.length)];}}
+
+// Sandstone houses around the oasis square; broad axial streets stay open.
+{const [hc,hr]=hubs[0];
+ for(const [dx,dy] of [[-14,-8],[-14,0],[-14,8],[14,-8],[14,0],[14,8],[-8,-14],[0,-14],[8,-14],[-8,14],[0,14],[8,14]]){
+  const c=hc+dx,r=hr+dy;
+  if(![-1,0,1].every(y=>[-1,0,1].every(x=>terrain[idx(c+x,r+y)]===T.PLAZA&&!roads[idx(c+x,r+y)])))continue;
+  for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++)prop[idx(c+x,r+y)]=PROPS.indexOf('foundation');
+  prop[idx(c,r)]=PROPS.indexOf('desert-house');
+ }
+ // A small protected oasis beside the square, outside all service points.
+ for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
+  const c=hc-10+dx,r=hr-10+dy,i=idx(c,r);
+  if(Math.hypot(dx,dy)<3.3&&!roads[i]&&prop[i]<0)terrain[i]=terrainId(0,2);
+ }
+}
 
 // 9. Keep only what the start can reach; unreachable pockets become rock props so nothing is visible-but-stuck.
 const walk=i=>terrain[i]!==T.VOID&&terrain[i]!==T.CHASM&&(zoneOf[i]<0||terrain[i]!==terrainId(zoneOf[i],2)||STAR_ZONES[zoneOf[i]].liquid.kind==='mist')&&prop[i]<0;
@@ -100,7 +116,7 @@ const zoneStats=[];
 for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
  const cand=[];for(let i=0;i<N*N;i++)if(zoneOf[i]===z&&reach[i]&&terrain[i]!==T.PLAZA&&!roads[i])cand.push(i);
  const [hc,hr]=hubs[z];const camps=[];
- for(let tries=0;tries<4000&&camps.length<26;tries++){const i=cand[Math.floor(rnd()*cand.length)],c=i%N,r=Math.floor(i/N);if(Math.hypot(c-hc,r-hr)<(z===0?16:9))continue;if(camps.some(([x,y])=>Math.hypot(x-c,y-r)<6.5))continue;
+ for(let tries=0;tries<10000&&camps.length<36;tries++){const i=cand[Math.floor(rnd()*cand.length)],c=i%N,r=Math.floor(i/N);if(Math.hypot(c-hc,r-hr)<(z===0?30:9))continue;if(camps.some(([x,y])=>Math.hypot(x-c,y-r)<6.5))continue;
   let open=0;for(const [dx,dy]of N8)if(walk(idx(c+dx,r+dy))&&reach[idx(c+dx,r+dy)])open++;if(open<7)continue;camps.push([c,r]);}
  camps.sort((a,b)=>Math.hypot(b[0]-hc,b[1]-hr)-Math.hypot(a[0]-hc,a[1]-hr));
  const regular=camps.length-1;
@@ -128,7 +144,7 @@ const tilesMeta=new Map(terrainTiles.map(t=>[t.id,Object.fromEntries(t.propertie
 const pixel=(c,r)=>({x:(c+.5)*32,y:(r+.5)*32});
 let oid=1;
 const map={type:'map',version:'1.10',tiledversion:'1.10.2',orientation:'isometric',renderorder:'right-down',width:N,height:N,tilewidth:64,tileheight:32,infinite:false,compressionlevel:-1,
- properties:[prop1('title','string','ดาวฮีโร่ • Lv.61–120'),prop1('en','string','Hero Star'),prop1('tileWorld','int',STAR_TILE),prop1('seed','int',seed),prop1('generator','string','tools/gen-hero-star.mjs')],
+ properties:[prop1('title','string','นครทะเลทราย • Lv.61–120'),prop1('en','string','Desert Kingdom'),prop1('tileWorld','int',STAR_TILE),prop1('seed','int',seed),prop1('generator','string','tools/gen-hero-star.mjs')],
  tilesets:[
   {firstgid:TERR_GID,name:'hero-star-terrain',tilewidth:64,tileheight:32,tilecount:terrainTiles.length,columns:0,margin:0,spacing:0,grid:{orientation:'isometric',width:64,height:32},tiles:terrainTiles},
   {firstgid:PROP_GID,name:'hero-star-props',tilewidth:64,tileheight:96,tilecount:PROPS.length,columns:0,margin:0,spacing:0,grid:{orientation:'isometric',width:64,height:32},tiles:PROPS.map((k,id)=>({id,properties:[prop1('kind','string',k),prop1('walkable','bool',false)]}))},
@@ -145,3 +161,4 @@ map.nextlayerid=map.layers.length+1;map.nextobjectid=oid;
 const walkable=[...terrain].filter((t,i)=>tilesMeta.get(t).walkable&&prop[i]<0).length;
 fs.writeFileSync(new URL('../web/maps/hero-star.json',import.meta.url),JSON.stringify(map));
 console.log(JSON.stringify({seed,size:N,walkableTiles:walkable,spawns:spawns.length,monsters:spawns.reduce((a,s)=>a+s.count,0),zones:zoneStats},null,0));
+

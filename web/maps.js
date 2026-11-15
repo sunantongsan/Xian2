@@ -1,7 +1,7 @@
 import {t,ui} from './i18n.js';
 import {DOCTOR_UV} from './mutation.js';
 // Ground geometry is authored against the actual alien map, not the retired village.
-// Tile maps (type 'tiles', e.g. ดาวฮีโร่) are handled by tilemap.js.
+// Tile maps (type 'tiles', e.g. นครทะเลทราย) are handled by tilemap.js.
 import {MERCHANT_UV} from './merchant.js';
 import {BUFF_NPC_UV} from './town-buff.js';
 import {tileWalkable,tileRoute} from './tilemap.js';
@@ -79,6 +79,7 @@ function nearest(scene,p){const [u,v]=toUV(p,scene),g=grid(scene);let best=-1,di
 export function routeTo(scene,from,to,limit){if(!scene)return[to];const direct=traceStep(scene,from,to);if(walkable(scene,to)&&Math.hypot(direct.x-to.x,direct.y-to.y)<.5)return[to];if(scene.type==='tiles')return tileRoute(scene,from,to,limit,traceStep);const g=grid(scene),start=nearest(scene,from),goal=nearest(scene,to);if(start<0||goal<0)return[];const open=[start],cost=new Map([[start,0]]),parent=new Map(),closed=new Set();const heuristic=id=>Math.hypot(id%COLS-goal%COLS,Math.floor(id/COLS)-Math.floor(goal/COLS));while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(cost.get(open[i])+heuristic(open[i])<cost.get(open[bi])+heuristic(open[bi]))bi=i;const cur=open.splice(bi,1)[0];if(cur===goal){const ids=[goal];while(ids[0]!==start)ids.unshift(parent.get(ids[0]));const route=ids.map(id=>cellWorld(id,scene));if(walkable(scene,to)&&Math.hypot(traceStep(scene,route.at(-1),to).x-to.x,traceStep(scene,route.at(-1),to).y-to.y)<1)route.push(to);return route;}
  closed.add(cur);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const x=cur%COLS+dx,y=Math.floor(cur/COLS)+dy,n=y*COLS+x;if(x<0||x>=COLS||y<0||y>=ROWS||!g[n]||closed.has(n))continue;if(dx&&dy&&(!g[cur+dx]||!g[cur+dy*COLS]))continue;const next=cellWorld(n,scene),end=traceStep(scene,cellWorld(cur,scene),next);if(Math.hypot(end.x-next.x,end.y-next.y)>.5)continue;const c=cost.get(cur)+Math.hypot(dx,dy);if(c<(cost.get(n)??Infinity)){cost.set(n,c);parent.set(n,cur);if(!open.includes(n))open.push(n);}}
  }return[];}
+
 
 
 
