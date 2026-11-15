@@ -1,0 +1,24 @@
+name: Inspect Thung Kula deployment targets
+on:
+  push:
+    branches: [feature/thung-kula-release]
+    paths: ['.github/workflows/thung-kula-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 3
+    steps:
+      - name: Read deployment paths and current bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum /opt/cockro-online/online-server.cjs
+          systemctl is-active cockro-online.service
+          curl -fsS http://127.0.0.1:8091/online/health
+          ls -ld /srv/cockro-deploy/* /var/www/* 2>/dev/null || true
+          ls -l /usr/local/sbin/cockro-* 2>/dev/null || true
+          for f in /usr/local/sbin/cockro-deploy-online /usr/local/sbin/cockro-deploy-patch; do
+            if test -r "$f"; then cat "$f"; fi
+          done
