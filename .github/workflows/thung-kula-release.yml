@@ -27,28 +27,23 @@ jobs:
           node --check server/online-server.cjs
           echo 'f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e  server/online-server.cjs' | sha256sum --check
           sha256sum server/online-server.cjs > bundle.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: thung-kula-server-4470
-          retention-days: 1
-          path: |
-            server/online-server.cjs
-            bundle.sha256
   deploy:
     needs: build
     runs-on: [self-hosted, linux, x64, cockro-vps-control]
     timeout-minutes: 4
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          name: thung-kula-server-4470
+          persist-credentials: false
           path: thung-kula-production
+          sparse-checkout: server/online-server.cjs
+          sparse-checkout-cone-mode: false
       - name: Install exact tested world with rollback
         shell: bash
         run: |
           set -euo pipefail
           cd thung-kula-production
-          sha256sum --check bundle.sha256
+          echo 'f9054c0231d44be83fc8cdce8053cea43309ddfa0faf567c1a054997b77cf32e  server/online-server.cjs' | sha256sum --check
           test "$(sha256sum /opt/cockro-online/online-server.cjs | cut -d ' ' -f 1)" = eb1b05a23a471d7812ebebd802d45f8c809956119faf380af96e44dd541bd7d2
           /opt/cockro-online/node --check server/online-server.cjs
           cp /opt/cockro-online/online-server.cjs /srv/cockro-deploy/online-stage/before-thung-kula-4470.cjs
