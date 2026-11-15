@@ -1,18 +1,8 @@
 import {INSECT_ARMOR} from './insect-armor.js';
 import {mantisFrame,drawMantisHero} from './mantis-hero.js';
+import {insectSideRevision,prepareInsectSide,drawInsectSideWalk} from './insect-side-walk.js';
 export const INSECT_DISPLAY_SCALE=1.1;
 export const SCORPION_SIDE_FILE='heroes/insect-suits/scorpion-male-side-walk.webp';
-let sideImage=null,sidePending=null,sideFailedAt=0,sideRevision=0;
-function prepareScorpionSide(){
- if(sideImage)return Promise.resolve(sideImage);
- if(sidePending)return sidePending;
- if(typeof Image==='undefined'||Date.now()-sideFailedAt<5000)return Promise.resolve(null);
- sidePending=load(SCORPION_SIDE_FILE).then(im=>{
-  if(im.width!==2172||im.height!==724)throw Error('Invalid side walk atlas');
-  sideImage=im;sideRevision++;return im;
- }).catch(()=>{sideFailedAt=Date.now();return null;}).finally(()=>{sidePending=null;});
- return sidePending;
-}
 
 // Appearance is derived only from server-owned equipped full-body sets.
 export const INSECT_LOOKS=Object.freeze({
@@ -51,30 +41,20 @@ export function createInsectSpriteCache(load,limit=2,cell=192){
 const load=async file=>{const im=new Image();im.src=file;await im.decode();return im;};
 const cache=createInsectSpriteCache(load,1);
 const remoteCache=createInsectSpriteCache(file=>load(file.replace('/insect-suits/','/insect-suits/remote/')),8,96);
-export const insectSpriteRevision=()=>cache.revision+remoteCache.revision+sideRevision;
-export const prepareInsectLook=id=>{if(id==='scorpion-male')void prepareScorpionSide();return cache.ensure(id);};
+export const insectSpriteRevision=()=>cache.revision+remoteCache.revision+insectSideRevision();
+export const prepareInsectLook=id=>{void prepareInsectSide(id);return cache.ensure(id);};
 export function drawInsectSprite(ctx,images,actor,x,y,size){
  const id=resolveInsectLook(actor);if(!id||!Number.isFinite(size)||size<=0)return false;
  size*=INSECT_DISPLAY_SCALE;
+ const pose=mantisFrame(actor);
+ const side=drawInsectSideWalk(ctx,images,id,actor,pose,x,y,size);if(side)return side;
  if(id.startsWith('mantis-'))return drawMantisHero(ctx,images,{...actor,insectArmor:'mantis',insectVariant:id.endsWith('female')?'female':'male'},x,y,size);
  const full=actor.spriteDetail==='full',active=full?cache:remoteCache,cell=full?192:96;
  const file=insectSpriteFile(id),im=images.get(file)||active.read(id);
  if(!im){if(typeof Image!=='undefined')void active.ensure(id);return false;}
  const columns=INSECT_LOOKS[id].columns||13;
  if(im.width!==columns*cell||im.height!==cell*4)return false;
- const pose=mantisFrame(actor);let column=pose.column;
- if(id==='scorpion-male'&&pose.clip==='walk'&&pose.row>=2){
-  const side=images.get(SCORPION_SIDE_FILE)||sideImage;
-  if(side?.width===2172&&side?.height===724){
-   const distance=Number.isFinite(actor.walkDistance)?actor.walkDistance:0;
-   const frame=Math.floor(((distance%96+96)%96)/96*8),row=pose.row===3?0:1;
-   // Shared cell size, scale and foot baseline preserve the gait's vertical motion.
-   const sw=2172/8,sh=362,k=size/300;
-   ctx.drawImage(side,frame*sw,row*sh,sw,sh,x-sw*k/2,y-334*k,sw*k,sh*k);
-   return {...pose,column:frame,frame,sheet:id,sideWalk:true};
-  }
-  void prepareScorpionSide();
- }
+ let column=pose.column;
  // The beetle source has only two defeat poses. Hold its last pose; never sample a neighbour.
  if(columns===12&&pose.clip==='dead')column=pose.column===10?10:11;
  column=Math.min(columns-1,column);
