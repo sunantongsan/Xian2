@@ -31,10 +31,11 @@ test('equipment snapshot and local inventory select same mutation without new sa
 test('asset loading deduplicates in-flight requests, retries failure and invalidates portrait on success',async()=>{
  let count=0,ready=0,rejectFirst=true;const load=createHeroAssetLoader(async()=>{count++;if(rejectFirst)throw Error('offline');},()=>ready++);
  await assert.rejects(load('sword-cricket',20));rejectFirst=false;
- await Promise.all([load('sword-cricket',20),load('sword-cricket',59)]);assert.equal(count,2);assert.equal(ready,1);
- await load('sword-cricket',30);assert.equal(count,2);await load('sword-cricket',60);assert.equal(count,3);assert.equal(ready,2);
+ await Promise.all([load('sword-cricket',20),load('sword-cricket',59)]);assert.equal(count,12);assert.equal(ready,1);
+ await load('sword-cricket',30);assert.equal(count,12);await load('sword-cricket',60);assert.equal(count,12);assert.equal(ready,1);
 });
-test('selected mutation only fetches its one atlas, not nine unused layered pages',()=>{
- assert.deepEqual(heroAssetFiles('sword-cricket',60),[MUTATION_ART['cricket-engineer'].file]);
- assert.equal(heroAssetFiles('sword-dragonfly',20).length,9);assert.equal(heroAssetFiles('sword-cricket',1).length,0);
+test('human rig clips are shared across classes and evolution levels',()=>{
+ assert.deepEqual(heroAssetFiles('sword-cricket',60),heroAssetFiles('sword-cockro',1));
+ assert.equal(heroAssetFiles('sword-dragonfly',20).length,6);assert.equal(heroAssetFiles('sword-cricket',1).length,6);
 });
+

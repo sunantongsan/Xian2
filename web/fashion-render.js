@@ -12,6 +12,7 @@ export function fashionRect(im,set,slot,view=0){
 }
 export function drawFashionIcon(g,images,id,x,y,size){const it=fashionItem(id),im=it&&images.get(it.file);if(!im)return;const r=fashionRect(im,it.set,it.slot,2),k=size/Math.max(r[2],r[3]);g.drawImage(im,...r,x+(size-r[2]*k)/2,y+(size-r[3]*k)/2,r[2]*k,r[3]*k);}
 export function fashionAnchors(hero,actor={},frame=12){
+ if(actor.humanAnchors)return actor.humanAnchors;
  const back=actor.anim==='walk'&&actor.back;
  let head=[18,-220],body=[10,-165,118,140];
  if(hero==='sword-dragonfly'){head=[38,-235];body=[30,-180,91,145];}
@@ -30,11 +31,14 @@ export function fashionAnchors(hero,actor={},frame=12){
 }
 export function drawFashion(g,images,hero,actor,x,y,size,frame){
  const look=actor.appearance;if(!look||(!look.hat&&!look.outfit))return;
+ if(actor.humanAnchors){const a=actor.humanAnchors,k=size/314;g.save();g.translate(x,y);g.scale(k,k);
+  for(const slot of ['outfit','hat']){const it=fashionItem(look[slot]),im=it&&images.get(it.file);if(!im)continue;const r=fashionRect(im,it.set,slot,a.back?1:0);g.save();const p=slot==='hat'?a.head:a.body;g.translate(p[0],p[1]);g.rotate(a.angle);const w=slot==='hat'?70:a.body[2],h=slot==='hat'?w*r[3]/r[2]:a.body[3];g.drawImage(im,...r,-w/2,slot==='hat'?-h*.85:0,w,h);g.restore();}g.restore();return;}
+
  const {head,body,back}=fashionAnchors(hero,actor,frame),unit=size/314;
  g.save();g.translate(x,y);g.scale((actor.face||1)<0?-unit:unit,unit);
- if(actor.dead||actor.anim==='dead'){g.translate(45,-22);g.rotate(-Math.PI/2);g.scale(.8,.8);}
+ if(!actor.humanAnchors&&(actor.dead||actor.anim==='dead')){g.translate(45,-22);g.rotate(-Math.PI/2);g.scale(.8,.8);}
  const coat=fashionItem(look.outfit),ci=coat&&images.get(coat.file);if(ci){const r=fashionRect(ci,coat.set,'outfit',back?1:0);g.drawImage(ci,...r,body[0]-body[2]/2,body[1],body[2],body[3]);}
- const hat=fashionItem(look.hat),hi=hat&&images.get(hat.file);if(hi){const lift=hat.set==='knight'?0:({'sword-cockro':24,'sword-cricket':24,'demon-scorpion':12,'sword-dragonfly':10}[hero]||20);head[1]-=lift;const r=fashionRect(hi,hat.set,'hat',back?1:0),width=hat.set==='knight'?110:160,height=width*r[3]/r[2];const brim=hat.set==='wuxia'?.5:hat.set==='knight'?.6:.87;g.drawImage(hi,...r,head[0]-width/2,head[1]-height*brim,width,height);}
+ const hat=fashionItem(look.hat),hi=hat&&images.get(hat.file);if(hi){const lift=actor.humanAnchors||hat.set==='knight'?0:({'sword-cockro':24,'sword-cricket':24,'demon-scorpion':12,'sword-dragonfly':10}[hero]||20);head[1]-=lift;const r=fashionRect(hi,hat.set,'hat',back?1:0),width=actor.humanAnchors?70:hat.set==='knight'?110:160,height=width*r[3]/r[2];const brim=hat.set==='wuxia'?.5:hat.set==='knight'?.6:.87;g.drawImage(hi,...r,head[0]-width/2,head[1]-height*brim,width,height);}
  g.restore();
 }
 

@@ -1,0 +1,25 @@
+{
+  "directions": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "counts": {
+    "walk": 32,
+    "idle": 12,
+    "attack": 16,
+    "skill": 16,
+    "hurt": 8,
+    "dead": 12
+  },
+  "frameSize": 128,
+  "source": "dezyne_3d-happy-man-308.glb",
+  "sourceSHA256": "e61b6c4c2aca1710d55f0b6b1afc52ca5be6b1d47d55987c2510dacfd9c88173",
+  "layout": "one direction per row; chronological frames in columns",
+  "notes": "Rig-rendered poses; walk uses alternating inverse-kinematics feet and opposite arm swings. Runtime anchors are in human-joints.js."
+}
