@@ -1,6 +1,4 @@
 import {drawInsectSprite} from './insect-sprites.js';
-import {drawMantisHero} from './mantis-hero.js';
-import {drawInsectArmor} from './insect-render.js';
 import {drawFashion} from './fashion-render.js';
 import {HUMAN_JOINTS} from './human-joints.js';
 export const HUMAN_HEROES=['sword-cockro','demon-scorpion','sword-dragonfly','sword-cricket','sword-mage','sword-acolyte'];
@@ -25,12 +23,10 @@ export function drawHumanHero(ctx,images,hero,actor,x,y,size){
  if(actor.receivedAt!==undefined){const dt=Math.max(0,Math.min(.2,(performance.now()-actor.receivedAt)/1000));actor={...actor,animTime:(actor.visualAnimTime||0)+dt,walkDistance:actor.renderFrom?actor.renderFrom.walkDistance+(actor.walkDistance-actor.renderFrom.walkDistance)*Math.min(1,dt/.1):actor.walkDistance};}
  if(actor.anim==='idle'&&actor.hurtAt&&performance.now()-actor.hurtAt<260)actor={...actor,anim:'hurt',animTime:(performance.now()-actor.hurtAt)/1000};
  const suit=drawInsectSprite(ctx,images,actor,x,y,size);if(suit)return suit;
- const mantis=drawMantisHero(ctx,images,actor,x,y,size);if(mantis)return mantis;
  const f=humanFrame(actor),im=images.get(`heroes/human/${f.clip}.webp`);if(!im)return false;
  const j=HUMAN_JOINTS[f.clip]?.[HUMAN_DIRECTIONS[f.direction]]?.[f.frame];if(!j)return false;
  const drawSize=size*j.ortho/1.6,unit=drawSize/128;
  ctx.drawImage(im,f.frame*128,f.direction*128,128,128,x-j.root[0]*unit,y-j.root[1]*unit,drawSize,drawSize);
- if(actor.insectArmor)drawInsectArmor(ctx,actor.insectArmor,j,f.direction,x,y,unit);
  // Existing wardrobe items follow projected rig joints instead of old insect coordinates.
  if(actor.appearance?.hat||actor.appearance?.outfit){
   const convert=p=>[(p[0]-j.root[0])*unit*314/size,(p[1]-j.root[1])*unit*314/size];

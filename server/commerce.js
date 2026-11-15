@@ -1,3 +1,4 @@
+import {isRetiredArmor} from '../web/insect-armor.js';
 import {randomUUID,randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';
 import {existsSync,readFileSync,writeFileSync,renameSync,unlinkSync,openSync,closeSync,fsyncSync} from 'node:fs';
 import {join} from 'node:path';
@@ -9,7 +10,7 @@ const integer=(n,max)=>Number.isSafeInteger(n)&&n>0&&n<=max;
 function need(ok,message){if(!ok)throw Error(message);}
 export function take(s,kind,id,quantity){
  need(integer(quantity,99999),'invalid_quantity');
- if(kind==='gear'){need(quantity===1,'invalid_quantity');const i=s.bag.findIndex(it=>it.id===id);need(i>=0,'item_missing');return {kind,id,quantity:1,item:s.bag.splice(i,1)[0]};}
+ if(kind==='gear'){need(quantity===1,'invalid_quantity');const i=s.bag.findIndex(it=>it.id===id);need(i>=0&&!isRetiredArmor(s.bag[i]),'item_missing');return {kind,id,quantity:1,item:s.bag.splice(i,1)[0]};}
  const [holder,key]=stack(s,kind,id);need((holder[key]||0)>=quantity,'item_missing');holder[key]-=quantity;return {kind,id,quantity};
 }
 function stack(s,kind,id){
@@ -19,7 +20,7 @@ function stack(s,kind,id){
  throw Error('item_not_transferable');
 }
 export function give(s,cargo){
- if(cargo.kind==='gear'){need(s.bag.length<BAG_SIZE,'bag_full');need(!s.bag.some(it=>it.id===cargo.item.id)&&!Object.values(s.equip).some(it=>it?.id===cargo.item.id),'duplicate_item');s.bag.push(structuredClone(cargo.item));return;}
+ if(cargo.kind==='gear'){need(!isRetiredArmor(cargo.item),'item_retired');need(s.bag.length<BAG_SIZE,'bag_full');need(!s.bag.some(it=>it.id===cargo.item.id)&&!Object.values(s.equip).some(it=>it?.id===cargo.item.id),'duplicate_item');s.bag.push(structuredClone(cargo.item));return;}
  const [holder,key]=stack(s,cargo.kind,cargo.id);need((holder[key]||0)+cargo.quantity<=99999,'bag_full');holder[key]=(holder[key]||0)+cargo.quantity;
 }
 // Synchronous WAL commits all affected saves and the ledger before acknowledging.
@@ -31,6 +32,10 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  function apply(tx){for(const [id,s]of Object.entries(tx.characters)){need(/^[a-f0-9]{64}$/.test(id),'invalid_character');write(join(directory,id+'.json'),s);}write(ledgerPath,tx.ledger);unlinkSync(walPath);syncDir();}
  if(existsSync(walPath))apply(JSON.parse(readFileSync(walPath,'utf8')));
  let ledger=existsSync(ledgerPath)?JSON.parse(readFileSync(ledgerPath,'utf8')):{revision:0,vaults:{},shops:{}};
+ let removed=0;
+ for(const vault of Object.values(ledger.vaults)){const items=vault.items||[];vault.items=items.filter(c=>!(c.kind==='gear'&&isRetiredArmor(c.item)));removed+=items.length-vault.items.length;}
+ for(const shop of Object.values(ledger.shops)){const listings=shop.listings||[];shop.listings=listings.filter(x=>!(x.cargo?.kind==='gear'&&isRetiredArmor(x.cargo.item)));removed+=listings.length-shop.listings.length;}
+ if(removed){ledger.revision++;write(ledgerPath,ledger);}
  const grants=new WeakMap(),attempts=new Map();
  const unlocked=p=>{const g=grants.get(p),v=ledger.vaults[p.account];return !!(g&&g.until>Date.now()&&v?.pinHash&&g.hash===v.pinHash);};
  const lockVault=p=>grants.delete(p);
@@ -74,5 +79,6 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  const ownsListedItems=(account,id)=>ledger.shops[account]?.character===id&&ledger.shops[account].listings.length>0;
  return {run,view,lockVault,refreshSigns,stalls,removeAccount,ownsListedItems,get failed(){return failed;}};
 }
+
 
 

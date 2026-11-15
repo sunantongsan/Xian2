@@ -1,9 +1,17 @@
+// Full-body equipment sets. IDs also identify the reviewed character artwork.
+const suit=(name,en,bonus)=>({name:'ชุด'+name,en:en+' Suit',bonus});
 export const INSECT_ARMOR={
- beetle:{name:'เกราะด้วงกว่าง',en:'Beetle Carapace',color:'#4e8197',light:'#c6edeb',bonus:{def:1.5,hp:20}},
- mantis:{name:'เกราะตั๊กแตนตำข้าว',en:'Mantis Carapace',color:'#4f9766',light:'#daec9e',bonus:{atk:2}},
- dragonfly:{name:'เกราะแมลงปอ',en:'Dragonfly Carapace',color:'#459ead',light:'#bdffff',bonus:{speed:2}},
- ant:{name:'เกราะมดแดง',en:'Red Ant Carapace',color:'#b95e48',light:'#ffd5a2',bonus:{hp:30}},
- butterfly:{name:'เกราะผีเสื้อ',en:'Butterfly Carapace',color:'#9865b9',light:'#f5caff',bonus:{mp:12,spell:.02}},
- cricket:{name:'เกราะจิ้งหรีด',en:'Cricket Carapace',color:'#92944c',light:'#fff1a9',bonus:{crit:.01}}
+ 'cockroach-male':suit('แมงสาบชาย','Cockroach Male',{hp:30}),
+ 'cockroach-female':suit('แมงสาบหญิง','Cockroach Female',{hp:30}),
+ 'ladybug-male':suit('เต่าทองชาย','Ladybug Male',{def:1.5,hp:20}),
+ 'ladybug-female':suit('เต่าทองหญิง','Ladybug Female',{def:1.5,hp:20}),
+ 'scorpion-male':suit('แมงป่องชาย','Scorpion Male',{atk:2,crit:.01}),
+ 'scorpion-female':suit('แมงป่องหญิง','Scorpion Female',{atk:2,crit:.01}),
+ 'beetle-female':suit('ด้วงกว่างหญิง','Beetle Female',{def:1.5,hp:20}),
+ 'dragonfly-female':suit('แมงปอหญิง','Dragonfly Female',{speed:2}),
+ 'mantis-male':suit('ตั๊กแตนชาย','Mantis Male',{atk:2}),
+ 'mantis-female':suit('ตั๊กแตนหญิง','Mantis Female',{atk:2})
 };
 export const insectFields=it=>it?.slot==='armor'&&Object.hasOwn(INSECT_ARMOR,it.insect)?{insect:it.insect}:{};
+export const isRetiredArmor=it=>!!it&&(['helm','gloves','boots','wings'].includes(it.slot)||(it.slot==='armor'&&!insectFields(it).insect));
+export const suitIcon=it=>insectFields(it).insect?`items/insect-suits/${it.insect}.webp`:null;

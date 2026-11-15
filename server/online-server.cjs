@@ -3707,6 +3707,53 @@ var require_websocket_server = __commonJS({
   }
 });
 
+// server/armor-migration.js
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+
+// web/insect-armor.js
+var suit = (name, en, bonus) => ({ name: "\u0E0A\u0E38\u0E14" + name, en: en + " Suit", bonus });
+var INSECT_ARMOR = {
+  "cockroach-male": suit("\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E0A\u0E32\u0E22", "Cockroach Male", { hp: 30 }),
+  "cockroach-female": suit("\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E2B\u0E0D\u0E34\u0E07", "Cockroach Female", { hp: 30 }),
+  "ladybug-male": suit("\u0E40\u0E15\u0E48\u0E32\u0E17\u0E2D\u0E07\u0E0A\u0E32\u0E22", "Ladybug Male", { def: 1.5, hp: 20 }),
+  "ladybug-female": suit("\u0E40\u0E15\u0E48\u0E32\u0E17\u0E2D\u0E07\u0E2B\u0E0D\u0E34\u0E07", "Ladybug Female", { def: 1.5, hp: 20 }),
+  "scorpion-male": suit("\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E0A\u0E32\u0E22", "Scorpion Male", { atk: 2, crit: 0.01 }),
+  "scorpion-female": suit("\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E2B\u0E0D\u0E34\u0E07", "Scorpion Female", { atk: 2, crit: 0.01 }),
+  "beetle-female": suit("\u0E14\u0E49\u0E27\u0E07\u0E01\u0E27\u0E48\u0E32\u0E07\u0E2B\u0E0D\u0E34\u0E07", "Beetle Female", { def: 1.5, hp: 20 }),
+  "dragonfly-female": suit("\u0E41\u0E21\u0E07\u0E1B\u0E2D\u0E2B\u0E0D\u0E34\u0E07", "Dragonfly Female", { speed: 2 }),
+  "mantis-male": suit("\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E0A\u0E32\u0E22", "Mantis Male", { atk: 2 }),
+  "mantis-female": suit("\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E2B\u0E0D\u0E34\u0E07", "Mantis Female", { atk: 2 })
+};
+var insectFields = (it) => it?.slot === "armor" && Object.hasOwn(INSECT_ARMOR, it.insect) ? { insect: it.insect } : {};
+var isRetiredArmor = (it) => !!it && (["helm", "gloves", "boots", "wings"].includes(it.slot) || it.slot === "armor" && !insectFields(it).insect);
+
+// server/armor-migration.js
+function migrateArmorSaves(directory) {
+  let characters = 0, items = 0;
+  for (const name of (0, import_node_fs.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+    const path = (0, import_node_path.join)(directory, name), s = JSON.parse((0, import_node_fs.readFileSync)(path, "utf8"));
+    let removed = 0;
+    for (const [slot, it] of Object.entries(s.equip || {})) if (isRetiredArmor(it)) {
+      s.equip[slot] = null;
+      removed++;
+    }
+    if (Array.isArray(s.bag)) {
+      const n = s.bag.length;
+      s.bag = s.bag.filter((it) => !isRetiredArmor(it));
+      removed += n - s.bag.length;
+    }
+    if (removed) {
+      (0, import_node_fs.writeFileSync)(path + ".full-suits.tmp", JSON.stringify(s), { mode: 384 });
+      (0, import_node_fs.renameSync)(path + ".full-suits.tmp", path);
+      characters++;
+      items += removed;
+    }
+  }
+  console.log("Full-suit migration:", characters, "characters,", items, "retired items removed");
+  return { characters, items };
+}
+
 // server/chat.js
 var import_node_crypto = require("node:crypto");
 function createChat({ connections, send, clock = Date.now }) {
@@ -3747,19 +3794,8 @@ function createChat({ connections, send, clock = Date.now }) {
 
 // server/commerce.js
 var import_node_crypto2 = require("node:crypto");
-var import_node_fs = require("node:fs");
-var import_node_path = require("node:path");
-
-// web/insect-armor.js
-var INSECT_ARMOR = {
-  beetle: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E14\u0E49\u0E27\u0E07\u0E01\u0E27\u0E48\u0E32\u0E07", en: "Beetle Carapace", color: "#4e8197", light: "#c6edeb", bonus: { def: 1.5, hp: 20 } },
-  mantis: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E15\u0E33\u0E02\u0E49\u0E32\u0E27", en: "Mantis Carapace", color: "#4f9766", light: "#daec9e", bonus: { atk: 2 } },
-  dragonfly: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E41\u0E21\u0E25\u0E07\u0E1B\u0E2D", en: "Dragonfly Carapace", color: "#459ead", light: "#bdffff", bonus: { speed: 2 } },
-  ant: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E21\u0E14\u0E41\u0E14\u0E07", en: "Red Ant Carapace", color: "#b95e48", light: "#ffd5a2", bonus: { hp: 30 } },
-  butterfly: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E1C\u0E35\u0E40\u0E2A\u0E37\u0E49\u0E2D", en: "Butterfly Carapace", color: "#9865b9", light: "#f5caff", bonus: { mp: 12, spell: 0.02 } },
-  cricket: { name: "\u0E40\u0E01\u0E23\u0E32\u0E30\u0E08\u0E34\u0E49\u0E07\u0E2B\u0E23\u0E35\u0E14", en: "Cricket Carapace", color: "#92944c", light: "#fff1a9", bonus: { crit: 0.01 } }
-};
-var insectFields = (it) => it?.slot === "armor" && Object.hasOwn(INSECT_ARMOR, it.insect) ? { insect: it.insect } : {};
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
 
 // web/locales/en.js
 var EN = {
@@ -5151,6 +5187,11 @@ var language = createLanguage({
   }
 });
 var messages = {
+  "\u0E0A\u0E38\u0E14\u0E40\u0E15\u0E47\u0E21\u0E15\u0E31\u0E27": "Full-body suit",
+  "\u0E23\u0E39\u0E1B\u0E25\u0E31\u0E01\u0E29\u0E13\u0E4C\u0E15\u0E31\u0E27\u0E25\u0E30\u0E04\u0E23": "Character appearance",
+  "\u0E15\u0E32\u0E21\u0E40\u0E01\u0E23\u0E32\u0E30\u0E17\u0E35\u0E48\u0E2A\u0E27\u0E21": "Use equipped armor",
+  "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E20\u0E32\u0E1E\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E04\u0E48\u0E32\u0E1E\u0E25\u0E31\u0E07\u0E15\u0E32\u0E21\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C": "Appearance only. Stats follow equipment.",
+  "\u0E23\u0E39\u0E1B\u0E25\u0E31\u0E01\u0E29\u0E13\u0E4C\u0E40\u0E01\u0E23\u0E32\u0E30\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19": "Mantis armor appearance",
   "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32": "Settings",
   "\u0E20\u0E32\u0E29\u0E32": "Language",
   "\u0E01\u0E25\u0E31\u0E1A": "Back",
@@ -5481,8 +5522,8 @@ var SLOTS = {
     return t("\u0E2B\u0E21\u0E27\u0E01\u0E40\u0E01\u0E23\u0E32\u0E30");
   }, def: 1.2, hp: 22 },
   armor: { get name() {
-    return t("\u0E40\u0E01\u0E23\u0E32\u0E30\u0E2D\u0E01");
-  }, def: 2.2, hp: 40 },
+    return t("\u0E0A\u0E38\u0E14\u0E40\u0E15\u0E47\u0E21\u0E15\u0E31\u0E27");
+  }, def: 6.2, hp: 82, atk: 7, speed: 3 },
   gloves: { get name() {
     return t("\u0E16\u0E38\u0E07\u0E21\u0E37\u0E2D");
   }, def: 0.8, atk: 3 },
@@ -5499,7 +5540,7 @@ var SLOTS = {
     return t("\u0E2A\u0E23\u0E49\u0E2D\u0E22\u0E1E\u0E25\u0E31\u0E07");
   }, mp: 14, spell: 0.03 }
 };
-var SLOT_ORDER = ["helm", "armor", "gloves", "boots", "weapon", "wings", "ring", "amulet"];
+var SLOT_ORDER = ["armor", "weapon", "ring", "amulet"];
 var TIERS = [
   { get name() {
     return t("\u0E1D\u0E36\u0E01\u0E2B\u0E31\u0E14");
@@ -5556,17 +5597,17 @@ function sellPrice(it) {
 }
 function gearTotals(s) {
   const t2 = { atk: 0, def: 0, hp: 0, crit: 0, speed: 0, mp: 0, spell: 0 };
-  for (const it of Object.values(s.equip || {})) if (it) for (const [k, v] of Object.entries(itemStats(it))) t2[k] += v;
+  for (const it of Object.values(s.equip || {})) if (it && !isRetiredArmor(it)) for (const [k, v] of Object.entries(itemStats(it))) t2[k] += v;
   return t2;
 }
 var uid = 0;
 function makeItem(slot, tier, rarity, rng = Math.random) {
-  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0, ...specialFields({}) };
+  return { id: Date.now().toString(36) + (uid++).toString(36) + Math.floor(rng() * 1e4).toString(36), slot, tier, rarity, plus: 0, ...slot === "armor" ? { insect: "cockroach-male" } : {}, ...specialFields({}) };
 }
 function rollDrop(m, rng = Math.random) {
   const chance = m.boss ? 1 : m.elite ? 0.15 : 0.01;
   if (rng() >= chance) return null;
-  const slot = SLOT_ORDER[Math.floor(rng() * SLOT_ORDER.length)], tier = tierForLevel(m.level);
+  const slots = ["weapon", "ring", "amulet"], slot = slots[Math.min(2, Math.floor(rng() * slots.length))], tier = tierForLevel(m.level);
   const r = rng();
   let rarity = r < 0.04 ? 3 : r < 0.16 ? 2 : r < 0.45 ? 1 : 0;
   if (m.boss) rarity = Math.max(2, rarity);
@@ -5574,7 +5615,7 @@ function rollDrop(m, rng = Math.random) {
   return makeItem(slot, tier, rarity, rng);
 }
 function canEquip(s, it) {
-  return s.level >= TIERS[it.tier].level;
+  return !!it && !isRetiredArmor(it) && SLOT_ORDER.includes(it.slot) && s.level >= TIERS[it.tier].level;
 }
 function equip(s, id) {
   const i = s.bag.findIndex((x) => x.id === id);
@@ -5605,11 +5646,11 @@ function sell(s, id) {
 function freshGear(s) {
   s.equip = Object.fromEntries(SLOT_ORDER.map((k) => [k, null]));
   s.equip.weapon = makeItem("weapon", 0, 0);
-  s.equip.armor = makeItem("armor", 0, 0);
-  s.bag = [makeItem("helm", 0, 1), makeItem("boots", 0, 0), makeItem("wings", 0, 1)];
+  s.equip.armor = null;
+  s.bag = [];
   return s;
 }
-var validItem = (it) => it && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
+var validItem = (it) => it && !isRetiredArmor(it) && typeof it.id === "string" && SLOTS[it.slot] && Number.isInteger(it.tier) && it.tier >= 0 && it.tier < TIERS.length && Number.isInteger(it.rarity) && it.rarity >= 0 && it.rarity < RARITY.length;
 function normalizeGear(s, v = {}) {
   if (!v.equip && !v.bag) return freshGear(s);
   s.equip = Object.fromEntries(SLOT_ORDER.map((k) => {
@@ -5707,7 +5748,7 @@ function take(s, kind, id, quantity) {
   if (kind === "gear") {
     need(quantity === 1, "invalid_quantity");
     const i = s.bag.findIndex((it) => it.id === id);
-    need(i >= 0, "item_missing");
+    need(i >= 0 && !isRetiredArmor(s.bag[i]), "item_missing");
     return { kind, id, quantity: 1, item: s.bag.splice(i, 1)[0] };
   }
   const [holder, key] = stack(s, kind, id);
@@ -5723,6 +5764,7 @@ function stack(s, kind, id) {
 }
 function give(s, cargo) {
   if (cargo.kind === "gear") {
+    need(!isRetiredArmor(cargo.item), "item_retired");
     need(s.bag.length < BAG_SIZE, "bag_full");
     need(!s.bag.some((it) => it.id === cargo.item.id) && !Object.values(s.equip).some((it) => it?.id === cargo.item.id), "duplicate_item");
     s.bag.push(structuredClone(cargo.item));
@@ -5734,38 +5776,53 @@ function give(s, cargo) {
 }
 function createCommerce(directory, { players, getActor = (id) => players().get(id), capture = () => {
 }, writeHook } = {}) {
-  const ledgerPath = (0, import_node_path.join)(directory, "commerce.json"), walPath = (0, import_node_path.join)(directory, "commerce-pending.json");
+  const ledgerPath = (0, import_node_path2.join)(directory, "commerce.json"), walPath = (0, import_node_path2.join)(directory, "commerce-pending.json");
   let failed = false;
   const syncDir = () => {
-    const fd = (0, import_node_fs.openSync)(directory, "r");
+    const fd = (0, import_node_fs2.openSync)(directory, "r");
     try {
-      (0, import_node_fs.fsyncSync)(fd);
+      (0, import_node_fs2.fsyncSync)(fd);
     } finally {
-      (0, import_node_fs.closeSync)(fd);
+      (0, import_node_fs2.closeSync)(fd);
     }
   };
   const write2 = (file, value) => {
-    (0, import_node_fs.writeFileSync)(file + ".tmp", JSON.stringify(value), { mode: 384 });
-    const fd = (0, import_node_fs.openSync)(file + ".tmp", "r");
+    (0, import_node_fs2.writeFileSync)(file + ".tmp", JSON.stringify(value), { mode: 384 });
+    const fd = (0, import_node_fs2.openSync)(file + ".tmp", "r");
     try {
-      (0, import_node_fs.fsyncSync)(fd);
+      (0, import_node_fs2.fsyncSync)(fd);
     } finally {
-      (0, import_node_fs.closeSync)(fd);
+      (0, import_node_fs2.closeSync)(fd);
     }
-    (0, import_node_fs.renameSync)(file + ".tmp", file);
+    (0, import_node_fs2.renameSync)(file + ".tmp", file);
     syncDir();
   };
   function apply(tx) {
     for (const [id, s] of Object.entries(tx.characters)) {
       need(/^[a-f0-9]{64}$/.test(id), "invalid_character");
-      write2((0, import_node_path.join)(directory, id + ".json"), s);
+      write2((0, import_node_path2.join)(directory, id + ".json"), s);
     }
     write2(ledgerPath, tx.ledger);
-    (0, import_node_fs.unlinkSync)(walPath);
+    (0, import_node_fs2.unlinkSync)(walPath);
     syncDir();
   }
-  if ((0, import_node_fs.existsSync)(walPath)) apply(JSON.parse((0, import_node_fs.readFileSync)(walPath, "utf8")));
-  let ledger = (0, import_node_fs.existsSync)(ledgerPath) ? JSON.parse((0, import_node_fs.readFileSync)(ledgerPath, "utf8")) : { revision: 0, vaults: {}, shops: {} };
+  if ((0, import_node_fs2.existsSync)(walPath)) apply(JSON.parse((0, import_node_fs2.readFileSync)(walPath, "utf8")));
+  let ledger = (0, import_node_fs2.existsSync)(ledgerPath) ? JSON.parse((0, import_node_fs2.readFileSync)(ledgerPath, "utf8")) : { revision: 0, vaults: {}, shops: {} };
+  let removed = 0;
+  for (const vault2 of Object.values(ledger.vaults)) {
+    const items = vault2.items || [];
+    vault2.items = items.filter((c) => !(c.kind === "gear" && isRetiredArmor(c.item)));
+    removed += items.length - vault2.items.length;
+  }
+  for (const shop of Object.values(ledger.shops)) {
+    const listings = shop.listings || [];
+    shop.listings = listings.filter((x) => !(x.cargo?.kind === "gear" && isRetiredArmor(x.cargo.item)));
+    removed += listings.length - shop.listings.length;
+  }
+  if (removed) {
+    ledger.revision++;
+    write2(ledgerPath, ledger);
+  }
   const grants = /* @__PURE__ */ new WeakMap(), attempts = /* @__PURE__ */ new Map();
   const unlocked2 = (p) => {
     const g = grants.get(p), v = ledger.vaults[p.account];
@@ -5974,8 +6031,8 @@ function createCommerce(directory, { players, getActor = (id) => players().get(i
 
 // server/play-billing.js
 var import_node_crypto3 = require("node:crypto");
-var import_node_fs3 = require("node:fs");
-var import_node_path2 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_path3 = require("node:path");
 
 // web/gold-products.js
 var GOLD_PRODUCTS = [
@@ -5994,12 +6051,12 @@ var GOLD_PRODUCTS = [
 ];
 
 // server/play-relay.js
-var import_node_fs2 = require("node:fs");
+var import_node_fs3 = require("node:fs");
 var ENDPOINT = "https://uzinxxeadejmzxqmqqtx.supabase.co/functions/v1/cockro-play-relay";
 function createPlayRelay({ configPath = process.env.COCKRO_PLAY_RELAY_CONFIG, fetcher = fetch } = {}) {
   let config;
   try {
-    config = JSON.parse((0, import_node_fs2.readFileSync)(configPath, "utf8"));
+    config = JSON.parse((0, import_node_fs3.readFileSync)(configPath, "utf8"));
   } catch {
   }
   const enabled = !!(config?.url === ENDPOINT && /^[a-f0-9]{64}$/.test(config?.token));
@@ -6029,7 +6086,7 @@ function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTI
   if (relayConfigPath) return createPlayRelay({ configPath: relayConfigPath, fetcher });
   let credentials = null;
   try {
-    if (credentialsPath) credentials = JSON.parse((0, import_node_fs3.readFileSync)(credentialsPath, "utf8"));
+    if (credentialsPath) credentials = JSON.parse((0, import_node_fs4.readFileSync)(credentialsPath, "utf8"));
   } catch {
   }
   const enabled = !!(credentials?.client_email && credentials?.private_key);
@@ -6056,38 +6113,38 @@ function createPlayVerifier({ credentialsPath = process.env.GOOGLE_PLAY_CREDENTI
   return { enabled, verify: (id, token) => request(id, token), consume: (id, token) => request(id, token, true) };
 }
 function createBillingService(directory, verifier = createPlayVerifier()) {
-  const dir = (0, import_node_path2.join)(directory, "play-receipts");
+  const dir = (0, import_node_path3.join)(directory, "play-receipts");
   const locks = /* @__PURE__ */ new Set();
   const write2 = (path, data) => {
-    (0, import_node_fs3.writeFileSync)(path + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs3.renameSync)(path + ".tmp", path);
+    (0, import_node_fs4.writeFileSync)(path + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs4.renameSync)(path + ".tmp", path);
   };
-  const records = () => (0, import_node_fs3.existsSync)(dir) ? (0, import_node_fs3.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((f) => ({ reference: f.slice(0, -5), ...JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path2.join)(dir, f), "utf8")) })) : [];
+  const records = () => (0, import_node_fs4.existsSync)(dir) ? (0, import_node_fs4.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((f) => ({ reference: f.slice(0, -5), ...JSON.parse((0, import_node_fs4.readFileSync)((0, import_node_path3.join)(dir, f), "utf8")) })) : [];
   const notice = (r) => ({ reference: r.reference, gold: r.gold, character: r.character, characterName: r.characterName });
   return { enabled: verifier.enabled, notifications(owner, character) {
     return records().filter((r) => r.owner === owner && r.character === character && r.credited && r.notify && !r.notified).slice(0, 20).map(notice);
   }, acknowledge(owner, character, reference) {
     if (!/^[a-f0-9]{64}$/.test(reference || "")) throw Error("invalid_request");
-    const path = (0, import_node_path2.join)(dir, reference + ".json");
-    const r = JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8"));
+    const path = (0, import_node_path3.join)(dir, reference + ".json");
+    const r = JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8"));
     if (r.owner !== owner || r.character !== character || !r.credited) throw Error("wrong_account");
     r.notified = true;
     write2(path, r);
   }, history(owner, offset = 0) {
     if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1e6) throw Error("invalid_request");
-    const records2 = (0, import_node_fs3.existsSync)(dir) ? (0, import_node_fs3.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((file) => ({ file, data: JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path2.join)(dir, file), "utf8")) })).filter((r) => r.data.owner === owner) : [];
+    const records2 = (0, import_node_fs4.existsSync)(dir) ? (0, import_node_fs4.readdirSync)(dir).filter((f) => /^[a-f0-9]{64}\.json$/.test(f)).map((file) => ({ file, data: JSON.parse((0, import_node_fs4.readFileSync)((0, import_node_path3.join)(dir, file), "utf8")) })).filter((r) => r.data.owner === owner) : [];
     records2.sort((a, b) => (b.data.created || 0) - (a.data.created || 0) || a.file.localeCompare(b.file));
     return { purchases: records2.slice(offset, offset + 20).map(({ file, data: r }) => ({ reference: file.slice(0, 16), product: r.product, gold: r.gold, created: r.created, purchasedAt: r.purchasedAt || null, orderId: r.orderId || null, test: r.test === true, character: r.character, characterName: r.characterName || null, status: r.credited ? "credited" : "processing" })), nextOffset: offset + 20 < records2.length ? offset + 20 : null };
   }, async redeem(p, { productId, token }, persist, resolveRecipient) {
     if (!verifier.enabled) throw Error("billing_unavailable");
-    (0, import_node_fs3.mkdirSync)(dir, { recursive: true, mode: 448 });
+    (0, import_node_fs4.mkdirSync)(dir, { recursive: true, mode: 448 });
     const product = GOLD_PRODUCTS.find((x) => x.id === productId);
     if (!product || typeof token !== "string" || token.length < 10 || token.length > 2048) throw Error("invalid_purchase");
-    const hash4 = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path2.join)(dir, hash4 + ".json");
+    const hash4 = (0, import_node_crypto3.createHash)("sha256").update(token).digest("hex"), path = (0, import_node_path3.join)(dir, hash4 + ".json");
     if (locks.has(hash4)) throw Error("purchase_busy");
     locks.add(hash4);
     try {
-      let record = (0, import_node_fs3.existsSync)(path) ? JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8")) : null;
+      let record = (0, import_node_fs4.existsSync)(path) ? JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8")) : null;
       if (record && (record.owner !== p.account || record.product !== productId)) throw Error("wrong_account");
       const owner = p.account;
       let verified;
@@ -7175,9 +7232,9 @@ function parseTiled(json) {
     const id = gid - ts.firstgid, meta = ts.tiles?.find((t2) => t2.id === id);
     return { set: ts.name, id, ...props(meta) };
   };
-  const cache = /* @__PURE__ */ new Map(), info = (gid) => {
-    if (!cache.has(gid)) cache.set(gid, tileOf(gid));
-    return cache.get(gid);
+  const cache2 = /* @__PURE__ */ new Map(), info = (gid) => {
+    if (!cache2.has(gid)) cache2.set(gid, tileOf(gid));
+    return cache2.get(gid);
   };
   const count = N * rows, kind = new Array(count), color = new Array(count), walk = new Uint8Array(count), prop = new Array(count).fill(null), zone = new Int8Array(count).fill(-1), variant = new Uint8Array(count);
   const ground = layer("ground").data, pl = layer("props")?.data || [], zl = layer("zones")?.data || [];
@@ -7593,16 +7650,16 @@ function languagePreference(value) {
 
 // server/referrals.js
 var import_node_crypto4 = require("node:crypto");
-var import_node_fs4 = require("node:fs");
-var import_node_path3 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_path4 = require("node:path");
 var hash = (s) => (0, import_node_crypto4.createHash)("sha256").update(s).digest("hex");
 function createReferrals(directory) {
-  const path = (0, import_node_path3.join)(directory, "referrals.json");
-  const read = () => (0, import_node_fs4.existsSync)(path) ? JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8")) : { members: {}, claims: {}, awards: {} };
+  const path = (0, import_node_path4.join)(directory, "referrals.json");
+  const read = () => (0, import_node_fs5.existsSync)(path) ? JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8")) : { members: {}, claims: {}, awards: {} };
   const write2 = (d) => {
-    (0, import_node_fs4.mkdirSync)(directory, { recursive: true });
-    (0, import_node_fs4.writeFileSync)(path + ".tmp", JSON.stringify(d), { mode: 384 });
-    (0, import_node_fs4.renameSync)(path + ".tmp", path);
+    (0, import_node_fs5.mkdirSync)(directory, { recursive: true });
+    (0, import_node_fs5.writeFileSync)(path + ".tmp", JSON.stringify(d), { mode: 384 });
+    (0, import_node_fs5.renameSync)(path + ".tmp", path);
   };
   const code = (account) => hash("cockro-referral:" + account).slice(0, 12).toUpperCase();
   function status(account, uid2) {
@@ -7656,22 +7713,22 @@ function createReferrals(directory) {
 // server/accounts.js
 var import_node_crypto8 = require("node:crypto");
 var import_node_util = require("node:util");
-var import_node_fs8 = require("node:fs");
-var import_node_path7 = require("node:path");
+var import_node_fs9 = require("node:fs");
+var import_node_path8 = require("node:path");
 
 // server/characters.js
 var import_node_crypto5 = require("node:crypto");
-var import_node_fs5 = require("node:fs");
-var import_node_path4 = require("node:path");
+var import_node_fs6 = require("node:fs");
+var import_node_path5 = require("node:path");
 var CHARACTER_SLOTS = ["main", "slot2", "slot3", "slot4"];
 function characterId(account, slot = "main") {
   if (!CHARACTER_SLOTS.includes(slot)) throw Error("character_missing");
   return slot === "main" ? account : (0, import_node_crypto5.createHash)("sha256").update(account + ":" + slot).digest("hex");
 }
 function readCharacter(directory, account, slot = "main") {
-  const path = (0, import_node_path4.join)(directory, characterId(account, slot) + ".json");
-  if (!(0, import_node_fs5.existsSync)(path)) return null;
-  const state = validSave(JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8")));
+  const path = (0, import_node_path5.join)(directory, characterId(account, slot) + ".json");
+  if (!(0, import_node_fs6.existsSync)(path)) return null;
+  const state = validSave(JSON.parse((0, import_node_fs6.readFileSync)(path, "utf8")));
   if (!state) throw Error("invalid_save");
   return state;
 }
@@ -7684,17 +7741,17 @@ function characterRoster(directory, account) {
 
 // server/identity-cleanup.js
 var import_node_crypto6 = require("node:crypto");
-var import_node_fs6 = require("node:fs");
-var import_node_path5 = require("node:path");
+var import_node_fs7 = require("node:fs");
+var import_node_path6 = require("node:path");
 function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
-  (0, import_node_fs6.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const path = (0, import_node_path5.join)(directory, "account-cleanup-key.pem");
-  if (!(0, import_node_fs6.existsSync)(path)) {
+  (0, import_node_fs7.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const path = (0, import_node_path6.join)(directory, "account-cleanup-key.pem");
+  if (!(0, import_node_fs7.existsSync)(path)) {
     const { privateKey } = (0, import_node_crypto6.generateKeyPairSync)("ed25519");
-    (0, import_node_fs6.writeFileSync)(path + ".tmp", privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 384 });
-    (0, import_node_fs6.renameSync)(path + ".tmp", path);
+    (0, import_node_fs7.writeFileSync)(path + ".tmp", privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 384 });
+    (0, import_node_fs7.renameSync)(path + ".tmp", path);
   }
-  const key = (0, import_node_fs6.readFileSync)(path, "utf8");
+  const key = (0, import_node_fs7.readFileSync)(path, "utf8");
   const publicKey = (0, import_node_crypto6.createPublicKey)(key).export({ type: "spki", format: "der" }).toString("base64");
   async function remove(uid2) {
     const body = JSON.stringify({ uid: uid2, timestamp: Date.now() });
@@ -7709,65 +7766,65 @@ function createIdentityCleanup(directory, { authUrl, fetcher = fetch } = {}) {
 
 // server/account-deletion.js
 var import_node_crypto7 = require("node:crypto");
-var import_node_fs7 = require("node:fs");
-var import_node_path6 = require("node:path");
+var import_node_fs8 = require("node:fs");
+var import_node_path7 = require("node:path");
 var hash2 = (s) => (0, import_node_crypto7.createHash)("sha256").update(s).digest("hex");
 var write = (path, value) => {
-  (0, import_node_fs7.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
-  (0, import_node_fs7.renameSync)(path + ".tmp", path);
+  (0, import_node_fs8.writeFileSync)(path + ".tmp", JSON.stringify(value), { mode: 384 });
+  (0, import_node_fs8.renameSync)(path + ".tmp", path);
 };
 function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY, fetcher = fetch } = {}) {
   const identity = createIdentityCleanup(directory, { authUrl, fetcher });
-  const root = (0, import_node_path6.join)(directory, "account-deletions");
-  const files = () => (0, import_node_fs7.existsSync)(root) ? (0, import_node_fs7.readdirSync)(root) : [];
+  const root = (0, import_node_path7.join)(directory, "account-deletions");
+  const files = () => (0, import_node_fs8.existsSync)(root) ? (0, import_node_fs8.readdirSync)(root) : [];
   const deletedIds = /* @__PURE__ */ new Set();
-  const path = (account) => (0, import_node_path6.join)(root, account + ".json");
-  const read = (account) => (0, import_node_fs7.existsSync)(path(account)) ? JSON.parse((0, import_node_fs7.readFileSync)(path(account), "utf8")) : null;
+  const path = (account) => (0, import_node_path7.join)(root, account + ".json");
+  const read = (account) => (0, import_node_fs8.existsSync)(path(account)) ? JSON.parse((0, import_node_fs8.readFileSync)(path(account), "utf8")) : null;
   function purge(record) {
     const ids = CHARACTER_SLOTS.map((slot) => characterId(record.account, slot));
     ids.forEach((id) => deletedIds.add(id));
     function clean(base) {
-      const commerce = (0, import_node_path6.join)(base, "commerce.json");
-      if ((0, import_node_fs7.existsSync)(commerce)) {
-        const data = JSON.parse((0, import_node_fs7.readFileSync)(commerce, "utf8"));
+      const commerce = (0, import_node_path7.join)(base, "commerce.json");
+      if ((0, import_node_fs8.existsSync)(commerce)) {
+        const data = JSON.parse((0, import_node_fs8.readFileSync)(commerce, "utf8"));
         delete data.vaults?.[record.account];
         delete data.shops?.[record.account];
         write(commerce, data);
       }
-      if ((0, import_node_fs7.existsSync)((0, import_node_path6.join)(base, "referrals.json"))) createReferrals(base).remove(record.account);
+      if ((0, import_node_fs8.existsSync)((0, import_node_path7.join)(base, "referrals.json"))) createReferrals(base).remove(record.account);
       for (const id of ids) {
-        (0, import_node_fs7.rmSync)((0, import_node_path6.join)(base, id + ".json"), { force: true });
-        (0, import_node_fs7.rmSync)((0, import_node_path6.join)(base, id + ".json.tmp"), { force: true });
+        (0, import_node_fs8.rmSync)((0, import_node_path7.join)(base, id + ".json"), { force: true });
+        (0, import_node_fs8.rmSync)((0, import_node_path7.join)(base, id + ".json.tmp"), { force: true });
       }
-      const trash = (0, import_node_path6.join)(base, "deleted-characters");
-      if ((0, import_node_fs7.existsSync)(trash)) {
-        for (const file of (0, import_node_fs7.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs7.rmSync)((0, import_node_path6.join)(trash, file), { force: true });
+      const trash = (0, import_node_path7.join)(base, "deleted-characters");
+      if ((0, import_node_fs8.existsSync)(trash)) {
+        for (const file of (0, import_node_fs8.readdirSync)(trash)) if (ids.some((id) => file.startsWith(id + "-"))) (0, import_node_fs8.rmSync)((0, import_node_path7.join)(trash, file), { force: true });
       }
-      const accounts = (0, import_node_path6.join)(base, "accounts");
-      if ((0, import_node_fs7.existsSync)(accounts)) {
-        for (const file of (0, import_node_fs7.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
-          const p = (0, import_node_path6.join)(accounts, file), s = JSON.parse((0, import_node_fs7.readFileSync)(p, "utf8"));
-          if (s.account === record.account) (0, import_node_fs7.rmSync)(p);
+      const accounts = (0, import_node_path7.join)(base, "accounts");
+      if ((0, import_node_fs8.existsSync)(accounts)) {
+        for (const file of (0, import_node_fs8.readdirSync)(accounts).filter((f) => /^session-.*\.json$/.test(f))) {
+          const p = (0, import_node_path7.join)(accounts, file), s = JSON.parse((0, import_node_fs8.readFileSync)(p, "utf8"));
+          if (s.account === record.account) (0, import_node_fs8.rmSync)(p);
         }
-        (0, import_node_fs7.rmSync)((0, import_node_path6.join)(accounts, "profile-" + hash2(record.account) + ".json"), { force: true });
-        if (record.uid) (0, import_node_fs7.rmSync)((0, import_node_path6.join)(accounts, "google-" + hash2(record.uid) + ".json"), { force: true });
+        (0, import_node_fs8.rmSync)((0, import_node_path7.join)(accounts, "profile-" + hash2(record.account) + ".json"), { force: true });
+        if (record.uid) (0, import_node_fs8.rmSync)((0, import_node_path7.join)(accounts, "google-" + hash2(record.uid) + ".json"), { force: true });
       }
-      const receipts = (0, import_node_path6.join)(base, "play-receipts");
-      if ((0, import_node_fs7.existsSync)(receipts)) for (const file of (0, import_node_fs7.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
-        const p = (0, import_node_path6.join)(receipts, file), r = JSON.parse((0, import_node_fs7.readFileSync)(p, "utf8"));
+      const receipts = (0, import_node_path7.join)(base, "play-receipts");
+      if ((0, import_node_fs8.existsSync)(receipts)) for (const file of (0, import_node_fs8.readdirSync)(receipts).filter((f) => f.endsWith(".json"))) {
+        const p = (0, import_node_path7.join)(receipts, file), r = JSON.parse((0, import_node_fs8.readFileSync)(p, "utf8"));
         if (r.owner === record.account) write(p, { product: r.product, gold: r.gold, credited: r.credited, consumed: r.consumed, created: r.created, deleted: true });
       }
     }
     clean(directory);
-    const backups = (0, import_node_path6.join)(directory, "release-backups");
-    if ((0, import_node_fs7.existsSync)(backups)) {
-      for (const item of (0, import_node_fs7.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path6.join)(backups, item.name));
+    const backups = (0, import_node_path7.join)(directory, "release-backups");
+    if ((0, import_node_fs8.existsSync)(backups)) {
+      for (const item of (0, import_node_fs8.readdirSync)(backups, { withFileTypes: true })) if (item.isDirectory()) clean((0, import_node_path7.join)(backups, item.name));
     }
     record.localComplete = true;
     write(path(record.account), record);
   }
   function request(account, uid2) {
-    (0, import_node_fs7.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs8.mkdirSync)(root, { recursive: true, mode: 448 });
     const record = read(account) || { account, uid: uid2 || null, requestedAt: Date.now(), localComplete: false, identityComplete: !uid2 };
     write(path(account), record);
     CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(account, slot)));
@@ -7776,7 +7833,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
   }
   function recover() {
     for (const file of files().filter((f) => /^[a-f0-9]{64}\.json$/.test(f))) {
-      const record = JSON.parse((0, import_node_fs7.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
+      const record = JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path7.join)(root, file), "utf8"));
       CHARACTER_SLOTS.forEach((slot) => deletedIds.add(characterId(record.account, slot)));
       if (!record.localComplete) purge(record);
     }
@@ -7788,7 +7845,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
     processing = true;
     try {
       for (const file of files().filter((f) => f.endsWith(".json"))) {
-        const record = JSON.parse((0, import_node_fs7.readFileSync)((0, import_node_path6.join)(root, file), "utf8"));
+        const record = JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path7.join)(root, file), "utf8"));
         if (!record.localComplete || record.identityComplete || !record.uid) continue;
         try {
           let complete;
@@ -7800,7 +7857,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
           if (complete) {
             record.identityComplete = true;
             delete record.uid;
-            write((0, import_node_path6.join)(root, file), record);
+            write((0, import_node_path7.join)(root, file), record);
           }
         } catch {
         }
@@ -7810,7 +7867,7 @@ function createAccountDeletion(directory, { authUrl, adminKey = process.env.SUPA
     }
   }
   const identityPending = (uid2) => files().filter((f) => f.endsWith(".json")).some((f) => {
-    const r = JSON.parse((0, import_node_fs7.readFileSync)((0, import_node_path6.join)(root, f), "utf8"));
+    const r = JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path7.join)(root, f), "utf8"));
     return !r.identityComplete && r.uid === uid2;
   });
   recover();
@@ -7826,18 +7883,18 @@ var AUTH_REDIRECT = "cockronetwork://auth/callback";
 function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY } = {}) {
   const referrals = createReferrals(directory);
   const deletion = createAccountDeletion(directory, { authUrl: AUTH_URL, fetcher, adminKey });
-  const root = (0, import_node_path7.join)(directory, "accounts");
+  const root = (0, import_node_path8.join)(directory, "accounts");
   const flows = /* @__PURE__ */ new Map(), attempts = /* @__PURE__ */ new Map(), busy = /* @__PURE__ */ new Set();
-  const path = (kind, key) => (0, import_node_path7.join)(root, kind + "-" + hash3(key) + ".json");
+  const path = (kind, key) => (0, import_node_path8.join)(root, kind + "-" + hash3(key) + ".json");
   const read = (kind, key) => {
     const p = path(kind, key);
-    return (0, import_node_fs8.existsSync)(p) ? JSON.parse((0, import_node_fs8.readFileSync)(p, "utf8")) : null;
+    return (0, import_node_fs9.existsSync)(p) ? JSON.parse((0, import_node_fs9.readFileSync)(p, "utf8")) : null;
   };
   const write2 = (kind, key, data) => {
-    (0, import_node_fs8.mkdirSync)(root, { recursive: true, mode: 448 });
+    (0, import_node_fs9.mkdirSync)(root, { recursive: true, mode: 448 });
     const p = path(kind, key);
-    (0, import_node_fs8.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
-    (0, import_node_fs8.renameSync)(p + ".tmp", p);
+    (0, import_node_fs9.writeFileSync)(p + ".tmp", JSON.stringify(data), { mode: 384 });
+    (0, import_node_fs9.renameSync)(p + ".tmp", p);
   };
   function resolve(token) {
     if (typeof token !== "string" || !/^\w{64}$/.test(token)) throw Error("invalid_token");
@@ -7897,9 +7954,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       const name = characterName(d.name);
       if (!name) throw Error("invalid_name");
       state.name = name;
-      const p = (0, import_node_path7.join)(directory, characterId(account, d.character) + ".json");
-      (0, import_node_fs8.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
-      (0, import_node_fs8.renameSync)(p + ".tmp", p);
+      const p = (0, import_node_path8.join)(directory, characterId(account, d.character) + ".json");
+      (0, import_node_fs9.writeFileSync)(p + ".tmp", JSON.stringify(state), { mode: 384 });
+      (0, import_node_fs9.renameSync)(p + ".tmp", p);
       return { characters: characterRoster(directory, account) };
     }
     if (d.action === "setPassword") {
@@ -7921,9 +7978,9 @@ function createAccounts(directory, { fetcher = fetch, adminKey = process.env.SUP
       if (!state) throw Error("character_missing");
       if (d.confirmName !== (state.name || "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E31\u0E49\u0E07\u0E0A\u0E37\u0E48\u0E2D")) throw Error("name_mismatch");
       write2("profile", account, meta(account));
-      const trash = (0, import_node_path7.join)(directory, "deleted-characters");
-      (0, import_node_fs8.mkdirSync)(trash, { recursive: true, mode: 448 });
-      (0, import_node_fs8.renameSync)((0, import_node_path7.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path7.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
+      const trash = (0, import_node_path8.join)(directory, "deleted-characters");
+      (0, import_node_fs9.mkdirSync)(trash, { recursive: true, mode: 448 });
+      (0, import_node_fs9.renameSync)((0, import_node_path8.join)(directory, characterId(account, d.character) + ".json"), (0, import_node_path8.join)(trash, characterId(account, d.character) + "-" + Date.now() + ".json"));
       return { characters: characterRoster(directory, account) };
     }
     throw Error("invalid_request");
@@ -8080,7 +8137,7 @@ function applyVerifiedReward(s, params, now = Date.now()) {
   return true;
 }
 function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/admob/reward/verifier-keys.json", { signal: AbortSignal.timeout(5e3) }), unit } = {}) {
-  let cache = /* @__PURE__ */ new Map(), fetched = 0, inflight;
+  let cache2 = /* @__PURE__ */ new Map(), fetched = 0, inflight;
   async function refresh() {
     if (!inflight) inflight = (async () => {
       const r = await fetchKeys();
@@ -8088,7 +8145,7 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
       const json = await r.json();
       const next = new Map(json.keys.map((k) => [String(k.keyId), k.pem]));
       if (!next.size) throw Error("keys_unavailable");
-      cache = next;
+      cache2 = next;
       fetched = Date.now();
     })().finally(() => inflight = null);
     return inflight;
@@ -8103,8 +8160,8 @@ function createSSVVerifier({ fetchKeys = () => fetch("https://www.gstatic.com/ad
       if (seen.has(key2) || ["signature", "key_id"].includes(key2)) throw Error("duplicate_parameter");
       seen.add(key2);
     }
-    if (Date.now() - fetched > RETENTION || !cache.has(keyId) && Date.now() - fetched > 6e4) await refresh();
-    const key = cache.get(keyId);
+    if (Date.now() - fetched > RETENTION || !cache2.has(keyId) && Date.now() - fetched > 6e4) await refresh();
+    const key = cache2.get(keyId);
     if (!key || !(0, import_node_crypto10.verify)("sha256", Buffer.from(content), key, Buffer.from(decodeURIComponent(signature), "base64url"))) throw Error("invalid_signature");
     const p = Object.fromEntries(params);
     if (p.user_id === "0".repeat(64) && p.custom_data === "0".repeat(48)) return p;
@@ -8127,8 +8184,71 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/server.js
 var import_node_crypto11 = require("node:crypto");
-var import_node_fs9 = require("node:fs");
-var import_node_path8 = require("node:path");
+var import_node_fs10 = require("node:fs");
+var import_node_path9 = require("node:path");
+
+// web/insect-sprites.js
+var INSECT_LOOKS = Object.freeze({
+  "cockroach-male": { th: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E0A\u0E32\u0E22", en: "Cockroach \xB7 Male" },
+  "cockroach-female": { th: "\u0E41\u0E21\u0E07\u0E2A\u0E32\u0E1A\u0E2B\u0E0D\u0E34\u0E07", en: "Cockroach \xB7 Female" },
+  "ladybug-male": { th: "\u0E40\u0E15\u0E48\u0E32\u0E17\u0E2D\u0E07\u0E0A\u0E32\u0E22", en: "Ladybug \xB7 Male" },
+  "ladybug-female": { th: "\u0E40\u0E15\u0E48\u0E32\u0E17\u0E2D\u0E07\u0E2B\u0E0D\u0E34\u0E07", en: "Ladybug \xB7 Female" },
+  "scorpion-male": { th: "\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E0A\u0E32\u0E22", en: "Scorpion \xB7 Male" },
+  "scorpion-female": { th: "\u0E41\u0E21\u0E07\u0E1B\u0E48\u0E2D\u0E07\u0E2B\u0E0D\u0E34\u0E07", en: "Scorpion \xB7 Female" },
+  "beetle-female": { th: "\u0E14\u0E49\u0E27\u0E07\u0E01\u0E27\u0E48\u0E32\u0E07\u0E2B\u0E0D\u0E34\u0E07", en: "Beetle \xB7 Female", columns: 12 },
+  "dragonfly-female": { th: "\u0E41\u0E21\u0E07\u0E1B\u0E2D\u0E2B\u0E0D\u0E34\u0E07", en: "Dragonfly \xB7 Female" },
+  "mantis-male": { th: "\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E0A\u0E32\u0E22", en: "Mantis \xB7 Male" },
+  "mantis-female": { th: "\u0E15\u0E31\u0E4A\u0E01\u0E41\u0E15\u0E19\u0E2B\u0E0D\u0E34\u0E07", en: "Mantis \xB7 Female" }
+});
+function insectSpriteFile(id) {
+  return Object.hasOwn(INSECT_LOOKS, id) && !id.startsWith("mantis-") ? `heroes/insect-suits/${id}.webp` : null;
+}
+function createInsectSpriteCache(load2, limit = 2, cell = 192) {
+  const images = /* @__PURE__ */ new Map(), pending = /* @__PURE__ */ new Map(), failed = /* @__PURE__ */ new Map();
+  let revision = 0;
+  const read = (id) => {
+    const im = images.get(id);
+    if (im) {
+      images.delete(id);
+      images.set(id, im);
+    }
+    return im;
+  };
+  const ensure = (id) => {
+    if (!insectSpriteFile(id)) return Promise.resolve(null);
+    const im = read(id);
+    if (im) return Promise.resolve(im);
+    if (pending.has(id)) return pending.get(id);
+    if (Date.now() - (failed.get(id) || 0) < 5e3) return Promise.resolve(null);
+    const task = Promise.resolve().then(() => load2(insectSpriteFile(id))).then((im2) => {
+      const columns = INSECT_LOOKS[id].columns || 13;
+      if (im2.width !== columns * cell || im2.height !== cell * 4) throw Error("Invalid character atlas");
+      images.set(id, im2);
+      while (images.size > limit) images.delete(images.keys().next().value);
+      failed.delete(id);
+      revision++;
+      return im2;
+    }).catch(() => {
+      failed.set(id, Date.now());
+      return null;
+    }).finally(() => pending.delete(id));
+    pending.set(id, task);
+    return task;
+  };
+  return { read, ensure, get revision() {
+    return revision;
+  }, get size() {
+    return images.size;
+  } };
+}
+var load = async (file) => {
+  const im = new Image();
+  im.src = file;
+  await im.decode();
+  return im;
+};
+var cache = createInsectSpriteCache(load, 1);
+var remoteCache = createInsectSpriteCache((file) => load(file.replace("/insect-suits/", "/insect-suits/remote/")), 8, 96);
 
 // web/hero-appearance.js
 var WEAPON_LOOKS = Object.freeze({
@@ -8911,7 +9031,7 @@ var World = class {
 
 // server/server.js
 function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-data", test = false, testRewards = false, roamers = !test, maxPlayers = Number(process.env.COCKRO_MAX_PLAYERS || 64), adUnit = process.env.ADMOB_REWARDED_UNIT_ID || "", ssvVerifier, billingVerifier } = {}) {
-  (0, import_node_fs9.mkdirSync)(directory, { recursive: true, mode: 448 });
+  (0, import_node_fs10.mkdirSync)(directory, { recursive: true, mode: 448 });
   const accounts = createAccounts(directory);
   const world = new World({ maxPlayers, testRewards, roamers }), connections = /* @__PURE__ */ new Set(), limits = /* @__PURE__ */ new Map(), activeAccounts = /* @__PURE__ */ new Set();
   let diskFailure = false;
@@ -8930,9 +9050,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     if (accounts.deletion.isCharacterDeleted(p.id)) throw Error("account_deleted");
     try {
       if (p.map) capturePresence(p);
-      const path = (0, import_node_path8.join)(directory, p.id + ".json");
-      (0, import_node_fs9.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
-      (0, import_node_fs9.renameSync)(path + ".tmp", path);
+      const path = (0, import_node_path9.join)(directory, p.id + ".json");
+      (0, import_node_fs10.writeFileSync)(path + ".tmp", JSON.stringify(p.s), { mode: 384 });
+      (0, import_node_fs10.renameSync)(path + ".tmp", path);
       p.dirty = false;
       p.lastSaved = Date.now();
     } catch {
@@ -8941,9 +9061,10 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
     }
   };
   const commerce = createCommerce(directory, { players: () => world.players, getActor: (id) => world.getActor(id), capture: capturePresence });
-  for (const file of (0, import_node_fs9.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
+  migrateArmorSaves(directory);
+  for (const file of (0, import_node_fs10.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n))) {
     try {
-      const state = validSave(JSON.parse((0, import_node_fs9.readFileSync)((0, import_node_path8.join)(directory, file), "utf8")));
+      const state = validSave(JSON.parse((0, import_node_fs10.readFileSync)((0, import_node_path9.join)(directory, file), "utf8")));
       if (state && !accounts.deletion.isCharacterDeleted(file.slice(0, -5))) world.restore(file.slice(0, -5), state);
     } catch {
       diskFailure = true;
@@ -8974,9 +9095,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           res.writeHead(200);
           return res.end("Verified configuration; no reward granted");
         }
-        const live = world.getActor(data.user_id), path = (0, import_node_path8.join)(directory, data.user_id + ".json");
-        if (!live && !(0, import_node_fs9.existsSync)(path)) throw Error("unknown_account");
-        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs9.readFileSync)(path, "utf8")));
+        const live = world.getActor(data.user_id), path = (0, import_node_path9.join)(directory, data.user_id + ".json");
+        if (!live && !(0, import_node_fs10.existsSync)(path)) throw Error("unknown_account");
+        const state = structuredClone(live ? live.s : JSON.parse((0, import_node_fs10.readFileSync)(path, "utf8")));
         const changed = applyVerifiedReward(state, data);
         if (changed) {
           const holder = { id: data.user_id, s: state };
@@ -9009,7 +9130,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-store");
       res.writeHead(diskFailure ? 503 : 200);
-      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.48.0", identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, roamingCharacters: world.roamers.size, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
+      res.end(JSON.stringify({ ok: !diskFailure, version: PROTOCOL, release: "4.48.4", fullSuitDrops: true, suitTypes: 10, identityCleanupPublicKey: accounts.deletion.publicKey, ssv: ssvStatus, advancedSpecies: 20, forestSpecies: 20, forestRoaming: true, forestPopulation: world.mobs.forest.length, forestBosses: world.mobs.forest.filter((e) => e.def.boss).length, roamingCharacters: world.roamers.size, players: world.players.size, offlinePlayers: world.sleepers.size, persistentPvp: true, groundLoot: true, capacity: world.maxPlayers }));
     } else {
       res.writeHead(404);
       res.end();
@@ -9116,7 +9237,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           if (d.create === true && !token) {
             if (!test) throw Error("login_required");
             if (!HEROES3.includes(d.hero)) throw Error("invalid_hero");
-            if ((0, import_node_fs9.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
+            if ((0, import_node_fs10.readdirSync)(directory).filter((n) => n.endsWith(".json")).length >= 5e3) throw Error("account_capacity");
             token = (0, import_node_crypto11.randomBytes)(32).toString("hex");
             created = true;
           }
@@ -9152,9 +9273,9 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           const id = characterId(account, character);
           if (testRewards && (created || d.newCharacter === true)) state.gold = 1e6;
           accounts.referrals.deliver(account, character, state, (value) => {
-            const file = (0, import_node_path8.join)(directory, id + ".json");
-            (0, import_node_fs9.writeFileSync)(file + ".tmp", JSON.stringify(value));
-            (0, import_node_fs9.renameSync)(file + ".tmp", file);
+            const file = (0, import_node_path9.join)(directory, id + ".json");
+            (0, import_node_fs10.writeFileSync)(file + ".tmp", JSON.stringify(value));
+            (0, import_node_fs10.renameSync)(file + ".tmp", file);
           }, { welcome: (created || d.newCharacter === true) && characterRoster(directory, account).length === 0 });
           if (!testRewards) state.townBuffUntil = 0;
           p = world.join(id, state);
@@ -9164,7 +9285,7 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
           persist(p);
           state = p.s;
           clearTimeout(timer);
-          send(ws, { type: "welcome", ...accounts.languageProfile(account, d.deviceLocale), release: "4.48.0", id, character, chatEnabled: true, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account, billingRecipients: characterRoster(directory, account).map((c) => ({ ...c, profile: characterId(account, c.id) })), billingNotices: billing.notifications(account, id) });
+          send(ws, { type: "welcome", ...accounts.languageProfile(account, d.deviceLocale), release: "4.48.4", id, character, chatEnabled: true, token: created ? token : void 0, save: state, adsEnabled, testRewards, billingEnabled: billing.enabled, billingOwner: account, billingRecipients: characterRoster(directory, account).map((c) => ({ ...c, profile: characterId(account, c.id) })), billingNotices: billing.notifications(account, id) });
           send(ws, world.snapshot(p));
           return;
         }
@@ -9387,20 +9508,20 @@ function startServer({ port = 8091, host = "127.0.0.1", directory = "./online-da
 }
 
 // server/release-backup.js
-var import_node_fs10 = require("node:fs");
-var import_node_path9 = require("node:path");
+var import_node_fs11 = require("node:fs");
+var import_node_path10 = require("node:path");
 function backupBefore416(directory, release = "4.16.0") {
-  (0, import_node_fs10.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const root = (0, import_node_path9.join)(directory, "release-backups"), final = (0, import_node_path9.join)(root, "before-" + release);
-  if ((0, import_node_fs10.existsSync)((0, import_node_path9.join)(final, "complete.json"))) return false;
-  (0, import_node_fs10.mkdirSync)(root, { recursive: true, mode: 448 });
-  const stage = (0, import_node_path9.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
-  (0, import_node_fs10.mkdirSync)(stage, { mode: 448 });
-  const names = (0, import_node_fs10.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
-  for (const name of names) (0, import_node_fs10.copyFileSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), import_node_fs10.constants.COPYFILE_EXCL);
-  for (const name of ["accounts", "deleted-characters", "account-deletions", "commerce.json", "commerce-pending.json", "referrals.json", "play-receipts", "account-cleanup-key.pem"]) if ((0, import_node_fs10.existsSync)((0, import_node_path9.join)(directory, name))) (0, import_node_fs10.cpSync)((0, import_node_path9.join)(directory, name), (0, import_node_path9.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
-  (0, import_node_fs10.writeFileSync)((0, import_node_path9.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
-  (0, import_node_fs10.renameSync)(stage, final);
+  (0, import_node_fs11.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const root = (0, import_node_path10.join)(directory, "release-backups"), final = (0, import_node_path10.join)(root, "before-" + release);
+  if ((0, import_node_fs11.existsSync)((0, import_node_path10.join)(final, "complete.json"))) return false;
+  (0, import_node_fs11.mkdirSync)(root, { recursive: true, mode: 448 });
+  const stage = (0, import_node_path10.join)(root, `before-${release}-${Date.now()}-${process.pid}`);
+  (0, import_node_fs11.mkdirSync)(stage, { mode: 448 });
+  const names = (0, import_node_fs11.readdirSync)(directory).filter((n) => /^[a-f0-9]{64}\.json$/.test(n));
+  for (const name of names) (0, import_node_fs11.copyFileSync)((0, import_node_path10.join)(directory, name), (0, import_node_path10.join)(stage, name), import_node_fs11.constants.COPYFILE_EXCL);
+  for (const name of ["accounts", "deleted-characters", "account-deletions", "commerce.json", "commerce-pending.json", "referrals.json", "play-receipts", "account-cleanup-key.pem"]) if ((0, import_node_fs11.existsSync)((0, import_node_path10.join)(directory, name))) (0, import_node_fs11.cpSync)((0, import_node_path10.join)(directory, name), (0, import_node_path10.join)(stage, name), { recursive: true, errorOnExist: true, force: false });
+  (0, import_node_fs11.writeFileSync)((0, import_node_path10.join)(stage, "complete.json"), JSON.stringify({ release, accounts: names.length, created: (/* @__PURE__ */ new Date()).toISOString() }), { mode: 384, flag: "wx" });
+  (0, import_node_fs11.renameSync)(stage, final);
   console.log(`Pre-${release} backup complete: ${names.length} accounts`);
   return true;
 }
@@ -9414,7 +9535,7 @@ var admob_config_default = {
 };
 
 // server/main.js
-backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.40.0-workshop");
+backupBefore416(process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", "4.48.4-full-suits");
 var app = startServer({ testRewards: (process.env.COCKRO_TEST_REWARDS ?? String(admob_config_default.internalTestRewards || false)) === "true", directory: process.env.COCKRO_ONLINE_DATA || "/var/lib/cockro-online", port: Number(process.env.PORT || 8091), adUnit: process.env.ADMOB_REWARDED_UNIT_ID ?? admob_config_default.rewardedUnitId });
 console.log("COCKRO online server started on loopback");
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, async () => {

@@ -79,3 +79,17 @@ test('doctor socket operation persists refunded points and mutation across recon
  a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await new Promise(r=>setTimeout(r,100));assert.equal(p.s.statPoints,76);
  a.ws.close();await until(()=>!app.world.players.has(p.id));const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.mutationStage,1);assert.equal(b.welcome.save.statPoints,76);assert.equal(b.welcome.save.xp,0);
 });
+
+
+test('full suit equipped over websocket is visible to another player and survives reconnect',async t=>{
+ const {makeItem}=await import('../web/gear.js');
+ const directory=mkdtempSync(join(tmpdir(),'cockro-suit-online-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,hello={type:'hello',version:PROTOCOL,create:true,name:'SuitTester',hero:'sword-cockro'};
+ const a=await client(url,hello),b=await client(url,hello);t.after(()=>{a.ws.terminate();b.ws.terminate();});
+ const p=app.world.players.get(a.welcome.id),it={...makeItem('armor',0,2),insect:'scorpion-female'};p.s.bag.push(it);
+ a.ws.send(JSON.stringify({type:'op',op:'equip',id:it.id}));
+ await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.insectArmor==='scorpion-female')));
+ assert.equal(JSON.parse(readFileSync(join(directory,p.id+'.json'))).equip.armor.insect,'scorpion-female');
+ a.ws.close();await until(()=>!app.world.players.has(p.id));const again=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>again.ws.terminate());assert.equal(again.welcome.save.equip.armor.insect,'scorpion-female');
+ b.messages.length=0;again.ws.send(JSON.stringify({type:'op',op:'unequip',slot:'armor'}));await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.insectArmor===null)));
+});
