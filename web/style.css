@@ -669,3 +669,19 @@ html.chat-typing #controls{visibility:hidden}
 .welcome-roster:has([data-roster-hero]){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.job-emblem{display:block;font-size:34px;line-height:1.1;text-shadow:0 2px 8px #0005}.welcome-roster [data-roster-hero]{min-width:0;padding:8px!important}.welcome-roster [data-roster-hero] small{display:block;font-size:9px;line-height:1.3}.doctor-panel select{max-width:100%;padding:8px;background:#21474c;color:#fff;border:1px solid #c9b879;border-radius:8px}
 
 #modal:has([data-roster-hero]){max-height:96dvh!important;padding:8px 14px!important}#modal .welcome-roster:has([data-roster-hero]){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:5px 0!important}#modal [data-roster-hero]{gap:2px!important;min-height:0!important;padding:5px!important}#modal [data-roster-hero] small{font-size:9px!important;margin:0!important;line-height:1.3!important}#modal:has([data-roster-hero]) .character-name-label{margin:6px auto;font-size:12px}#modal:has([data-roster-hero]) .sub{font-size:10px;line-height:1.3;margin:3px 0}#modal:has([data-roster-hero]) .job-emblem{font-size:26px}#modal:has([data-roster-hero]) .roster-actions{display:flex;justify-content:center;gap:6px}@media(max-height:450px){#modal:has([data-roster-hero]) h2{font-size:16px;margin:0 0 4px!important;padding:4px!important;min-height:28px}#modal:has([data-roster-hero]) button{min-height:30px!important;font-size:11px;padding:4px 8px}#modal:has([data-roster-hero]) .job-emblem{font-size:20px}#modal:has([data-roster-hero]) input{padding:5px;max-height:30px}#modal:has([data-roster-hero]) .character-name-label{margin:4px auto}#modal:has([data-roster-hero]) .hero-card b{font-size:12px}}
+
+
+/* Full suits: larger item art, bounded separately from names and price buttons. */
+#commercePanel .commerce-suit-art{width:88px;height:100px;flex:0 0 88px}
+#commercePanel .commerce-suit-art .suit-item-art{display:block;width:100%;height:100%;max-width:none;max-height:none}
+#commercePanel .commerce-list article:has(.commerce-suit-art){display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:8px}
+#commercePanel .commerce-list article:has(.commerce-suit-art)>span:nth-child(2){min-width:0;overflow-wrap:anywhere}
+#commercePanel .commerce-list article:has(.commerce-suit-art)>button{max-width:100%;white-space:normal}
+#commercePanel .cargo-picker:has(.commerce-suit-art){grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}
+#commercePanel .cargo-preview .commerce-suit-art{width:104px;height:120px;flex-basis:104px}
+#modal .inventory-cell>.suit-item-art{width:100%;height:100%;max-width:none;max-height:none;filter:none}
+@media(max-width:480px){
+ #commercePanel .commerce-list article:has(.commerce-suit-art){grid-template-columns:80px minmax(0,1fr)}
+ #commercePanel .commerce-list .commerce-suit-art{width:80px;height:92px;flex-basis:80px;grid-row:span 2}
+ #commercePanel .commerce-list article:has(.commerce-suit-art)>button{grid-column:2;justify-self:start;margin:0;min-height:44px}
+}

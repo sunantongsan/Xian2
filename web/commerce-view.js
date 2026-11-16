@@ -1,3 +1,4 @@
+import {suitIcon} from './insect-armor.js';
 import {t,ui} from './i18n.js';
 import {inventoryEntries} from './inventory.js';
 import {itemName,SLOTS,RARITY} from './gear.js';
@@ -8,7 +9,7 @@ export function createCommerceView({net,show,state,toast,escapeHTML:e,art}){
  const $=id=>document.getElementById(id),money=k=>k==='gold'?'G':'COCKRO coin';
  const name=c=>c.kind==='gear'?itemName(c.item,state().hero):c.kind==='material'?UPGRADE_ITEMS[c.id].name:c.kind==='ticket'?EXP_TICKETS[c.id].name:c.id==='hp'?t('ยา HP'):t('ยา MP');
  const pic=c=>art({kind:c.kind,id:c.id,item:c.item|| (c.kind==='material'?UPGRADE_ITEMS[c.id]:EXP_TICKETS[c.id])});
- const card=c=>`<span class="commerce-art">${pic(c)}</span><span><b>${e(name(c))}</b><small>×${c.quantity||c.count||1}${c.kind==='gear'?' • '+e(RARITY[c.item.rarity].name):''}</small></span>`;
+ const card=c=>`<span class="commerce-art ${c.kind==='gear'&&suitIcon(c.item)?'commerce-suit-art':''}">${pic(c)}</span><span><b>${e(name(c))}</b><small>×${c.quantity||c.count||1}${c.kind==='gear'?' • '+e(RARITY[c.item.rarity].name):''}</small></span>`;
  const button=(id,label)=>`<button id="${id}" ${pending?'disabled':''}>${label}</button>`;
  function send(action,fields={}){if(pending)return;pending=true;if(!net.send({type:'commerce',action,revision:data?.revision,...fields})){pending=false;toast(t('เชื่อมต่อเซิร์ฟเวอร์ก่อน'));return;}if($('commercePanel'))for(const b of $('commercePanel').querySelectorAll('button'))b.disabled=true;}
  function open(which='vault',owner=null){tab=which;seller=owner;pending=false;pinChange=false;data=null;show(t('<h2>กำลังเปิดคลังและร้านค้า…</h2>'));send('view');}
@@ -46,5 +47,6 @@ export function createCommerceView({net,show,state,toast,escapeHTML:e,art}){
 
  return {open};
 }
+
 
 

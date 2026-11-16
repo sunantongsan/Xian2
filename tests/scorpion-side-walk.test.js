@@ -21,7 +21,8 @@ test('missing side art falls back without hiding the character',()=>{
  const {args,pose}=draw({anim:'walk',walkDX:1,walkDY:-1},new Map([[insectSpriteFile('scorpion-male'),atlas]]));
  assert.equal(args[0],atlas);assert.equal(pose.clip,'walk');
 });
-test('suits are 10 percent larger with the same world foot anchor',()=>{
- const {args}=draw({anim:'idle'}),d=110*192/154;
+test('suits are 32 percent larger with the same world foot anchor',()=>{
+ const {args}=draw({anim:'idle'}),d=132*192/154;
  assert(Math.abs(args[7]-d)<1e-9);assert(Math.abs(args[5]+d/2-100)<1e-9);assert(Math.abs(args[6]+d*176/192-200)<1e-9);
 });
+
