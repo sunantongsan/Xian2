@@ -1,7 +1,7 @@
 import {t,ui} from './i18n.js';
 import {pendingMutation} from './mutation.js';
 export function createProgressionUI(onVisit){
- const notice=document.createElement('button');notice.id='mutationNotice';notice.hidden=true;notice.onclick=onVisit;notice.innerHTML=t('<span class="mutation-sigil">✧</span><span><b>พร้อมกลายพันธุ์</b><small>พบ ดร.ไอสไตร์ • หยุดรับ EXP</small></span><span>›</span>');(document.getElementById('fieldActions')||document.body).appendChild(notice);
+ const notice=document.createElement('button');notice.id='mutationNotice';notice.hidden=true;notice.onclick=onVisit;notice.innerHTML=t('<span class="mutation-sigil">✧</span><span><b>พร้อมกลายพันธุ์</b><small>แตะเพื่อเปลี่ยนอาชีพ • Lv.20 / 60</small></span><span>›</span>');(document.getElementById('fieldActions')||document.body).appendChild(notice);
  const overlay=document.createElement('div');overlay.id='levelCelebration';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');overlay.hidden=true;overlay.innerHTML='<span class="level-kicker" hidden>LEVEL UP</span><strong></strong><small hidden></small>';document.body.appendChild(overlay);let timer;
  return {
   celebrate(level,{mutation=false,name='',pending=false}={}){
@@ -32,3 +32,4 @@ export function drawLevelAura(g,x,y,k,progress,low=false){
  // One soft expanding pulse, without flashing the whole screen.
  const pulse=Math.min(1,t/.38);g.globalAlpha=fade*(1-pulse)*.8;g.strokeStyle='#fff4ca';g.lineWidth=3;g.beginPath();g.ellipse(0,-3,35+pulse*90,10+pulse*28,0,0,Math.PI*2);g.stroke();g.restore();
 }
+

@@ -11,4 +11,5 @@ export function equippedWeaponLook(state){
  const item=state.equip?.weapon;if(!item)return 'none';
  return choices[Number.isFinite(item.tier)&&item.tier>=6?1:0];
 }
-export function heroAppearance(state){return {spriteDetail:'full',spriteRevision:insectSpriteRevision(),level:state?.level||1,mutationVersion:state?.mutationVersion,mutationStage:mutationStage(state),insectArmor:state?.equip?.armor?.insect||null,weaponLook:equippedWeaponLook(state)};}
+export function heroAppearance(state){return {spriteDetail:'full',spriteRevision:insectSpriteRevision(),level:state?.level||1,mutationVersion:state?.mutationVersion,mutationStage:mutationStage(state),jobBranch:state?.jobBranch,insectArmor:state?.equip?.armor?.insect||null,weaponLook:equippedWeaponLook(state)};}
+

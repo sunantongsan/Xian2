@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {INSECT_LOOKS,drawInsectSprite,insectSpriteFile} from '../web/insect-sprites.js';
+import {INSECT_DISPLAY_SCALE,INSECT_LOOKS,drawInsectSprite,insectSpriteFile} from '../web/insect-sprites.js';
 import {insectSideFile,insectSideSpec,createInsectSideCache} from '../web/insect-side-walk.js';
 const ids=Object.keys(INSECT_LOOKS);
 test('all ten suits including mantis use eight side-walk frames at both detail levels',()=>{
@@ -13,7 +13,7 @@ test('all ten suits including mantis use eight side-walk frames at both detail l
    assert.equal(r.sideWalk,true,id);assert.equal(r.frame,f);assert.equal(r.sheet,id);
    assert.equal(a[0],im);assert.equal(a[1],f*spec.width/8);assert.equal(a[2],row*spec.height/2);
    assert(a.slice(1).every(Number.isFinite));assert(a[1]+a[3]<=im.width&&a[2]+a[4]<=im.height);
-   assert(Math.abs(a[5]+a[7]/2-80)<1e-9);assert(Math.abs(a[6]+spec.foot*110/spec.body-150)<1e-9);
+   assert(Math.abs(a[5]+a[7]/2-80)<1e-9);assert(Math.abs(a[6]+spec.foot*100*INSECT_DISPLAY_SCALE/spec.body-150)<1e-9);
   }
  }
 });
@@ -54,3 +54,4 @@ test('unknown suits never select side art and cannot start a load',()=>{
  assert.equal(insectSideFile('unknown'),null);assert.equal(insectSideSpec('unknown'),null);
  assert.equal(drawInsectSprite({drawImage:()=>assert.fail()},new Map(),{insectArmor:'unknown',anim:'walk'},0,0,100),false);
 });
+

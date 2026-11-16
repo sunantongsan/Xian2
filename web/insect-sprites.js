@@ -1,7 +1,7 @@
 import {INSECT_ARMOR} from './insect-armor.js';
 import {mantisFrame,drawMantisHero} from './mantis-hero.js';
 import {insectSideRevision,prepareInsectSide,drawInsectSideWalk} from './insect-side-walk.js';
-export const INSECT_DISPLAY_SCALE=1.1;
+export const INSECT_DISPLAY_SCALE=1.32;
 export const SCORPION_SIDE_FILE='heroes/insect-suits/scorpion-male-side-walk.webp';
 
 // Appearance is derived only from server-owned equipped full-body sets.
@@ -62,4 +62,5 @@ export function drawInsectSprite(ctx,images,actor,x,y,size){
  ctx.drawImage(im,column*cell,pose.row*cell,cell,cell,x-d/2,y-d*176/192,d,d);
  return {...pose,column,frame:column,sheet:id};
 }
+
 

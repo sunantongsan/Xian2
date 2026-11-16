@@ -1,3 +1,4 @@
+import {INSECT_JOBS,professionWeaponFields} from './insect-professions.js';
 import {INSECT_ARMOR,insectFields,isRetiredArmor} from './insect-armor.js';
 import {t,ui,language} from './i18n.js';
 import {countActivity} from './daily-activities.js';
@@ -21,7 +22,7 @@ export const RARITY=[
 ];
 export const BAG_SIZE=40;
 const NOUN={weapon:{get 'sword-cockro'(){return t('ดาบนักรบ');},get 'demon-scorpion'(){return t('มีดคู่');},get 'sword-dragonfly'(){return t('ธนู');},get 'sword-cricket'(){return t('ค้อน');},get 'sword-mage'(){return t('คทาเวท');},get 'sword-acolyte'(){return t('คทาศักดิ์สิทธิ์');}}};
-export function itemName(it,hero){const insect=INSECT_ARMOR[insectFields(it).insect];const noun=insect?(language.current==='en'?insect.en:insect.name):it.slot==='weapon'?(NOUN.weapon[hero]||t('อาวุธฮีโร่')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'');}
+export function itemName(it,hero){const insect=INSECT_ARMOR[insectFields(it).insect];const noun=insect?(language.current==='en'?insect.en:insect.name):it.slot==='weapon'?(INSECT_JOBS[it.weaponKind]?.[language.current==='en'?'weaponEn':'weapon']||t('อาวุธฝึกหัด')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'');}
 export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
 export function itemStats(it){
  const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult*(1+Math.max(it.plus||0,it.legacyPlus||0)*.08),o={};
@@ -45,7 +46,7 @@ export function rollDrop(m,rng=Math.random){
  const chance=m.boss?1:m.elite?.15:.01;if(rng()>=chance)return null;
  const slots=['weapon','ring','amulet'],slot=slots[Math.min(2,Math.floor(rng()*slots.length))],tier=tierForLevel(m.level);
  const r=rng();let rarity=r<.04?3:r<.16?2:r<.45?1:0;if(m.boss)rarity=Math.max(2,rarity);else if(m.elite)rarity=Math.max(1,rarity);
- return makeItem(slot,tier,rarity,rng);
+ const item=makeItem(slot,tier,rarity,rng);if(slot==='weapon'){const ids=Object.keys(INSECT_JOBS);item.weaponKind=ids[Math.min(ids.length-1,Math.floor(rng()*ids.length))];}return item;
 }
 export function addToBag(s,it){if(s.bag.length>=BAG_SIZE){s.gold+=sellPrice(it);return false;}s.bag.push(it);return true;}
 export function canEquip(s,it){return !!it&&!isRetiredArmor(it)&&SLOT_ORDER.includes(it.slot)&&s.level>=TIERS[it.tier].level;}
@@ -56,8 +57,8 @@ export function freshGear(s){s.equip=Object.fromEntries(SLOT_ORDER.map(k=>[k,nul
 const validItem=it=>it&&!isRetiredArmor(it)&&typeof it.id==='string'&&SLOTS[it.slot]&&Number.isInteger(it.tier)&&it.tier>=0&&it.tier<TIERS.length&&Number.isInteger(it.rarity)&&it.rarity>=0&&it.rarity<RARITY.length;
 export function normalizeGear(s,v={}){
  if(!v.equip&&!v.bag)return freshGear(s);
- s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}:null];}));
- s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}));
+ s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...professionWeaponFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}:null];}));
+ s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...professionWeaponFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}));
  return s;
 }
 export function heroPower(s,base){return Math.round(base+Object.values(s.equip||{}).reduce((a,it)=>a+(it?itemPower(it):0),0));}
@@ -87,3 +88,4 @@ export function rollInsectArmor(m,rng=Math.random){
  const rarity=m.boss?2:m.elite?1:0;
  return {...makeItem('armor',tierForLevel(m.level),rarity,rng),insect};
 }
+
