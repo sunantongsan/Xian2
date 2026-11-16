@@ -1,3 +1,4 @@
+import {insectClassSkills} from './insect-skills.js';
 import {t,ui} from './i18n.js';
 import {mutationStage} from './mutation.js';
 import {BRANCHES,branchFor} from './jobs.js';
@@ -100,10 +101,4 @@ const FANTASY_NAMES={
  'sword-dragonfly':['ศรทะลวง / Piercing Arrow','ศรกระจาย / Multishot','ศรวายุ / Wind Arrow','ฝนธนู / Arrow Rain','ศรพิฆาต / Deadly Arrow','พายุศร / Arrow Storm'],
  'sword-cricket':['ค้อนกระแทก / Hammer Strike','ค้อนหมุน / Hammer Spin','พุ่งทุบ / Hammer Rush','วงแร่เวท / Ore Field','ค้อนพายุ / Hammer Storm','เตาหลอมเวท / Magic Forge']
 };
-function classSkills(s){
- const stage=mutationStage(s)||0;
- const list=baseClassSkills(s).map((r,i)=>({...r,name:(stage?(language.current==='en'?(stage===2?'Master ':'Advanced '):(stage===2?'ขั้นสูง • ':'ขั้นสอง • ')):'')+(FANTASY_NAMES[s.hero]?.[i]||r.name),combat:{...FORMS[r.form],...(r.combat||{}),power:(r.combat?.power??FORMS[r.form].power)*(stage===2?1.2:stage===1?1.1:1)}}));
- const b=BRANCHES[branchFor(s)];
- if(stage&&b)list.push({id:'job-'+branchFor(s),name:(language.current==='en'?b.en:b.name)+' • '+(b.effect==='heal'?'พรฟื้นพลัง / Renewal':'วิชาประจำสาย / Signature'),level:20,form:b.form,element:b.element,mods:b.mods,effect:b.effect,combat:{mp:28,cd:10,power:2.4,range:380,radius:b.form==='circle'?170:110}});
- return list;
-}
+function classSkills(s){return insectClassSkills(s);}

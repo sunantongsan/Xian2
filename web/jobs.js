@@ -1,4 +1,5 @@
-// Stable IDs preserve existing characters; armor never determines profession.
+import {INSECT_JOBS,profession} from './insect-professions.js';
+// Stable character IDs; profession is selected from equipped armor at level 20.
 export const JOBS={
  'sword-cockro':{name:'นักดาบ',en:'Swordsman',color:'#ee654f',icon:12,range:120,branches:['knight','crusader']},
  'sword-mage':{name:'นักเวท',en:'Mage',color:'#b78aff',icon:15,range:320,branches:['wizard','sage']},
@@ -24,4 +25,5 @@ export const BRANCHES={
 };
 export const validBranch=(hero,id)=>typeof id==='string'&&JOBS[hero]?.branches.includes(id);
 export const branchFor=s=>validBranch(s?.hero,s?.jobBranch)?s.jobBranch:JOBS[s?.hero]?.branches[0];
-export const baseAttackRange=hero=>JOBS[hero]?.range||120;
+export const baseAttackRange=state=>typeof state==='object'?(INSECT_JOBS[profession(state)]?.range||120):(JOBS[state]?.range||120);
+
