@@ -1,3 +1,4 @@
+import {drawEvolutionWings} from './evolution-wings.js';
 import {drawHumanHero} from './human-hero.js';
 import {mutationVisualLevel} from './mutation.js';
 import {drawMutationHero} from './mutation-art.js';
@@ -36,6 +37,7 @@ export function heroFrame(actor={}){
  return {sheet:'actions',frame:back?1:0,flip};
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
+ drawEvolutionWings(ctx,hero,actor,x,y,size);
  const human=drawHumanHero(ctx,images,hero,actor,x,y,size);if(human)return human;
  const visualActor={...actor,level:mutationVisualLevel({...actor,hero})};
  const result=drawMutationHero(ctx,images,hero,visualActor,x,y,size)||drawLayeredHero(ctx,images,hero,actor,x,y,size)||drawBaseHero(ctx,images,hero,actor,x,y,size);if(result)drawFashion(ctx,images,hero,actor,x,y,size,result.frame);return result;
@@ -98,4 +100,5 @@ export function cockroFrame(actor={}){
  if(actor.anim==='walk')return (actor.back?4:0)+walkFrame(actor);
  return 12;
 }
+
 
