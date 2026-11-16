@@ -33,3 +33,9 @@ The server startup uses a distinct pre-migration backup label `insect-profession
 - JavaScript syntax and server bundle build pass. Existing duplicate Thai translation-key warning remains.
 - Full historical suite is NOT green: first broad run had 312 passes and 42 failures; comparison with the unchanged downloaded baseline found 5 failures already present (missing artwork/fixture files). Other failures include old six-skill/human-branch assumptions and legacy save/progression contracts. These need explicit adaptation/review before release; focused tests do not replace that review.
 - Actual in-game wing appearance, mobile UI and physical Android performance are not visually validated. No production-ready claim.
+
+## Follow-up: suit visibility
+
+- Increased all equipped insect sprites from 1.10 to 1.32 display scale (+20% relative to the previous patch), including both genders, every action and remote players. World foot anchors remain fixed; name labels move above the taller actor and the inventory portrait retains a full-body fit.
+- Full-suit shop art grows from 48px to 88×100px (80×92px on narrow screens), with a 104×120px selected-item preview. Measured alpha bounds remove transparent padding through an SVG viewBox without changing the image asset. The same trimmed art is used in inventory slots.
+- 20 relevant sprite geometry, cache and commerce tests pass; syntax and diff checks pass. Browser layout verification could not run: browser download was truncated, and the installed Chromium failed at startup because socket creation was denied. Physical-device visual review remains pending.
