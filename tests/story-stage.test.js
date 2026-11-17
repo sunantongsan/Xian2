@@ -31,7 +31,7 @@ test('real engine can navigate every segment and reject out-of-corridor walking'
 test('real rewards and character validation preserve isolated stage progress',()=>{
  const save=fresh('sword-cockro');save.name='นักสำรวจ';save.gold=300;const state=progress();
  for(const e of STAGE.encounters){
-  const m={...MONSTERS.find(m=>m.id===1000+e.level-1),boss:!!e.boss,xp:35,gold:15};
+  const m={...MONSTERS.find(m=>m.id===(e.boss?1060:1000+e.level-1)),level:e.level,boss:!!e.boss,xp:35,gold:15};
   for(const drop of monsterRewards(save,m,()=>.5))assert.equal(collectLoot(save,drop),true);
   storyKill(e.id);
  }
