@@ -69,3 +69,12 @@ New players learn movement, accepting a quest, combat, claiming the first reward
 Presentation adds a light cream/mint quest UI, coloured chapter paths, sparkling pickups, visible tutorial highlights and labelled pulsing return portals. Particle counts are bounded (4 at low quality, otherwise 10). Existing map and character art are reused.
 
 Validation: campaign progression and actual runtime tests include full 30-stage logic, tutorial gating, town-service pathfinding, chest idempotence, resume/migration, and preservation of online keys. Browser and production verification are recorded in the delivery response.
+
+
+## 4.53.0 — one-tap quest assistance
+
+The main quest text now toggles automatic quest execution instead of opening a journal. The character walks using existing navigation, accepts the introductory quest, travels, fights with the real auto-hunt/skill/potion system, collects required objects, enters the exit portal, walks to the guide, and claims the normal reward once. Automation stops after reward collection; another tap starts the next objective. The required first weapon upgrade uses its real 500 G / 1 alloy cost; insufficient resources stop the flow. Class-branch selection remains a player decision.
+
+Tapping the quest again, manual ground/joystick/keyboard movement, death, leaving for town manually, or returning to title stops assistance. Opening a menu pauses it. Reloading does not resume assistance or auto combat. No native rebuild or Actions workflow is required.
+
+Validation includes an actual runtime simulation from a new save through stages 1 and 2 with real movement and damage (no teleporting or forced kills), automatic rewards and +1 upgrade, and manual joystick cancellation. Existing legacy-save isolation and reward idempotence tests remain.
