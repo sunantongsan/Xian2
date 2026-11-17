@@ -28,7 +28,7 @@ export function layout(stage,room){
  return {blocks,foes};
 }
 export function blocked(x,y,blocks,r=13){return x<25+r||x>W-25-r||y<60+r||y>H-26-r||blocks.some(b=>x>b.x-r&&x<b.x+b.w+r&&y>b.y-r&&y<b.y+b.h+r);}
-export function clearLine(a,b,blocks){const d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.ceil(d/6);for(let i=1;i<n;i++){const t=i/n;if(blocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,blocks,1))return false;}return true;}
+export function clearLine(a,b,blocks){const d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.ceil(d/4);for(let i=1;i<n;i++){const t=i/n;if(blocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,blocks,4))return false;}return true;}
 export function makeBattle(profile,run){const st=stats(profile,run);return {run,stats:st,...layout(run.stage,run.room),hero:{x:210,y:540,hp:Math.min(st.hp,run.hp),anim:'idle',animTime:0,walkDistance:0,dx:0,dy:1,inv:0},bullets:[],effects:[],events:[],shot:0,windup:null,time:0,cleared:false,dead:false,paused:false,shotsFired:0};}
 function emit(b,x,y,a,speed,damage,owner,pierce=0){b.bullets.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,damage,owner,life:4,pierce,hit:[]});}
 function move(a,dx,dy,dt,speed,blocks){const n=Math.hypot(dx,dy);if(!n)return false;const ox=a.x,oy=a.y;const nx=a.x+dx/n*speed*dt,ny=a.y+dy/n*speed*dt;if(!blocked(nx,a.y,blocks))a.x=nx;if(!blocked(a.x,ny,blocks))a.y=ny;const dist=Math.hypot(a.x-ox,a.y-oy);a.walkDistance+=dist;return dist>.01;}
