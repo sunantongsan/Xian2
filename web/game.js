@@ -1036,7 +1036,7 @@ async function startStory(replay=false){
   p={...toWorld(STAGE.spawn,scene),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',animTime:0,walkDistance:0,walkDX:.707,walkDY:.707,inv:0,dead:false};
   cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];projectiles=[];drops=[];groundDrops=[];target=null;move=null;route=[];pendingPoi=null;autoHunt.reset();
   enemies=STAGE.encounters.filter(e=>!storyState.defeated.includes(e.id)).map(e=>{
-   const template=MONSTERS.find(m=>m.id===1000+e.level-1),def={...template,boss:!!e.boss,
+   const template=MONSTERS.find(m=>m.id===(e.boss?1060:1000+e.level-1)),def={...template,level:e.level,boss:!!e.boss,
     hp:e.boss?300:60+e.level*20,damage:e.boss?12:4+e.level,attack:e.boss?'cone':template.attack,xp:e.boss?150:35,gold:e.boss?80:15};
    const pos=toWorld(e.uv,scene);return {def,...pos,spawnId:e.id,hp:def.hp,state:'idle',clock:2,angle:0,face:1,flash:0,homeX:pos.x,homeY:pos.y};
   });
