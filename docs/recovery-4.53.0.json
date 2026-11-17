@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "cb2a289fb426ebb5cdeb9c846225ea5fee942924",
+  "branch": "backup/pre-adventure-4.53.0-20261117",
+  "deployment": "https://cockro-game-updates-17nxh0zph-sunans-projects-4868df82.vercel.app",
+  "archive": "https://cockro-game-updates-17nxh0zph-sunans-projects-4868df82.vercel.app/patches/c06865ea412f4a537d8690c5b2d3aa3deff960d9c1e29c627c026fe317dfed4d.zip",
+  "feed": {
+    "engine": 88,
+    "game": "cockro",
+    "minAppVersionCode": 100,
+    "path": "patches/c06865ea412f4a537d8690c5b2d3aa3deff960d9c1e29c627c026fe317dfed4d.zip",
+    "sha256": "c06865ea412f4a537d8690c5b2d3aa3deff960d9c1e29c627c026fe317dfed4d",
+    "size": 58037175,
+    "sparse": {
+      "path": "patches/28f0616ee6f7ffd193290ce68c2c168feddff4c14d7e0128a260edf1e2154054.zip",
+      "sha256": "28f0616ee6f7ffd193290ce68c2c168feddff4c14d7e0128a260edf1e2154054",
+      "size": 28508
+    },
+    "version": "4.53.0"
+  },
+  "verifiedFiles": 273
+}
