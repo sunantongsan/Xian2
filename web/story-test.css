@@ -1,3 +1,6 @@
-.story-test .field-wire,.story-test .coin-balance,.story-test #shopShortcut,.story-test #giftShortcut,.story-test #checkinShortcut,.story-test #vaultShortcut,.story-test #logoutShortcut,.story-test #chatToggle,.story-test #townBtn{display:none!important}
+.story-test .field-wire,.story-test .coin-balance,.story-test #shopShortcut,.story-test #giftShortcut,.story-test #checkinShortcut,.story-test #vaultShortcut,.story-test #logoutShortcut,.story-test #chatToggle{display:none!important}
 #storyObjective{position:fixed;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:45vw;padding:6px 10px;border:0;border-radius:12px;background:#fff4d9e8;color:#284c45;font-size:12px;z-index:4}
 .welcome-screen #storyObjective{display:none}
+
+.story-guide h2{margin:4px 0}.story-guide p{margin:6px 0;font-size:13px}.story-pages{display:flex;align-items:center;justify-content:space-between;gap:8px}.story-pages button{width:auto!important;min-width:40px}.story-stage-list{display:grid;gap:5px}.story-stage-list button{text-align:left;padding:8px 12px!important;margin:0!important}.story-stage-list b,.story-stage-list small{display:block}.story-stage-list small{font-size:11px;opacity:.85}.story-stage-list button:disabled{opacity:.45}.story-reward{padding:8px;border-radius:10px;background:#d9f1de;color:#193f2a}.story-menu{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media(max-height:500px){.story-guide{font-size:12px}.story-stage-list button{padding:4px 9px!important}.story-guide h2{font-size:18px}}
