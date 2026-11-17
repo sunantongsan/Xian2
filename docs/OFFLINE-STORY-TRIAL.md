@@ -1,34 +1,52 @@
-# COCKRO MAN offline story trial
+# COCKRO MAN — 30-stage offline trial (4.51.0)
 
-Based on `release/evolution-wings-4502` (web content 4.50.2), with Android application ID `com.sunantongsan.networkcokcro`, versionCode 114. This identifies the Store application source, not proof that this branch is the current production patch.
+Existing Store application: com.sunantongsan.networkcokcro (native versionCode 114). Based on release/evolution-wings-4502. The live 4.50.2 archive SHA-256 was verified and game.js matches the branch base.
 
-## Implemented
+## Player flow
 
-- Existing login/roster screen offers **ทดลองเนื้อเรื่อง • ออฟไลน์**, opening `story-test.html` in the same web bundle. No new Android package or native code changes.
-- Reuses existing hero animation, combat, inventory, skill, monster and Thung Kula terrain assets. One tile becomes a bounded 2400 × 2400 stage, with walkable geometry following its visible dirt trail.
-- Six regular enemies and one boss, no respawning, route marking, end marker, introductory story and completion dialogue.
-- 500 G on stage completion once per run. Replaying explicitly starts a new run; loading a completed run starts the next run.
-- Local state is isolated under `cockro-story-test-v1`; no token, online character, legacy save or premium balance is imported. XP, inventory and slain-enemy IDs persist. Re-entering begins at the starting checkpoint with full health; slain enemies stay cleared. Loot is collected immediately where inventory permits; overflow remains on the ground with the existing timer.
-- No gameplay server connection, premium store, reward ads or field banner in the test route. Native startup may still check for content updates; this is not a claim that the entire Android shell has been validated offline.
-- Existing online route remains accessible through **กลับเกมหลัก**.
+Open “ทดลองเนื้อเรื่อง • ออฟไลน์” from the main welcome screen, then “เล่นต่อ / เริ่มผจญภัย”. Start in Thung Kula town. Tap the guide/objective button to choose a stage. Kill all enemies and collect the mission objects where applicable, then enter the end marker to warp back to town. Claim the reward from ไกด์แสงดาว to unlock the next stage. Town provides supplies, equipment upgrades, and free class changes at levels 20 and 60.
 
-## Run
+30 stages use pairs 1–2 through 59–60. There are 12 hunt, 12 collection, and 6 boss missions. Bosses occur every five stages. Existing terrain is reused with three bounded paths and their reverse directions; these are not 30 new map artworks. Difficulty increases through monster level, HP, damage, and enemy count. First-clear rewards include G, upgrade materials and catch-up XP. Replay rewards are reduced. Monster loot and combat use the existing engine.
 
-From a complete checkout of this branch:
+The trial uses a separate local save, cockro-story-test-v1, envelope version 2. It does not import online balances or characters. Pending rewards, kills and quest objects survive restart. Returning to a stage restores health at the starting checkpoint; cleared enemies stay cleared. Old one-stage trial saves retain their character and begin this campaign in town. Gameplay does not require a server; the native shell may still check updates at startup. No ads or real-money shop are enabled in this route.
 
-```
-python3 -m http.server 8080 --directory web
-```
+## Stage list
 
-Open `http://localhost:8080/story-test.html`. On an existing compatible Android client the four changed/new web content files need to be included in a complete verified patch through its current update pipeline. Do not import these files alone as a native patch ZIP.
+| Stage | Monster levels | Mission | Objective |
+|---|---|---|---|
+| 1 | 1–2 | ออกจากเมือง | Defeat enemies |
+| 2 | 3–4 | สมุนไพรริมทาง | สมุนไพร ×3 |
+| 3 | 5–6 | ฝูงแมลงขวางทาง | Defeat enemies |
+| 4 | 7–8 | เสบียงตกหล่น | กล่องเสบียง ×3 |
+| 5 | 9–10 | ผู้เฝ้าทาง | Boss + guards |
+| 6 | 11–12 | ตามรอยคาราวาน | Defeat enemies |
+| 7 | 13–14 | ชิ้นส่วนเครื่องนำทาง | ชิ้นส่วนเครื่องนำทาง ×3 |
+| 8 | 15–16 | ทางแยกอันตราย | Defeat enemies |
+| 9 | 17–18 | กล่องเสบียงคาราวาน | กล่องเสบียง ×3 |
+| 10 | 19–20 | จ่าฝูงผู้ปล้นเสบียง | Boss + guards |
+| 11 | 21–22 | รอยเกราะโบราณ | Defeat enemies |
+| 12 | 23–24 | ผลึกซ่อมเกราะ | ผลึกซ่อมเกราะ ×4 |
+| 13 | 25–26 | แนวป้องกันแมลง | Defeat enemies |
+| 14 | 27–28 | บันทึกช่างเกราะ | บันทึกช่างเกราะ ×4 |
+| 15 | 29–30 | ผู้พิทักษ์เกราะ | Boss + guards |
+| 16 | 31–32 | เส้นทางที่ถูกลืม | Defeat enemies |
+| 17 | 33–34 | แผนที่ส่วนแรก | ชิ้นส่วนแผนที่ ×4 |
+| 18 | 35–36 | ฝูงเฝ้าแผนที่ | Defeat enemies |
+| 19 | 37–38 | แผนที่ส่วนสุดท้าย | ชิ้นส่วนแผนที่ ×4 |
+| 20 | 39–40 | ผู้เฝ้าหอจดหมายเหตุ | Boss + guards |
+| 21 | 41–42 | ตามแสงปีกแก้ว | Defeat enemies |
+| 22 | 43–44 | เศษปีกเรืองแสง | เศษปีกแก้ว ×5 |
+| 23 | 45–46 | ทางผ่านฝูงพิษ | Defeat enemies |
+| 24 | 47–48 | ผลึกเปิดทาง | ผลึกเปิดทาง ×5 |
+| 25 | 49–50 | ราชินีปีกแก้ว | Boss + guards |
+| 26 | 51–52 | ก่อนถึงประตูสมบัติ | Defeat enemies |
+| 27 | 53–54 | ตราประตูชิ้นแรก | ตราประตู ×5 |
+| 28 | 55–56 | ฝ่าด่านผู้พิทักษ์ | Defeat enemies |
+| 29 | 57–58 | ตราประตูชิ้นสุดท้าย | ตราประตู ×5 |
+| 30 | 59–60 | ผู้เฝ้าประตู COCKRO | Boss + guards |
 
-Changed web files: `game.js`, `story-stage.js`, `story-test.html`, `story-test.css`. Release metadata intentionally stays unchanged: no production feed, server, APK, AAB or Play release was published.
+## Validation and delivery
 
-## Validation
+Run node --test tests/*.test.js and node --check web/game.js. The campaign tests simulate all 30 clears, actual map pathfinding, save restoration, reward idempotence, offline class progression and real gear upgrades. The runtime test exercises actual game handlers with a stub DOM and image loader; it is not a browser visual test. Installed Chromium cannot launch in this host because the process singleton socket is denied. Android touch, rendering and airplane-mode startup still need device testing.
 
-- `node --check web/game.js` passed.
-- `node --test tests/story-stage.test.js`: 4 passed. Tests cover duplicate kill/reward prevention, save parsing and actual core character validation, actual reward collection, real pathfinding through every segment, exit reachability, and rejecting movement outside the corridor.
-- Browser launch was attempted with the installed Chromium but the host denied its process singleton socket. Thus rendered UI, touch interactions, full end-to-end play, audio and actual Android/WebView compatibility remain unverified.
-- Test-only Thai story text; English localization and additional stages remain future work.
-
-Before releasing: verify base versus deployed content, play through on a phone, test restart and airplane mode, verify returning to the online account preserves inventory, and generate the full verified update feed. The old packaging script hardcodes 4.5.0 and must not be used unchanged for publishing this candidate.
+Build using python3 tools/build_update_feed.py. This creates a complete hash-verified native bundle and sparse feed. Do not package only changed JavaScript as a full native ZIP. No APK/AAB or GitHub Actions job is needed for these web-content changes. Deployment status must be checked separately; this document does not itself assert a published patch.
