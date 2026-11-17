@@ -22,7 +22,7 @@ export const STAGES=Array.from({length:30},(_,i)=>{
  const encounters=Array.from({length:count},(_,j)=>({id:`s${n}-m${j}`,uv:pointAt(path,.14+j/(count-1)*.69),level:j%2?max:min,boss:false}));
  if(kind==='boss')encounters.push({id:`s${n}-boss`,uv:pointAt(path,.90),level:max,boss:true});
  return {id:n,name:names[i],chapter:chapters[chapter],kind,min,max,path,spawn:path[0],exit:path.at(-1),encounters,item,
-  objects:kind==='collect'?Array.from({length:3+Math.floor(i/10)},(_,j)=>({id:`s${n}-item${j}`,uv:pointAt(path,.22+j/(2+Math.floor(i/10))*.57)})):[],
+  treasure:pointAt(path,.57),objects:kind==='collect'?Array.from({length:3+Math.floor(i/10)},(_,j)=>({id:`s${n}-item${j}`,uv:pointAt(path,.22+j/(2+Math.floor(i/10))*.57)})):[],
   gold:700+n*180,alloy:3+Math.floor(n/5),protect:n>=5?1:0};
 });
 export const getStage=n=>STAGES[Number(n)-1]||null;
@@ -36,11 +36,11 @@ export function progress(raw={}){
  for(let n=1;n<=30&&prior.includes(n);n++)done.push(n);
  const unlocked=Math.min(30,done.length+1),st=getStage(raw.active?.stage);
  let active=null;
- if(st&&st.id<=unlocked){active={stage:st.id,defeated:unique(raw.active.defeated,id=>st.encounters.some(e=>e.id===id)),found:unique(raw.active.found,id=>st.objects.some(e=>e.id===id)),complete:false};active.complete=raw.active.complete===true&&runReady({active});}
- return {unlocked,cleared:done,active,location:raw.location==='stage'&&active&&!active.complete?'stage':'town'};
+ if(st&&st.id<=unlocked){active={stage:st.id,defeated:unique(raw.active.defeated,id=>st.encounters.some(e=>e.id===id)),found:unique(raw.active.found,id=>st.objects.some(e=>e.id===id)),complete:false,treasure:raw.active.treasure===true};active.complete=raw.active.complete===true&&runReady({active});}
+ return {unlocked,cleared:done,active,tutorial:Number.isInteger(raw.tutorial)?Math.max(0,Math.min(6,raw.tutorial)):(done.length?6:active?2:0),location:raw.location==='stage'&&active&&!active.complete?'stage':'town'};
 }
 export function begin(state,n){const stage=getStage(n);if(!stage||stage.id>state.unlocked||state.active?.complete)return false;
- if(state.active?.stage!==stage.id)state.active={stage:stage.id,defeated:[],found:[],complete:false};
+ if(state.active?.stage!==stage.id)state.active={stage:stage.id,defeated:[],found:[],complete:false,treasure:false};
  state.location='stage';return true;}
 export function defeat(state,id){const r=state.active,st=getStage(r?.stage);if(!r||r.complete||!st.encounters.some(e=>e.id===id)||r.defeated.includes(id))return false;r.defeated.push(id);return true;}
 export function collect(state,id){const r=state.active,st=getStage(r?.stage);if(!r||r.complete||!st.objects.some(e=>e.id===id)||r.found.includes(id))return false;r.found.push(id);return true;}

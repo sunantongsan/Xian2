@@ -13,14 +13,14 @@ globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.
 globalThis.Image=class{width=1024;height=1024;set src(v){assert(fs.existsSync(new URL('../web/'+v,import.meta.url)),v);queueMicrotask(()=>this.onload());}};
 globalThis.WebSocket=class{constructor(){throw Error('Offline trial must not connect');}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
-source+='\n//# sourceURL=story-runtime-game.js\nexport const probe={startStory,storyGuide,storyShop,storyMenu,storyTitle,goHome,hitEnemy,updateStory,drawStoryPath,close,forge,get(){return {s,p,scene,town,enemies,state:storyState,busy:travelBusy}},reset(){s=null;p=null;}};';
+source+='\n//# sourceURL=story-runtime-game.js\nexport const probe={startStory,storyGuide,storyShop,storyMenu,storyTitle,goHome,storyJournal,storyTrainingForge,net,hitEnemy,updateStory,drawStoryPath,close,forge,get(){return {s,p,scene,town,enemies,state:storyState,busy:travelBusy}},reset(){s=null;p=null;}};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const {language}=await import('../web/i18n.js');language.choose('th');
 const {STAGES,STORY_SAVE_KEY}=await import('../web/story-stage.js');
 const {toWorld}=await import('../web/maps.js');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('real runtime enters town, buys supplies, clears hunt and fetch stages, claims, resumes and preserves account',async()=>{
- await probe.startStory();assert.equal(probe.get().town,true);assert.equal(probe.get().s.level,1);
+ await probe.startStory();assert.equal(probe.get().town,true);assert.equal(probe.get().s.level,1);probe.get().state.tutorial=6;
  probe.storyGuide();assert.match(element('modalContent').innerHTML,/ไกด์แสงดาว/);
  probe.storyShop();const before=probe.get().s.potions;element('storyBuyHP').onclick();assert.equal(probe.get().s.potions,before+5);
  for(const stage of STAGES.slice(0,2)){
@@ -35,4 +35,12 @@ test('real runtime enters town, buys supplies, clears hunt and fetch stages, cla
  await probe.startStory(3);probe.hitEnemy(probe.get().enemies[0],1e9);await probe.goHome();probe.reset();await probe.startStory();assert.equal(probe.get().town,true);
  await probe.startStory(3);assert.equal(probe.get().enemies.length,STAGES[2].encounters.length-1);
  assert(storage.has(STORY_SAVE_KEY));assert.equal(storage.get('cockro-online-device-token-v1'),'unchanged-account');assert.equal(storage.get('cockro-save'),'unchanged-legacy');
+});
+
+test('new player completes action-based teaching before stage 2 and never connects to bot population',async()=>{
+ storage.delete(STORY_SAVE_KEY);probe.reset();probe.net.players=[{id:'simulated-player'}];await probe.startStory();let v=probe.get();assert.equal(v.scene.id,'story-town');assert.equal(probe.net.players.length,0);
+ await probe.startStory(1);assert.equal(probe.get().town,true);probe.close();v.p.x+=100;probe.updateStory();assert.equal(v.state.tutorial,1);probe.storyGuide();assert.match(element('modalContent').innerHTML,/รับเควส/);element('storyAccept').onclick();assert.equal(v.state.tutorial,2);
+ await probe.startStory(1);v=probe.get();for(const e of v.enemies)probe.hitEnemy(e,1e9);Object.assign(v.p,toWorld(STAGES[0].exit,v.scene));probe.updateStory();await tick();v=probe.get();assert.equal(v.state.tutorial,3);element('storyClaim').onclick();assert.equal(v.state.tutorial,4);
+ await probe.startStory(2);assert.equal(probe.get().town,true);probe.storyTrainingForge();const oldG=v.s.gold;element('storyTrainUpgrade').onclick();assert.equal(v.s.equip.weapon.plus,1);assert.equal(v.s.gold,oldG-500);assert.equal(v.state.tutorial,5);
+ await probe.startStory(2);v=probe.get();Object.assign(v.p,toWorld(STAGES[1].objects[0].uv,v.scene));probe.updateStory();assert.equal(v.state.tutorial,6);probe.storyJournal();assert.match(element('modalContent').innerHTML,/บันทึกการเดินทาง/);
 });

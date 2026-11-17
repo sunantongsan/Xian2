@@ -56,3 +56,16 @@ Build using python3 tools/build_update_feed.py. This creates a complete hash-ver
 - Local targeted suite: 84 passed. Full repository suite on Vercel: 352 passed, 0 failed.
 - Remote 4.51.0 bundle verified: 272 file hashes. SHA-256 bfe6eeb6746dde522a8753339fc3a5e043c20f2d4a24cf39390974ed27c1ca8a.
 - Cloud browser: loaded the title, entered town, opened the guide, entered stage 1, returned to town and confirmed the resume option. No game-origin console errors observed. This does not replace Android touch or full gameplay testing.
+
+
+## 4.52.0 — story campaign becomes the default
+
+The main index now enters the local campaign directly. The same isolated save is retained; online account tokens, paid balances and server characters are not deleted or imported. This release removes player simulations from the active game by never connecting the campaign to the online world and clearing the remote player list. Decorative town crowds are also suppressed; three service NPCs remain.
+
+The hub uses a 1600 × 1066 map with a small central walkable plaza. Guide, merchant and blacksmith are all reachable within 500 world units of spawn. Stage order remains quest-gated. Six chapters now explain the caravan, missing map, insect armour, glass wings and COCKRO gate, with mission briefings and completion dialogue.
+
+New players learn movement, accepting a quest, combat, claiming the first reward, a real guaranteed +1 weapon upgrade costing 500 G and one alloy, and proximity item collection. Steps advance on actual actions, survive restart, and gate stage 2 until the upgrade lesson. Previous trial players with clears retain progression and are not forced to repeat teaching; active first-stage saves resume the combat lesson. An optional gold chest in each stage gives G and one HP potion once per run. The first-clear reward, upgraded weapon, quest collection and chest state all persist independently.
+
+Presentation adds a light cream/mint quest UI, coloured chapter paths, sparkling pickups, visible tutorial highlights and labelled pulsing return portals. Particle counts are bounded (4 at low quality, otherwise 10). Existing map and character art are reused.
+
+Validation: campaign progression and actual runtime tests include full 30-stage logic, tutorial gating, town-service pathfinding, chest idempotence, resume/migration, and preservation of online keys. Browser and production verification are recorded in the delivery response.
