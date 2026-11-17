@@ -50,3 +50,9 @@ The trial uses a separate local save, cockro-story-test-v1, envelope version 2. 
 Run node --test tests/*.test.js and node --check web/game.js. The campaign tests simulate all 30 clears, actual map pathfinding, save restoration, reward idempotence, offline class progression and real gear upgrades. The runtime test exercises actual game handlers with a stub DOM and image loader; it is not a browser visual test. Installed Chromium cannot launch in this host because the process singleton socket is denied. Android touch, rendering and airplane-mode startup still need device testing.
 
 Build using python3 tools/build_update_feed.py. This creates a complete hash-verified native bundle and sparse feed. Do not package only changed JavaScript as a full native ZIP. No APK/AAB or GitHub Actions job is needed for these web-content changes. Deployment status must be checked separately; this document does not itself assert a published patch.
+
+## Release verification (2026-11-17)
+
+- Local targeted suite: 84 passed. Full repository suite on Vercel: 352 passed, 0 failed.
+- Remote 4.51.0 bundle verified: 272 file hashes. SHA-256 bfe6eeb6746dde522a8753339fc3a5e043c20f2d4a24cf39390974ed27c1ca8a.
+- Cloud browser: loaded the title, entered town, opened the guide, entered stage 1, returned to town and confirmed the resume option. No game-origin console errors observed. This does not replace Android touch or full gameplay testing.
