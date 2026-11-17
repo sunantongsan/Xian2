@@ -1055,7 +1055,7 @@ function storyGuide(page){
  if($('storyLearnForge'))$('storyLearnForge').onclick=storyTrainingForge;
  if($('storyEvolve'))$('storyEvolve').onclick=async()=>{if(completeMutation(s,$('storyBranch')?.value)){saveStory();try{await loadLayeredHero(s.hero,mutationVisualLevel(s));}catch{toast('ภาพอาชีพยังไม่พร้อม ลองเข้าเกมใหม่');}p.hp=maxHP(s);p.mp=maxMP();storyGuide();}};
 }
-function storyShop(){if(!town)return;show('<h2>เสบียงนักสำรวจ</h2><p>'+s.gold.toLocaleString()+' G</p>'+button('storyBuyHP','ยา HP ×5 • 250 G')+button('storyBuyMP','ยา MP ×5 • 300 G')+button('storyBuyAlloy','โลหะอัปเกรด ×1 • 200 G')+button('storyBuyProtect','กันแตก ×1 • 1,000 G')+button('storyBuyWeapon','อาวุธตามเลเวล • '+gearShopPrice('weapon',tierForLevel(s.level))+' G')+button('storyShopBack','กลับ'));
+function storyShop(){if(!town)return;show('<section class="story-guide"><h2>เสบียงนักสำรวจ</h2><p>'+s.gold.toLocaleString()+' G</p>'+button('storyBuyHP','ยา HP ×5 • 250 G')+button('storyBuyMP','ยา MP ×5 • 300 G')+button('storyBuyAlloy','โลหะอัปเกรด ×1 • 200 G')+button('storyBuyProtect','กันแตก ×1 • 1,000 G')+button('storyBuyWeapon','อาวุธตามเลเวล • '+gearShopPrice('weapon',tierForLevel(s.level))+' G')+button('storyShopBack','กลับ')+'</section>');
  const buy=(id,cost,key,amount,material=false)=>{$(id).onclick=()=>{const target=material?s.upgradeItems:s;if(s.gold<cost||(target[key]||0)+amount>99999){toast('เงินไม่พอหรือของเต็ม');return;}s.gold-=cost;target[key]=(target[key]||0)+amount;saveStory();storyShop();};};
  buy('storyBuyHP',250,'potions',5);buy('storyBuyMP',300,'mpPotions',5);buy('storyBuyAlloy',200,'alloy',1,true);buy('storyBuyProtect',1000,'protect',1,true);
  $('storyBuyWeapon').onclick=()=>{if(buyShopGear(s,'weapon',tierForLevel(s.level))){saveStory();storyShop();toast('อาวุธอยู่ในกระเป๋าแล้ว');}else toast('เงินไม่พอหรือกระเป๋าเต็ม');};$('storyShopBack').onclick=storyMenu;
@@ -1073,7 +1073,7 @@ function updateStory(){if(!p||!s||travelBusy)return;const phase=tutorialPhase(st
  if(storyFinish(storyState)){tutorialEvent(storyState,'finish');saveStory();gameAudio.success();startStory('town');}
 }
 function drawStoryPath(){if(!p||!scene)return;ctx.save();drawStorySparkles();
- if(town){const w=toWorld(storyTest?GUIDE_UV:DOCTOR_UV,scene),q=project(w.x,w.y);ctx.font='bold 14px GameThai,sans-serif';ctx.textAlign='center';ctx.strokeStyle='#173127';ctx.lineWidth=3;ctx.fillStyle='#fff0a8';ctx.strokeText('ไกด์แสงดาว · วาร์ป / รางวัล',q.x,q.y-135*scale);ctx.fillText('ไกด์แสงดาว · วาร์ป / รางวัล',q.x,q.y-135*scale);drawStoryBeacon(GUIDE_UV,'แสงดาว', '#62d5b2');ctx.restore();return;}
+ if(town){drawStoryBeacon(GUIDE_UV,'แสงดาว','#62d5b2');ctx.restore();return;}
  const st=activeStory();if(!st){ctx.restore();return;}ctx.strokeStyle=questText(st).color+'99';ctx.lineWidth=2*scale;ctx.setLineDash([12*scale,12*scale]);ctx.beginPath();st.path.forEach((uv,i)=>{const w=toWorld(uv,scene),q=project(w.x,w.y);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.stroke();ctx.setLineDash([]);
  for(const o of st.objects)if(!storyState.active.found.includes(o.id))drawStoryBeacon(o.uv,st.item,'#8adfca',true);
  if(!storyState.active.treasure)drawStoryBeacon(st.treasure,'หีบสมบัติ','#ffd16b',true);
