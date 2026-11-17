@@ -20,7 +20,7 @@ From a complete checkout of this branch:
 python3 -m http.server 8080 --directory web
 ```
 
-Open `http://localhost:8080/story-test.html`. On an existing compatible Android client the five changed/new web content files need to be included in a complete verified patch through its current update pipeline. Do not import these files alone as a native patch ZIP.
+Open `http://localhost:8080/story-test.html`. On an existing compatible Android client the four changed/new web content files need to be included in a complete verified patch through its current update pipeline. Do not import these files alone as a native patch ZIP.
 
 Changed web files: `game.js`, `story-stage.js`, `story-test.html`, `story-test.css`. Release metadata intentionally stays unchanged: no production feed, server, APK, AAB or Play release was published.
 
