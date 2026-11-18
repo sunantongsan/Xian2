@@ -12,7 +12,7 @@ export const skills={
 };
 const clamp=(x,a,b)=>Math.max(a,Math.min(x,b)),D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function begin(zone=0,random=Math.random){
- const r={zone,random,t:0,state:'play',h:{x:540,y:540,hp:110,max:110,dx:0,dy:1,walk:0,moving:false},enemies:[],gems:[],fx:[],shots:[],skills:{blade:1,ice:0,storm:0,orbit:0,vitality:0},timers:{blade:0,ice:0,storm:0,orbit:0,pet:0},xp:0,need:3,lv:1,kills:0,next:1,wave:0,guard:0,pet:false,egg:null,hatched:false,bossIn:false,uid:0,choices:[]};
+ const r={zone,random,t:0,state:'play',h:{x:540,y:540,hp:110,max:110,dx:0,dy:1,walk:0,moving:false},enemies:[],gems:[],fx:[],shots:[],skills:{blade:1,ice:0,storm:0,orbit:0,vitality:0},timers:{blade:0,ice:0,storm:0,orbit:0,pet:0},xp:0,need:3,lv:1,kills:0,next:1,wave:0,guard:0,pet:false,egg:null,hatched:false,bossIn:false,uid:0,credits:0,choices:[]};
  for(let i=0;i<4;i++)spawn(r,false,95+i*25);
  return r;
 }
@@ -28,10 +28,17 @@ function hit(r,e,n){
  if(!e.hp){r.kills++;r.gems.push({x:e.x,y:e.y,value:e.boss?5:1});if(e.boss)r.state='won';}
 }
 function nearest(r,range){let best=null;for(const e of r.enemies){const d=D(r.h,e);if(e.hp>0&&d<range){best=e;range=d;}}return best;}
-function offer(r){if(r.xp<r.need)return;r.xp-=r.need;r.lv++;r.need=3+r.lv;r.state='pick';const deck=Object.keys(skills);
+function earnLevels(r){
+ while(r.xp>=r.need){r.xp-=r.need;r.lv++;r.need=3+r.lv;r.credits++;}
+}
+export function openSkills(r){
+ if(r.state!=='play'||r.credits===0)return false;
+ r.state='pick';if(r.choices.length)return true;
+ const deck=Object.keys(skills);
  for(let i=deck.length-1;i>0;i--){const j=Math.floor(r.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
- r.choices=deck.slice(0,3);}
-export function pick(r,id){if(r.state!=='pick'||!r.choices.includes(id))return false;r.skills[id]++;if(id==='vitality'){r.h.max+=24;r.h.hp=Math.min(r.h.max,r.h.hp+48);}r.state='play';r.choices=[];offer(r);return true;}
+ r.choices=deck.slice(0,3);return true;}
+export function deferSkills(r){if(r.state==='pick')r.state='play';}
+export function pick(r,id){if(r.state!=='pick'||!r.choices.includes(id))return false;r.skills[id]++;if(id==='vitality'){r.h.max+=24;r.h.hp=Math.min(r.h.max,r.h.hp+48);}r.state='play';r.choices=[];r.credits--;return true;}
 function hurt(r,n){if(r.guard>0)return;r.h.hp=Math.max(0,r.h.hp-n);r.guard=.65;if(!r.h.hp)r.state='lost';}
 export function step(r,dt,dx,dy){
  if(r.state!=='play')return;
@@ -64,5 +71,5 @@ export function step(r,dt,dx,dy){
  for(const s of r.shots){if(s.e.hp<=0){s.done=true;continue;}const a=Math.atan2(s.e.y-s.y,s.e.x-s.x);s.a=a;const dist=D(s,s.e),v=dt*350;if(dist<v+4){hit(r,s.e,17+s.rank*5);if(s.id==='ice')s.e.freeze=1.4;s.done=true;}else{s.x+=Math.cos(a)*v;s.y+=Math.sin(a)*v;}}
  r.shots=r.shots.filter(s=>!s.done);r.enemies=r.enemies.filter(e=>e.hp>0);
  for(const jewel of r.gems){const gap=D(jewel,h);if(gap<83){const k=Math.min(1,dt*225/Math.max(1,gap));jewel.x+=(h.x-jewel.x)*k;jewel.y+=(h.y-jewel.y)*k;if(D(jewel,h)<12){r.xp+=jewel.value;jewel.gone=true;}}}
- r.gems=r.gems.filter(j=>!j.gone);for(const f of r.fx)f.left-=dt;r.fx=r.fx.filter(f=>f.left>0);if(r.state==='play')offer(r);
+ r.gems=r.gems.filter(j=>!j.gone);for(const f of r.fx)f.left-=dt;r.fx=r.fx.filter(f=>f.left>0);if(r.state==='play')earnLevels(r);
 }
