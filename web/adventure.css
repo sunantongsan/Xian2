@@ -6,3 +6,5 @@
 @keyframes reward-arrive{from{transform:translateY(14px) scale(.6);opacity:0}to{transform:none;opacity:1}}
 @media(max-height:500px){.adventure-welcome{display:grid;grid-template-columns:42% 58%}.adventure-cover{min-height:260px;padding:16px 10px}.adventure-welcome-copy{padding:12px}.adventure-cover h1{font-size:24px!important}.adventure-welcome-copy h2{font-size:16px!important}.adventure-panorama{height:85px}.adventure-victory .adventure-panorama{display:none}.victory-gift{height:65px;margin:0}.adventure-rewards{margin:6px 0}.adventure-rewards i,.adventure-rewards img{width:34px;height:34px}.adventure-victory p{margin:4px 0!important}}
 @media(prefers-reduced-motion:reduce){.victory-gift img{animation:none}}
+
+.story-test #storyObjective{max-width:min(68vw,360px);padding:5px 10px;min-height:36px;border:0;border-radius:12px;background:rgba(21,55,55,.78);color:#fff9de;text-shadow:0 1px 2px #163c38}.story-test .adventure-cover{min-height:clamp(130px,30dvh,260px)}

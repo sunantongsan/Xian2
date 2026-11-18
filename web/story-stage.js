@@ -7,7 +7,7 @@ const routes=[
  [[.42,.93],[.54,.76],[.55,.66],[.48,.5],[.65,.41],[.73,.41],[.93,.49]]
 ];
 const chapters=['รอยเท้านักสำรวจ','เสบียงที่หายไป','เกราะแห่งทุ่งกุลา','แผนที่ฉีกขาด','แสงจากปีกแก้ว','ประตูสู่ COCKRO'];
-const names=['ออกจากเมือง','สมุนไพรริมทาง','ฝูงแมลงขวางทาง','เสบียงตกหล่น','ผู้เฝ้าทาง',
+const names=['รอยล้อคาราวาน','สมุนไพรริมทาง','ฝูงแมลงขวางทาง','เสบียงตกหล่น','ผู้เฝ้าทาง',
  'ตามรอยคาราวาน','ชิ้นส่วนเครื่องนำทาง','ทางแยกอันตราย','กล่องเสบียงคาราวาน','จ่าฝูงผู้ปล้นเสบียง',
  'รอยเกราะโบราณ','ผลึกซ่อมเกราะ','แนวป้องกันแมลง','บันทึกช่างเกราะ','ผู้พิทักษ์เกราะ',
  'เส้นทางที่ถูกลืม','แผนที่ส่วนแรก','ฝูงเฝ้าแผนที่','แผนที่ส่วนสุดท้าย','ผู้เฝ้าหอจดหมายเหตุ',
@@ -20,6 +20,11 @@ export const STAGES=Array.from({length:30},(_,i)=>{
  const route=routes[i%3],path=(Math.floor(i/3)%2?[...route].reverse():route).map(p=>[...p]);
  const min=n*2-1,max=n*2,count=6+Math.floor(i/5),item=kind==='collect'?items[chapter*2+(n%5===4?1:0)]:null;
  const encounters=Array.from({length:count},(_,j)=>({id:`s${n}-m${j}`,uv:pointAt(path,.14+j/(count-1)*.69),level:j%2?max:min,boss:false}));
+ if(n===1){
+  const marks=[.16,.19,.39,.42,.68,.88];
+  encounters.forEach((enemy,j)=>{enemy.uv=pointAt(path,marks[j]);});
+  encounters[count-1].boss=true;
+ }
  if(kind==='boss')encounters.push({id:`s${n}-boss`,uv:pointAt(path,.90),level:max,boss:true});
  return {id:n,name:names[i],chapter:chapters[chapter],kind,min,max,path,spawn:path[0],exit:path.at(-1),encounters,item,
   treasure:pointAt(path,.57),objects:kind==='collect'?Array.from({length:3+Math.floor(i/10)},(_,j)=>({id:`s${n}-item${j}`,uv:pointAt(path,.22+j/(2+Math.floor(i/10))*.57)})):[],
@@ -54,6 +59,6 @@ export function claim(state,save){const gift=rewardPreview(state);if(!gift)retur
  state.active=null;state.location='town';return gift;
 }
 export function storyMonster(stage,encounter,catalog){const e=encounter,template=catalog.find(m=>m.id===(e.boss?1060+Math.floor((e.level-1)/10):1000+e.level-1));
- return {...template,level:e.level,boss:e.boss,hp:Math.round((70+e.level*16+e.level*e.level*.12)*(e.boss?3.5:1)),damage:Math.round((5+e.level*.9+e.level*e.level*.012)*(e.boss?1.5:1)),xp:20+e.level*8,gold:10+e.level*3};}
+ return {...template,level:e.level,boss:e.boss,hp:Math.round((70+e.level*16+e.level*e.level*.12)*(e.boss?(stage.id===1?1.8:3.5):1)),damage:Math.round((5+e.level*.9+e.level*e.level*.012)*(e.boss?1.5:1)),xp:20+e.level*8,gold:10+e.level*3};}
 export function encodeStory(save,state){return JSON.stringify({version:2,save,progress:progress(state)});}
 export function decodeStory(raw,validate){if(!raw)return null;try{const v=JSON.parse(raw);if(![1,2].includes(v.version))return null;const save=validate(v.save);return save?{save,progress:v.version===1?progress():progress(v.progress)}:null;}catch{return null;}}
