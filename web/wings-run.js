@@ -1,7 +1,7 @@
 export const missions=[
- {name:'ฝูงแสงหายตัว',goal:'ช่วยหิ่งห้อย',map:'thung-kula-fields',points:[[205,245],[570,140],[665,465]],color:'#76f4cb',intro:'ลากเพื่อเดิน · ตามแสงไปช่วยหิ่งห้อย'},
+ {name:'ฝูงแสงหายตัว',goal:'ช่วยหิ่งห้อย',map:'thung-kula-fields',points:[[205,245],[570,140],[665,465]],color:'#76f4cb',intro:'ช่วยหิ่งห้อย 3 ตัว · แตะฟันเมื่อศัตรูเข้าประชิด'},
  {name:'จุดไฟที่หอสัญญาณ',goal:'จุดหอสัญญาณ',map:'aurora-outpost',points:[[240,230],[630,300]],color:'#8fd8ff',intro:'ยืนในวงหอจนไฟติด ให้ฝูงแสงหาทางกลับ'},
- {name:'ศึกหน้าประตูเมือง',goal:'โค่นราชาด้วง',map:'thung-kula-town',points:[],color:'#ffd37e',intro:'หลบวงแดงก่อนราชาด้วงกระแทกพื้น'}
+ {name:'ศึกหน้าประตูเมือง',goal:'โค่นราชาด้วง',map:'thung-kula-town',points:[],color:'#ffd37e',intro:'ออกจากวงแดง แล้วเข้าไปฟันตอนราชาด้วงพัก'}
 ];
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -11,7 +11,7 @@ function approach(a,b,step){
 }
 export function newRun(index=0,perks=[]){
  const level=missions[index],maxHp=100+perks.filter(p=>p==='heart').length*30;
- const run={index,perks:[...perks],mode:'play',time:0,hero:{x:415,y:570,hp:maxHp,maxHp,dx:0,dy:-1,distance:0,walking:false},goals:level.points.map(([x,y])=>({x,y,charge:0,done:false})),exit:{x:415,y:80},open:false,enemies:[],bolts:[],fx:[],shot:0,next:3,dash:0,burst:0,guard:0,flash:0,serial:0};
+ const run={index,perks:[...perks],mode:'play',time:0,hero:{x:415,y:570,hp:maxHp,maxHp,dx:0,dy:-1,distance:0,walking:false},goals:level.points.map(([x,y])=>({x,y,charge:0,done:false})),exit:{x:415,y:80},open:false,enemies:[],attackPose:0,fx:[],shot:0,next:3,dash:0,burst:0,guard:0,flash:0,serial:0};
  for(const [x,y] of [[260,340],[590,400],[390,200]])spawn(run,x,y,false);
  if(index===2)spawn(run,415,180,true);
  return run;
@@ -19,6 +19,26 @@ export function newRun(index=0,perks=[]){
 function spawn(r,x,y,boss){
  const id=++r.serial,hp=boss?300:30+r.index*6;
  r.enemies.push({x,y,hp,maxHp:hp,boss,id,kind:boss?2:id%3,phase:'walk',timer:0,cd:1+id%3*.3,step:0,face:1,enraged:false});
+}
+export function practice(r){
+ r.lesson={phase:'move',dummy:{x:r.hero.x+48,y:r.hero.y-82},mark:null};
+}
+export function slash(r){
+ if(r.mode!=='play'||r.shot>0||r.lesson&&r.lesson.phase!=='strike')return false;
+ const h=r.hero,targets=r.lesson?[r.lesson.dummy]:r.enemies;
+ const near=targets.filter(e=>dist(e,h)<=64).sort((a,b)=>dist(h,a)-dist(h,b));
+ const first=near[0],angle=first?Math.atan2(first.y-h.y,first.x-h.x):Math.atan2(h.dy,h.dx);
+ r.angle=angle;h.dx=Math.cos(angle);h.dy=Math.sin(angle);r.attackPose=.22;
+ r.shot=.44-.08*r.perks.filter(p=>p==='speed').length;
+ for(const e of near){
+  const facing=Math.cos(Math.atan2(e.y-h.y,e.x-h.x)-angle);
+  if(facing<.25)continue;
+  if(r.lesson){r.lesson.phase='evade';r.lesson.mark={x:h.x,y:h.y};break;}
+  e.hp-=23+6*r.perks.filter(p=>p==='power').length;
+  effect(r,e.x,e.y,'#ffe991',18);
+ }
+ r.enemies=r.enemies.filter(e=>e.hp>0);
+ return true;
 }
 export function dash(r,x=0,y=0){
  if(r.mode!=='play'||r.dash>0)return false;
@@ -35,6 +55,13 @@ export function step(r,dt,input){
  const px=h.x,py=h.y;h.x=clamp(h.x+vx*speed*dt,35,795);h.y=clamp(h.y+vy*speed*dt,52,657);
  const moved=Math.hypot(h.x-px,h.y-py);h.walking=moved>.05;
  if(h.walking){h.dx=(h.x-px)/moved;h.dy=(h.y-py)/moved;h.distance+=moved;}
+ if(r.lesson){
+  const guide=r.lesson;
+  if(guide.phase==='move'&&dist(h,guide.dummy)<48)guide.phase='strike';
+  if(guide.phase==='evade'&&dist(h,guide.mark)>58)guide.phase='done';
+  r.shot-=dt;r.attackPose=Math.max(0,r.attackPose-dt);
+  return;
+ }
  for(const e of r.enemies){
   if(e.boss&&e.hp<=e.maxHp*.5&&!e.enraged){
    e.enraged=true;effect(r,e.x,e.y,'#ffb173',85);
@@ -53,16 +80,8 @@ export function step(r,dt,input){
  }
  if(h.hp<=0){r.mode='lost';return;}
  r.shot-=dt;
- const nearest=r.enemies.reduce((a,e)=>!a||dist(e,h)<dist(a,h)?e:a,null);
- if(nearest&&dist(nearest,h)<245&&r.shot<=0){
-  r.shot=.49-.09*r.perks.filter(p=>p==='speed').length;
-  r.bolts.push({x:h.x,y:h.y-9,enemy:nearest});r.attackPose=.17;
- }
- r.attackPose=Math.max(0,(r.attackPose||0)-dt);
- for(const b of r.bolts){if(b.enemy.hp<=0){b.done=true;continue;}approach(b,b.enemy,dt*510);if(dist(b,b.enemy)<10){
-  b.done=true;b.enemy.hp-=14+6*r.perks.filter(p=>p==='power').length;effect(r,b.enemy.x,b.enemy.y,'#ffe991',18);
- }}
- r.bolts=r.bolts.filter(b=>!b.done);r.enemies=r.enemies.filter(e=>e.hp>0);
+ r.attackPose=Math.max(0,r.attackPose-dt);
+ r.enemies=r.enemies.filter(e=>e.hp>0);
  for(const p of r.goals){if(p.done||dist(h,p)>47)continue;p.charge=Math.min(1,p.charge+dt/(r.index===1?2.1:.35));if(p.charge>=1){p.done=true;h.hp=Math.min(h.maxHp,h.hp+10);effect(r,p.x,p.y,'#83ffe1',48);}}
  r.open=r.index===2?!r.enemies.some(e=>e.boss):r.goals.every(p=>p.done);
  if(r.open&&dist(h,r.exit)<38)r.mode='won';
