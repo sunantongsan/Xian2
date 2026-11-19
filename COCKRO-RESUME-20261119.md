@@ -1,5 +1,38 @@
 # COCKRO deployment status — 19 November 2026
 
+Production patch **7.1.1** is live. Gameplay base remains MMORPG 4.50.2.
+No GitHub Actions were started or modified.
+
+## Current release
+- Source commit: 33baf72c361beaa55286002ca1bfb7561bfac07d.
+- Vercel production: dpl_JCjSsaqkQcLznJMvadNPyD4UY1Sc, READY with production alias.
+- Feed: https://cockro-game-updates.vercel.app/latest.json
+- Full ZIP: baea749500f5ec77a53ec99fcae272b0a224cde5a9a3bc1aa98fcee97ef22b02 (60,719,755 bytes).
+- Sparse manifest: b8452e5762ac37bca9b5c968b3854ac56f26f3cfbfe3e5690410db61b56503fa; 456 files.
+- Live sparse ZIP hashes and contents verified for game.js, world-input.js, stage-rig.js, cockroach-3d.js, release.json. All live source hashes match local files except a harmless extra blank line in local index.html. Production entrypoint uses game.js, not test-game.js.
+- Server https://game.guardscan.xyz/online/health: ok=true, release=7.1.1, roamingCharacters=0, fullSuitDrops=false.
+- Installed server SHA256: 74eb3edac42303d54bb64140ccff4ad5c3e108535d47de99e293997e734d5fb9.
+- VPS backup: /srv/cockro-deploy/cockro-711/production-backup-1795082604/data.tar plus online-server.cjs.
+- Receipt: /srv/cockro-deploy/cockro-711/installed.json.
+- Data copy audit: /srv/cockro-deploy/cockro-711/audit-1795082431. All 57 accounts retain G, COCKRO, levels, account reward receipts and current equipment (weapon/ring/amulet) attributes except retired sockets. Restart repeat verified. No account secrets downloaded.
+- Scripts: /tmp/ck711-stage.py, /tmp/ck711-audit.py (copy only), /tmp/ck711-install.py (stopped-service tar backup, code + data rollback).
+
+## Implemented user changes
+- Inventory portrait explicitly faces forward with dedicated full-model framing.
+- Fixed movement joystick hidden. Tap blank world to walk; drag anywhere on canvas to steer; pinch or wheel zoom 0.45–1.5. Menus and combat controls retain their own interaction. Tap enemy selects and chases/attacks without holding attack.
+- Disabled synthetic server roamers even with old roamers=true config; removed decorative town crowd. Actual online/offline player presence remains.
+- Retired all old full suits/fashion, upgrade materials and gem socket UI, purchases, ad grants, drops, vault/trade stock. Existing data copied before migration; G/COCKRO and current enhancement levels preserved. New rewarded protection tickets remain.
+- Removed town buff effects and NPCs; old buff requests rejected.
+- Town dimensions reduced 4000x2666 -> 2400x1600; persisted town positions scale once with townRevision=711. Field maps unchanged.
+- Idle/walk sword over right shoulder. Three actual attack clips Slash/Sweep/Cleave, server combo sequencing and timeout reset for PvE/PvP; first cut overhead down toward anatomical left.
+- 355 automated tests passed, including migration idempotence, gesture cancellation/pinch semantics, three server combo hits, model grip constraints, sword-tip direction and portrait camera bounds.
+- Isolated cloud browser preview: https://cockro-game-updates-pbehvnxme-sunans-projects-4868df82.vercel.app/play/test.html . Inventory verified with no old tabs and full visible character. Browser lacks WebGL, so this UI screenshot used 2D fallback. 3D geometry/animation verified separately using actual GLB; Android visual/performance test still not performed.
+- Source workspace: /workspace/scratch/b95252ff6088/xian4502.
+- Rebuild server bundle from source; tracked older bundle is NOT authoritative.
+- Web3 menu still placeholder; wallet/create/import/blockchain/deposit/withdrawal NOT implemented.
+
+## Previous release details (historical)
+
 Production patch 7.1.0 uses the MMORPG gameplay base 4.50.2 (not the version 26 prototype).
 User explicitly authorized completing and publishing the patch without GitHub Actions. No Actions were started or modified.
 
