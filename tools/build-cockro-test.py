@@ -11,7 +11,7 @@ async function testBoot(){try{
  const has3D=await loadCockroach3D();await document.fonts.load('16px GameThai');
  await Promise.all([loadImage('heroes/cockro-combat-v2.webp'),loadImage('sprites/doctor-einstein-v2.webp'),loadImage('sprites/forge-master-v2.webp'),loadImage('vfx/sword.webp'),loadImage('vfx/demon.webp'),loadLayeredHero('sword-cockro'),loadZone()]);
  s=fresh('sword-cockro');Object.assign(s,{name:'COCKRO TEST',level:61,mutationStage:2,stones:100000,protectionTickets:5,statPoints:600,skillPoints:600,sound:false});
- s.equip.weapon.plus=0;onlineMode=false;
+ s.equip.weapon.plus=0;onlineMode=false;$('inventoryShortcut').onclick=onlineInventory;$('bagShortcut').onclick=onlineInventory;
  p={x:0,y:0,hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',animTime:0,walkDistance:0,walkDX:.707,walkDY:.707,back:false,inv:0,dead:false};
  cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};
  $('loading').hidden=true;document.body.classList.remove('welcome-screen');$('hud').hidden=false;$('controls').hidden=false;$('hint').hidden=true;
