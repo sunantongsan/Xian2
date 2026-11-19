@@ -1,10 +1,6 @@
 import {t,ui} from './i18n.js';
 // Cosmetic ownership is separate from combat gear, shared by offline saves and the server.
-export const FASHION_SETS=[
- {id:'cowboy',get name(){return t('คาวบอยพเนจร');},color:'#d5a86e',file:'fashion/cowboy.webp'},
- {id:'wuxia',get name(){return t('จอมยุทธเมฆาหยก');},color:'#7ed4b2',file:'fashion/wuxia.webp'},
- {id:'knight',get name(){return t('อัศวินดวงดาว');},color:'#98bfff',file:'fashion/knight-open.webp'}
-];
+export const FASHION_SETS=[];
 export const FASHION_ITEMS=FASHION_SETS.flatMap(set=>[
  {id:set.id+'-hat',set:set.id,slot:'hat',get name(){return ({cowboy:t('หมวกคาวบอยเทอร์ควอยซ์'),wuxia:t('หมวกจอมยุทธหยก'),knight:t('หมวกอัศวินดวงดาว')})[set.id];},file:set.file,color:set.color},
  {id:set.id+'-outfit',set:set.id,slot:'outfit',get name(){return t('ชุด')+set.name;},file:set.file,color:set.color}

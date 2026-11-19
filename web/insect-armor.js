@@ -13,5 +13,5 @@ export const INSECT_ARMOR={
  'mantis-female':suit('ตั๊กแตนหญิง','Mantis Female',{atk:2})
 };
 export const insectFields=it=>it?.slot==='armor'&&Object.hasOwn(INSECT_ARMOR,it.insect)?{insect:it.insect}:{};
-export const isRetiredArmor=it=>!!it&&(['helm','gloves','boots','wings'].includes(it.slot)||(it.slot==='armor'&&!insectFields(it).insect));
+export const isRetiredArmor=it=>!!it&&['armor','helm','gloves','boots','wings'].includes(it.slot);
 export const suitIcon=it=>insectFields(it).insect?`items/insect-suits/${it.insect}.webp`:null;

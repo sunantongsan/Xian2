@@ -8,7 +8,7 @@ function checkpointFight(world,key,f,now){
  for(const id of [f.a,f.b]){const p=world.getActor(id);if(!p)continue;const other=id===f.a?f.b:f.a,rid=`${key}-${Math.round(f.started*1000)}`;p.s.pvpReports??=[];const report={id:rid,at:now*1000,opponent:f.names[other],result:'interrupted',...f.stats[id],unread:false,pending:true};const i=p.s.pvpReports.findIndex(r=>r.id===rid);if(i<0)p.s.pvpReports.push(report);else p.s.pvpReports[i]=report;p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;}
 }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export function capturePresence(p){p.s.worldState={mapRevision:p.map==='star'?STAR_REVISION:0,map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};}
+export function capturePresence(p){p.s.worldState={townRevision:711,mapRevision:p.map==='star'?STAR_REVISION:0,map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};}
 export function finishFight(world,key,resultA,resultB,now){
  const f=world.fights.get(key);if(!f)return;world.fights.delete(key);
  for(const [id,other,result] of [[f.a,f.b,resultA],[f.b,f.a,resultB]]){const p=world.getActor(id);if(!p)continue;const record=f.stats[id];p.s.pvpReports??=[];p.s.pvpReports=p.s.pvpReports.filter(r=>r.id!==`${key}-${Math.round(f.started*1000)}`);p.s.pvpReports.push({id:`${key}-${Math.round(f.started*1000)}`,at:now*1000,opponent:f.names[other],result,...record,unread:true});p.s.pvpReports=p.s.pvpReports.slice(-30);p.dirty=true;world.event(p,{kind:'pvpResult',result,opponent:f.names[other]});}
@@ -25,13 +25,13 @@ export function pvpAttack(world,p,d,now){
  if(!f){const blank=()=>({damageTaken:0,damageDealt:0,potions:0,mpPotions:0});f={a:p.id,b:target.id,started:now,last:now,names:{[p.id]:p.name,[target.id]:target.name},stats:{[p.id]:blank(),[target.id]:blank()}};world.fights.set(key,f);}
  f.last=now;p.lastPvp=target.lastPvp=now;target.defender=p.id;
  if(k){p.pvpNextSkill=(d.slot+1)%5;p.mp-=k.mp;p.cd[k.id]=now+k.cd;p.castId=k.id;}else p.cd.attack=now+.46*(1-combatStats(p.s).haste);
- p.actionUntil=now+(k?.5:.35);p.actionKind=k?'skill':'attack';p.anim=p.actionKind;p.animTime=0;
+ p.actionUntil=now+(k?.5:.35);p.actionKind=k?'skill':'attack';p.anim=p.actionKind;p.animTime=0;if(!k){p.combo=now-(p.lastComboAt||0)<1.4?((p.combo||0)+1)%3:0;p.lastComboAt=now;}
  // Commit an attack, not its outcome. Impact is resolved on a later server tick.
  const windup=k?.55:.32;
  p.actionUntil=now+windup;
  p.cd.attack=Math.max(p.cd.attack||0,now+.8);
  p.pendingPvp={target:target.id,key,due:now+windup,range,power};
- world.event(p,{kind:k?'skill':'attack',hero:p.s.hero,skillId:k?.id,form:k?.form,aim:{x:target.x,y:target.y},range,color:k?.color,radius:k?.radius});
+ world.event(p,{kind:k?'skill':'attack',combo:p.combo||0,hero:p.s.hero,skillId:k?.id,form:k?.form,aim:{x:target.x,y:target.y},range,color:k?.color,radius:k?.radius});
  checkpointFight(world,key,f,now);
  return true;
 }

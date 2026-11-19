@@ -1,6 +1,6 @@
 import {t,ui} from './i18n.js';
 // Shared by the authoritative server and offline training.
-export const ENHANCE_SLOTS=['weapon','armor','ring','amulet'];
+export const ENHANCE_SLOTS=['weapon','ring','amulet'];
 export const MAX_PLUS=12;
 export const SPECIALS=[
  {id:'hp25',get name(){return t('ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%)');},stat:'hpRegen',value:.02,weight:5},
@@ -12,13 +12,8 @@ export const SPECIALS=[
 ];
 export const specialInfo=id=>SPECIALS.find(x=>x.id===id);
 export const auraLevel=s=>Math.max(0,...ENHANCE_SLOTS.map(k=>Math.min(12,s.equip?.[k]?.plus||0)));
-export function rerollSpecial(s,slot,rng=Math.random){
- const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it||!(s.upgradeItems?.meteor>=1))return false;
- let n=Math.min(.999999,Math.max(0,rng()))*100,choice=SPECIALS.at(-1);
- for(const row of SPECIALS){n-=row.weight;if(n<0){choice=row;break;}}
- s.upgradeItems.meteor--;it.previousSpecial=it.special||null;it.special=choice.id;it.rollRevision=(it.rollRevision||0)+1;it.restoreAvailable=true;return true;
-}
-export function restoreTarget(s,slot){const it=s.equip?.[slot];return ENHANCE_SLOTS.includes(slot)&&it?.restoreAvailable?{itemId:it.id,revision:it.rollRevision}:null;}
+export function rerollSpecial(){return false;}
+export function restoreTarget(){return null;}
 export function restoreSpecial(s,target){
  const it=[...Object.values(s.equip||{}),...(s.bag||[])].find(x=>x?.id===target?.itemId);
  if(!it?.restoreAvailable||it.rollRevision!==target.revision)return false;

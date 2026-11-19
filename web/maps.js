@@ -32,7 +32,7 @@ export const MAPS={
  // Walk around the two landing pads without crossing parked craft or building roofs.
  rect(.12,.225,.31,.275),rect(.25,.17,.30,.34),rect(.04,.195,.12,.255),rect(.08,.245,.27,.29),
  rect(.69,.225,.88,.275),rect(.70,.17,.75,.34),rect(.88,.195,.96,.255),rect(.73,.245,.92,.29)
- ],pois:[{uv:BUFF_NPC_UV,get name(){return t('AURA-01 • รับบัฟ 1 ชั่วโมง');},action:'buff'},{uv:MERCHANT_UV,get name(){return t('MERC-01 • หุ่นพ่อค้า');},action:'shop'},{uv:[.85,.505],get name(){return t('FORGE-09 • หุ่นอัปเกรด');},action:'forge'},{uv:DOCTOR_UV,get name(){return t('ดร.ไอสไตร์');},action:'mutation'},{uv:[.50,.37],get name(){return t('ศูนย์ฝึกฮีโร่');},action:'skills'},{uv:[.50,.94],get name(){return t('ถนนสู่ป่าชีวะแสง • Lv.1–60');},action:'road',road:'forest'},{uv:[.94,.54],get name(){return t('ถนนสู่เขตฮีโร่ • Lv.61–120');},action:'road',road:'star'}]},
+ ],pois:[{uv:MERCHANT_UV,get name(){return t('MERC-01 • หุ่นพ่อค้า');},action:'shop'},{uv:[.85,.505],get name(){return t('FORGE-09 • หุ่นอัปเกรด');},action:'forge'},{uv:DOCTOR_UV,get name(){return t('ดร.ไอสไตร์');},action:'mutation'},{uv:[.50,.37],get name(){return t('ศูนย์ฝึกฮีโร่');},action:'skills'},{uv:[.50,.94],get name(){return t('ถนนสู่ป่าชีวะแสง • Lv.1–60');},action:'road',road:'forest'},{uv:[.94,.54],get name(){return t('ถนนสู่เขตฮีโร่ • Lv.61–120');},action:'road',road:'star'}]},
  forest:{id:'forest',get name(){return t('ป่าชีวะแสง • Lv.1–60');},image:'maps/biolume-tile.webp',tiled:true,cols:FOREST_COLS,rows:FOREST_ROWS,width:14400,height:9600,spawn:[1/6,.935],walk:forestWalk,pois:[{uv:[1/6,.95],get name(){return t('ถนนกลับสถานีออโรรา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]}
 
 };
@@ -40,7 +40,7 @@ export const MAPS={
 // Historical maps are retained as dungeons, including their original collision geometry.
 MAPS.aurora={...MAPS.town,id:'aurora',get name(){return t('ดันเจียนออโรรา');},pois:[{uv:[.5,.94],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},{uv:[.94,.54],get name(){return t('ดันเจียนป่าชีวะแสง');},action:'road',road:'ruins'}]};
 MAPS.ruins={...MAPS.forest,id:'ruins',get name(){return t('ดันเจียนป่าชีวะแสง • Lv.1–60');},pois:[{uv:[1/6,.95],get name(){return t('กลับดันเจียนออโรรา');},action:'road',road:'aurora'}]};
-MAPS.town={...MAPS.town,get name(){return t('เมืองแห่งทุ่งกุลา');},image:'maps/thung-kula-town.webp',theme:'fantasy',
+MAPS.town={...MAPS.town,width:2400,height:1600,get name(){return t('เมืองแห่งทุ่งกุลา');},image:'maps/thung-kula-town.webp',theme:'fantasy',
  walk:[rect(.012,.012,.988,.988)],
  // Building silhouettes are solid. Irrigation water, paddy fields and bridges are walkable.
  blocked:[rect(.18,.01,.77,.205),[[.04,.17],[.15,.10],[.25,.21],[.23,.30],[.04,.33]],
@@ -49,7 +49,7 @@ MAPS.town={...MAPS.town,get name(){return t('เมืองแห่งทุ�
  [[.04,.53],[.15,.50],[.23,.60],[.20,.70],[.035,.70]],
  [[.80,.53],[.88,.50],[.98,.60],[.98,.71],[.79,.71],[.76,.63]],
  [[.46,.25],[.51,.22],[.55,.27],[.55,.31],[.51,.33],[.46,.31]]],
- pois:[{uv:BUFF_NPC_UV,get name(){return t('แม่มดบุปผา • รับบัฟ');},action:'buff'},
+ pois:[
  {uv:MERCHANT_UV,get name(){return t('พ่อค้าทุ่งกุลา');},action:'shop'},
  {uv:[.85,.505],get name(){return t('ช่างตีเหล็ก');},action:'forge'},
  {uv:DOCTOR_UV,get name(){return t('ปราชญ์แห่งทุ่งกุลา');},action:'mutation'},

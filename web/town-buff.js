@@ -2,16 +2,11 @@ import {npcLife} from './npc-life.js';
 // Server owns eligibility and expiry; percentages add to unbuffed stats.
 export const BUFF_DURATION=3600000;
 export const BUFF_NPC_UV=[.57,.59];
-export function buffActive(s,now=Date.now()){return Number.isFinite(s.townBuffUntil)&&s.townBuffUntil>now;}
-export function buffMultiplier(s,now=Date.now()){return buffActive(s,now)?3:1;}
-export function movementMultiplier(s,now=Date.now()){return buffActive(s,now)?2:1;}
-export function normalizeTownBuff(s,v,now=Date.now()){
- s.townBuffUntil=Number.isFinite(v.townBuffUntil)?Math.max(0,Math.min(v.townBuffUntil,now+BUFF_DURATION)):0;
-}
-export function grantTownBuff(p,enabled,near,now=Date.now()){
- if(!enabled||!near||p.hp<=0||now<(p.buffRequestAt||0)+2000)return false;
- p.buffRequestAt=now;p.s.townBuffUntil=now+BUFF_DURATION;p.dirty=true;return true;
-}
+export function buffActive(){return false;}
+export function buffMultiplier(){return 1;}
+export function movementMultiplier(){return 1;}
+export function normalizeTownBuff(s){s.townBuffUntil=0;}
+export function grantTownBuff(){return false;}
 export function drawBuffAura(c,x,y,k,t,burst=false){
  c.save();c.globalCompositeOperation='lighter';const pulse=1+Math.sin(t*3)*.07;
  c.strokeStyle='#65e7ff';c.lineWidth=2*k;c.shadowColor='#37cfff';c.shadowBlur=0;

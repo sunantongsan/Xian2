@@ -45,24 +45,14 @@ test('shop snapshots update values without recreating modal or losing scroll',()
 });
 
 
-test('reward confirmation waits for ad dismissal, shows icon, and claim opens owned item',()=>{
- const v=fixture();v.s.upgradeItems.ruby=1;probe.set(v);
- element('modalContent').innerHTML='shop before reward';
- probe.ads.onChange({status:'loading'});
- probe.net.onAdReward({item:'ruby',duplicate:false});
- assert.equal(element('modalContent').innerHTML,'shop before reward');
- probe.ads.onChange({status:'dismissed'});
- assert.match(element('modalContent').innerHTML,/ยินดีด้วย!/);
- assert.match(element('modalContent').innerHTML,/items\/ruby.webp/);
- assert.match(element('modalContent').innerHTML,/รับรางวัล/);
- element('claimAdReward').onclick();
- assert.match(element('modalContent').innerHTML,/inventory-grid/);
- assert.match(element('modalContent').innerHTML,/material:ruby/);
- const bag=element('modalContent').innerHTML;
- probe.net.onAdReward({item:'ruby',duplicate:true});
- assert.equal(element('modalContent').innerHTML,bag);
- assert.equal(v.s.upgradeItems.ruby,1);
+test('protection reward waits for dismissal and opens current forge without old materials',()=>{
+ const v=fixture();v.s.protectionTickets=1;probe.set(v);element('modalContent').innerHTML='shop before reward';
+ probe.ads.onChange({status:'loading'});probe.net.onAdReward({item:'protectionTicket',duplicate:false});
+ assert.equal(element('modalContent').innerHTML,'shop before reward');probe.ads.onChange({status:'dismissed'});
+ assert.match(element('modalContent').innerHTML,/forge-panel/);assert.match(element('modalContent').innerHTML,/useProtection/);
+ assert.doesNotMatch(element('modalContent').innerHTML,/data-forge-tab="gem"/);
 });
+
 test('closing a video early never displays a success dialog',()=>{
  probe.set(fixture());element('modalContent').innerHTML='no earned reward';
  probe.ads.onChange({status:'loading'});probe.ads.onChange({status:'dismissed'});

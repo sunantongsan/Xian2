@@ -52,16 +52,16 @@ test('internal demo ticket persists once, replies after snapshot, and is disable
  for(const enabled of [false,true]){
  const directory=mkdtempSync(join(tmpdir(),'cockro-demo-')),app=startServer({port:0,directory,test:true,testRewards:enabled});await once(app.server,'listening');t.after(()=>app.close());
  const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});t.after(()=>a.ws.terminate());
- a.ws.send(JSON.stringify({type:'testAdTicket',item:'ruby'}));
- if(!enabled){await until(()=>a.messages.find(m=>m.type==='adError'&&m.message==='test_rewards_disabled'));assert.equal(app.world.players.get(a.welcome.id).s.upgradeItems.ruby,0);continue;}
+ a.ws.send(JSON.stringify({type:'testAdTicket',item:'protectionTicket'}));
+ if(!enabled){await until(()=>a.messages.find(m=>m.type==='adError'&&m.message==='test_rewards_disabled'));assert.equal(app.world.players.get(a.welcome.id).s.protectionTickets,0);continue;}
  const ticket=await until(()=>a.messages.find(m=>m.type==='adTicket'));assert.equal(ticket.test,true);
  a.ws.send(JSON.stringify({type:'testAdComplete',nonce:ticket.nonce}));
  await until(()=>a.messages.find(m=>m.type==='adReward'));
- const first=a.messages.findIndex(m=>m.type==='adReward');assert.equal(a.messages[first-1].self.save.upgradeItems.ruby,1);
- assert.equal(JSON.parse(readFileSync(join(directory,a.welcome.id+'.json'))).upgradeItems.ruby,1);
+ const first=a.messages.findIndex(m=>m.type==='adReward');assert.equal(a.messages[first-1].self.save.protectionTickets,1);
+ assert.equal(JSON.parse(readFileSync(join(directory,a.welcome.id+'.json'))).protectionTickets,1);
  a.ws.send(JSON.stringify({type:'testAdComplete',nonce:ticket.nonce}));await until(()=>a.messages.find(m=>m.type==='adReward'&&m.duplicate));
  a.ws.close();await until(()=>!app.world.players.has(a.welcome.id));
- const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.upgradeItems.ruby,1);
+ const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.protectionTickets,1);
  }
 });
 
@@ -81,15 +81,14 @@ test('doctor socket operation persists refunded points and mutation across recon
 });
 
 
-test('full suit equipped over websocket is visible to another player and survives reconnect',async t=>{
+test('retired suit equip is rejected over websocket and cannot survive reconnect',async t=>{
  const {makeItem}=await import('../web/gear.js');
  const directory=mkdtempSync(join(tmpdir(),'cockro-suit-online-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
- const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,hello={type:'hello',version:PROTOCOL,create:true,name:'SuitTester',hero:'sword-cockro'};
- const a=await client(url,hello),b=await client(url,hello);t.after(()=>{a.ws.terminate();b.ws.terminate();});
+ const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
+ const a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'SuitTester',hero:'sword-cockro'});t.after(()=>a.ws.terminate());
  const p=app.world.players.get(a.welcome.id),it={...makeItem('armor',0,2),insect:'scorpion-female'};p.s.bag.push(it);
- a.ws.send(JSON.stringify({type:'op',op:'equip',id:it.id}));
- await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.insectArmor==='scorpion-female')));
- assert.equal(JSON.parse(readFileSync(join(directory,p.id+'.json'))).equip.armor.insect,'scorpion-female');
- a.ws.close();await until(()=>!app.world.players.has(p.id));const again=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>again.ws.terminate());assert.equal(again.welcome.save.equip.armor.insect,'scorpion-female');
- b.messages.length=0;again.ws.send(JSON.stringify({type:'op',op:'unequip',slot:'armor'}));await until(()=>b.messages.some(m=>m.type==='state'&&m.players.some(q=>q.id===p.id&&q.insectArmor===null)));
+ a.ws.send(JSON.stringify({type:'op',op:'equip',id:it.id}));await until(()=>a.messages.some(m=>m.type==='opResult'&&m.op==='equip'));
+ assert.equal(p.s.equip.armor,undefined);a.ws.close();await until(()=>!app.world.players.has(p.id));
+ const again=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>again.ws.terminate());
+ assert.equal(again.welcome.save.equip.armor,undefined);assert(!again.welcome.save.bag.some(it=>it.slot==='armor'));
 });
