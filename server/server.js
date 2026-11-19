@@ -1,3 +1,5 @@
+import {migrateAllCharacters,migrationReceipt} from './single-character.js';
+import {backupBefore416} from './release-backup.js';
 import {migrateArmorSaves} from './armor-migration.js';
 import {createChat} from './chat.js';
 import {createCommerce} from './commerce.js';
@@ -21,7 +23,10 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
  mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new World({maxPlayers,testRewards,roamers}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
  const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
- const commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
+ let commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
+ backupBefore416(directory,'single-character-4502-v1');
+ migrateAllCharacters(directory);
+ commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
  migrateArmorSaves(directory); // After commerce WAL recovery, before loading any characters.
  // Restore only characters that have logged out since persistent presence was introduced.
  for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state&&!accounts.deletion.isCharacterDeleted(file.slice(0,-5)))world.restore(file.slice(0,-5),state);}catch{diskFailure=true;}}
@@ -62,15 +67,16 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const ids=d.action==='delete'? [characterId(owner,d.character)]:CHARACTER_SLOTS.map(slot=>characterId(owner,slot));
  for(const id of ids){for(const [key,fight]of [...world.fights])if(fight.a===id||fight.b===id)finishFight(world,key,'interrupted','interrupted',Date.now()/1000);world.sleepers.delete(id);}
  }}
-}send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!test)throw Error('login_required');if(!HEROES.includes(d.hero))throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
+}send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!test)throw Error('login_required');if(d.hero!=='sword-cockro')throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
  for(const slot of CHARACTER_SLOTS){const body=world.sleepers.get(characterId(account,slot));if(body?.dirty)persist(body);}
  const main=created?fresh(d.hero):readCharacter(directory,account);
  if(!main&&!accounts.exists(account))throw Error('account_missing');
  if(d.preview===true){send(ws,{type:'roster',...accounts.languageProfile(account,d.deviceLocale),characters:characterRoster(directory,account)});clearTimeout(timer);ws.close(1000);return;}
  if(activeAccounts.has(account)||accounts.busy.has(account))throw Error('already_online');
- let character=d.character||'main',state;
+ let character=migrationReceipt(directory,account)?.slot||d.character||'main',state;
  if(d.newCharacter===true&&!created){
-  if(!HEROES.includes(d.hero))throw Error('invalid_hero');
+  if(d.hero!=='sword-cockro')throw Error('invalid_hero');
+  if(characterRoster(directory,account).length)throw Error('character_limit');
   character=CHARACTER_SLOTS.find(slot=>!readCharacter(directory,account,slot));
   if(!character)throw Error('character_limit');state=fresh(d.hero);
  }else state=character==='main'?main:readCharacter(directory,account,character);
@@ -120,6 +126,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
  server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);clearInterval(deletionWorker);for(const key of [...world.fights.keys()])finishFight(world,key,'interrupted','interrupted',Date.now()/1000);for(const p of world.actors()){try{persist(p);}catch{}}for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
+
 
 
 

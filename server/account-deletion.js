@@ -19,6 +19,7 @@ export function createAccountDeletion(directory,{authUrl,adminKey=process.env.SU
  function purge(record){
   const ids=CHARACTER_SLOTS.map(slot=>characterId(record.account,slot));ids.forEach(id=>deletedIds.add(id));
   function clean(base){
+   rmSync(join(base,'single-character-v1',record.account),{recursive:true,force:true});
    const commerce=join(base,'commerce.json');if(existsSync(commerce)){const data=JSON.parse(readFileSync(commerce,'utf8'));delete data.vaults?.[record.account];delete data.shops?.[record.account];write(commerce,data);}
    if(existsSync(join(base,'referrals.json')))createReferrals(base).remove(record.account);
    for(const id of ids){rmSync(join(base,id+'.json'),{force:true});rmSync(join(base,id+'.json.tmp'),{force:true});}
@@ -43,4 +44,5 @@ export function createAccountDeletion(directory,{authUrl,adminKey=process.env.SU
  const identityPending=uid=>files().filter(f=>f.endsWith('.json')).some(f=>{const r=JSON.parse(readFileSync(join(root,f),'utf8'));return !r.identityComplete&&r.uid===uid;});
  recover();return {publicKey:identity.publicKey,request,isDeleted:account=>!!read(account),isCharacterDeleted:id=>deletedIds.has(id),identityPending,processPending};
 }
+
 

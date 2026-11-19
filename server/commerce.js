@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {BAG_SIZE} from '../web/gear.js';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
 import {EXP_TICKETS} from '../web/exp-tickets.js';
-const CAPS={gold:1e10,stones:1e7};
+const CAPS={gold:1e10,stones:1e12};
 const integer=(n,max)=>Number.isSafeInteger(n)&&n>0&&n<=max;
 function need(ok,message){if(!ok)throw Error(message);}
 export function take(s,kind,id,quantity){
@@ -79,6 +79,7 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  const ownsListedItems=(account,id)=>ledger.shops[account]?.character===id&&ledger.shops[account].listings.length>0;
  return {run,view,lockVault,refreshSigns,stalls,removeAccount,ownsListedItems,get failed(){return failed;}};
 }
+
 
 
 

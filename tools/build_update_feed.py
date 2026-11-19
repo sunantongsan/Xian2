@@ -6,7 +6,7 @@ version=json.loads((root/'web/release.json').read_text())['version']
 output=root/'patch-public'
 if output.exists(): shutil.rmtree(output)
 (output/'patches').mkdir(parents=True)
-files={p.relative_to(root/'web').as_posix():p for p in (root/'web').rglob('*') if p.is_file() and p.suffix in {'.html','.js','.css','.json','.webp','.ttf','.txt','.ogg','.mp3','.wav','.svg'} and p.name!='patch.json'}
+files={p.relative_to(root/'web').as_posix():p for p in (root/'web').rglob('*') if p.is_file() and p.suffix in {'.html','.js','.css','.json','.webp','.ttf','.txt','.ogg','.mp3','.wav','.svg'} and p.name not in {'patch.json','test.html','test-game.js'}}
 assert not list((root/'web').rglob('*.png')), 'PNG is unsupported by the installed Android patch extractor; use WebP'
 for asset in ['cowboy.webp','wuxia.webp','knight-open.webp']:
  assert 'fashion/'+asset in files, 'Missing wardrobe atlas: '+asset
@@ -38,7 +38,8 @@ print(json.dumps(feed))
 
 
 
-# Review fixtures are never included in the Android patch or production output.
+# The browser test is generated outside the Android payload.
 import os,subprocess
 if os.environ.get('VERCEL_ENV')=='preview':
- subprocess.run(['python3',str(root/'tools/build-mobile-review.py')],check=True)
+ subprocess.run(['python3',str(root/'tools/build-cockro-test.py')],check=True)
+ (output/'play/index.html').write_text('<!doctype html><meta http-equiv="refresh" content="0;url=test.html">')

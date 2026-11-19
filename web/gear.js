@@ -1,3 +1,4 @@
+import {COSTS,SUCCESS,enhance} from './chain-economy.js';
 import {INSECT_ARMOR,insectFields,isRetiredArmor} from './insect-armor.js';
 import {t,ui,language} from './i18n.js';
 import {countActivity} from './daily-activities.js';
@@ -56,25 +57,21 @@ export function freshGear(s){s.equip=Object.fromEntries(SLOT_ORDER.map(k=>[k,nul
 const validItem=it=>it&&!isRetiredArmor(it)&&typeof it.id==='string'&&SLOTS[it.slot]&&Number.isInteger(it.tier)&&it.tier>=0&&it.tier<TIERS.length&&Number.isInteger(it.rarity)&&it.rarity>=0&&it.rarity<RARITY.length;
 export function normalizeGear(s,v={}){
  if(!v.equip&&!v.bag)return freshGear(s);
- s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}:null];}));
- s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?9:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}));
+ s.equip=Object.fromEntries(SLOT_ORDER.map(k=>{const it=v.equip?.[k];return [k,validItem(it)&&it.slot===k?{id:it.id.slice(0,40),slot:k,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?12:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}:null];}));
+ s.bag=(Array.isArray(v.bag)?v.bag:[]).filter(validItem).slice(0,BAG_SIZE).map(it=>({id:it.id.slice(0,40),slot:it.slot,tier:it.tier,rarity:it.rarity,plus:Math.max(0,Math.min(ENHANCE_SLOTS.includes(it.slot)?12:15,Math.floor(it.plus||0))),...specialFields(it),...insectFields(it),...(it.legacyPlus?{legacyPlus:Math.min(15,it.legacyPlus)}:{}),...(it.gems?{gems:normalizeGems(it.gems)}:{})}));
  return s;
 }
 export function heroPower(s,base){return Math.round(base+Object.values(s.equip||{}).reduce((a,it)=>a+(it?itemPower(it):0),0));}
 
 
 // Save keys remain compatible: gold = spending money G, stones = rare upgrade gold.
-export const gearUpgradeCost=it=>0;
-export const gearUpgradeG=it=>500*((it.plus||0)+1)**2;
+export const gearUpgradeCost=it=>COSTS[it.plus||0]||0;
+export const gearUpgradeG=it=>0;
 export const upgradeMaterial=it=>'alloy';
-export const upgradeChance=it=>Math.min(1,([1,1,1,.65,.5,.35,.25,.15,.1][it.plus||0]||0)+Math.max(0,it.upgradeFails||0)*.05);
-export function upgradeGear(s,slot,rng=Math.random){
- const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it||(it.plus||0)>=MAX_PLUS)return false;
- normalizeUpgradeItems(s);const g=gearUpgradeG(it),n=(it.plus||0)+1;
- if(!Number.isFinite(s.gold)||s.gold<g||s.upgradeItems[upgradeMaterial(it)]<1||(n>=4&&s.upgradeItems.protect<1))return false;
- const chance=upgradeChance(it);s.gold-=g;s.upgradeItems[upgradeMaterial(it)]--;if(n>=4)s.upgradeItems.protect--;
- if(rng()<chance){it.plus=n;it.upgradeFails=0;countActivity(s,'upgrade');}else it.upgradeFails=(it.upgradeFails||0)+1;
- return true;
+export const upgradeChance=(it,protectedAttempt=false)=>Math.min(1,((SUCCESS[it.plus||0]||0)+(protectedAttempt?5:0))/100);
+export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
+ const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it)return false;
+ const result=enhance(s,it,useProtection,rng);if(result?.success)countActivity(s,'upgrade');return !!result;
 }
 export function gearShopPrice(slot,tier){return slot==='weapon'?1000+500*tier*tier:600+250*tier*tier;}
 export function buyShopGear(s,slot,tier=tierForLevel(s.level)){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;const cost=gearShopPrice(slot,tier);const currency=slot==='weapon'?'gold':'stones';if(!Number.isFinite(s[currency])||s[currency]<cost)return false;s[currency]-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
@@ -87,3 +84,4 @@ export function rollInsectArmor(m,rng=Math.random){
  const rarity=m.boss?2:m.elite?1:0;
  return {...makeItem('armor',tierForLevel(m.level),rarity,rng),insect};
 }
+

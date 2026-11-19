@@ -1,5 +1,23 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ใช้ตั๋วป้องกัน":"Use protection ticket",
+"แต้มฝึกฝน":"Training points",
+"สูงสุด +12":"Maximum +12",
+"ดูโฆษณารับตั๋วป้องกัน":"Watch an ad for a protection ticket",
+"รับตั๋วป้องกัน":"Get protection ticket",
+"ยืนยันใช้ตั๋ว":"Use ticket",
+"ยอมรับความเสี่ยง":"Accept risk",
+"มีตั๋วครบแล้ว เลือกใช้ตั๋วก่อนตีบวก":"Ticket limit reached. Select a ticket before enhancing.",
+"ใช้ตั๋ว 1 ใบ เพิ่มโอกาสสำเร็จ 5 จุดเปอร์เซ็นต์ หากล้มเหลวเสีย 1 COCKRO ตั๋วใช้แล้วหมดไม่ว่าสำเร็จหรือล้มเหลว":"Use 1 ticket for +5 percentage points success chance. Failure costs 1 COCKRO. The ticket is consumed on success or failure.",
+"หากล้มเหลวจะเสีย COCKRO เต็มจำนวน อุปกรณ์ไม่แตกและระดับไม่ลด":"Failure costs the full COCKRO fee. Equipment never breaks or loses levels.",
+"กระเป๋า Web3":"Web3 wallet",
+"ยอดเหรียญในเกม • ยังไม่ใช่สินทรัพย์บนเชน":"In-game balance \u2022 not an on-chain asset",
+"รอกำหนดเครือข่ายและโทเคน การฝาก ถอน และสร้างกระเป๋ายังไม่เปิดใช้งาน":"Network and token selection pending. Deposits, withdrawals and wallet creation are not enabled.",
+"เครื่องนี้เปิด 3D ไม่ได้ กำลังใช้ภาพสำรอง":"3D is unavailable on this device. Using compatibility graphics.",
+"บัญชีละ 1 ตัวละคร":"One character per account",
+"ตีบวกไม่สำเร็จ • อุปกรณ์ไม่แตกและระดับไม่ลด":"Enhancement failed \u2022 equipment kept, no level loss",
+"COCKRO แต้มฝึกฝน หรือตั๋วไม่เพียงพอ":"Not enough COCKRO, training points or tickets",
+"อุปกรณ์ไม่แตกและระดับไม่ลด":"Equipment kept, no level loss",
 "เมืองแห่งทุ่งกุลา":"Thung Kula Village",
 "เมืองแห่งทุ่งกุลาและดันเจียน":"Thung Kula and Dungeons",
 "ทุ่งกุลา • เลเวล 1–60":"Thung Kula Fields \u2022 Lv.1\u201360",
@@ -1326,4 +1344,5 @@ Object.assign(EN,{
  'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
  'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
 });
+
 

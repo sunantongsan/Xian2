@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,writeFileSync,readFileSync,existsSync,rmSync,mkdirSync,unlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fresh} from '../web/core.js';
+import {migrateAccount,migrateAllCharacters,legacyId} from '../server/single-character.js';
+const account='a'.repeat(64);
+function setup(){const dir=mkdtempSync(join(tmpdir(),'cockro-merge-'));for(const [slot,level,coins]of [['main',10,50],['slot2',60,123],['slot3',60,321]]){const s=fresh('demon-scorpion');Object.assign(s,{level,stones:coins,name:slot});writeFileSync(join(dir,legacyId(account,slot)+'.json'),JSON.stringify(s));}return dir;}
+test('highest level stable tie, exact compensation, backup and no duplicate credit',()=>{const dir=setup();try{const r=migrateAccount(dir,account);assert.equal(r.slot,'slot2');assert.equal(r.credit,2371);const read=()=>JSON.parse(readFileSync(join(dir,r.winner+'.json')));assert.equal(read().stones,2494);assert.equal(read().hero,'sword-cockro');assert.equal(read().level,60);assert.equal(existsSync(join(dir,account+'.json')),false);migrateAllCharacters(dir);migrateAllCharacters(dir);assert.equal(read().stones,2494);assert.ok(existsSync(join(dir,'single-character-v1',account,account+'.original.json')));}finally{rmSync(dir,{recursive:true,force:true});}});
+for(const step of ['prepared','backed_up','credited','retired','completed'])test('restart recovery after '+step,()=>{const dir=setup();try{assert.throws(()=>migrateAccount(dir,account,{afterStep:s=>{if(s===step)throw Error('power loss');}}));migrateAllCharacters(dir);const r=migrateAccount(dir,account),s=JSON.parse(readFileSync(join(dir,r.winner+'.json')));assert.equal(s.stones,2494);assert.equal(r.removed.length,2);}finally{rmSync(dir,{recursive:true,force:true});}});
+test('single character converts species without compensation',()=>{const dir=mkdtempSync(join(tmpdir(),'cockro-one-'));try{const s=fresh('sword-dragonfly');s.stones=700;writeFileSync(join(dir,account+'.json'),JSON.stringify(s));const r=migrateAccount(dir,account);assert.equal(r.credit,0);assert.equal(JSON.parse(readFileSync(join(dir,account+'.json'))).stones,700);}finally{rmSync(dir,{recursive:true,force:true});}});
+
+test('missing main is resolved using account sessions before orphan discovery',()=>{const dir=setup();try{unlinkSync(join(dir,account+'.json'));mkdirSync(join(dir,'accounts'));writeFileSync(join(dir,'accounts','session-test.json'),JSON.stringify({account}));migrateAllCharacters(dir);const s=JSON.parse(readFileSync(join(dir,legacyId(account,'slot2')+'.json')));assert.equal(s.stones,1444);assert.equal(s.hero,'sword-cockro');migrateAllCharacters(dir);assert.equal(JSON.parse(readFileSync(join(dir,legacyId(account,'slot2')+'.json'))).stones,1444);}finally{rmSync(dir,{recursive:true,force:true});}});

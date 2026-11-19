@@ -1,7 +1,7 @@
 import {t,ui} from './i18n.js';
 // Shared by the authoritative server and offline training.
-export const ENHANCE_SLOTS=['weapon','ring','amulet'];
-export const MAX_PLUS=9;
+export const ENHANCE_SLOTS=['weapon','armor','ring','amulet'];
+export const MAX_PLUS=12;
 export const SPECIALS=[
  {id:'hp25',get name(){return t('ฟื้น HP 2% ทุก 2 วินาที (รวมสูงสุด 4%)');},stat:'hpRegen',value:.02,weight:5},
  {id:'mp10',get name(){return t('ฟื้น MP 10% ทุก 2 วินาที');},stat:'mpRegen',value:.1,weight:20},
@@ -11,7 +11,7 @@ export const SPECIALS=[
  {id:'hp300',get name(){return t('HP สูงสุด +300');},stat:'hp',value:300,weight:10}
 ];
 export const specialInfo=id=>SPECIALS.find(x=>x.id===id);
-export const auraLevel=s=>Math.max(0,...ENHANCE_SLOTS.map(k=>Math.min(9,s.equip?.[k]?.plus||0)));
+export const auraLevel=s=>Math.max(0,...ENHANCE_SLOTS.map(k=>Math.min(12,s.equip?.[k]?.plus||0)));
 export function rerollSpecial(s,slot,rng=Math.random){
  const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it||!(s.upgradeItems?.meteor>=1))return false;
  let n=Math.min(.999999,Math.max(0,rng()))*100,choice=SPECIALS.at(-1);
@@ -32,5 +32,6 @@ export function applyRegen(p,dt,maxHP,maxMP){
  p.hp=Math.min(maxHP,p.hp+maxHP*Math.min(.04,hp)*ticks);p.mp=Math.min(maxMP,(p.mp||0)+maxMP*mp*ticks);
 }
 export function exchangeGold(s,amount){if(!Number.isSafeInteger(amount)||amount<1||amount>1000||s.stones<amount||s.gold+amount*10000>1e10)return false;s.stones-=amount;s.gold+=amount*10000;return true;}
+
 
 
