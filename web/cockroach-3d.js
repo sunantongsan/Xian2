@@ -9,7 +9,8 @@ export function loadCockroach3D(){
   const base=new URL('./models/',import.meta.url),indexResponse=await fetch(new URL('cockroach.json',base));if(!indexResponse.ok)throw Error('model_index');const index=await indexResponse.json();const pieces=new Array(index.chunks.length);let next=0;
   await Promise.all(Array.from({length:6},async()=>{while(next<index.chunks.length){const i=next++;const response=await fetch(new URL(index.chunks[i],base));if(!response.ok)throw Error('model_chunk');pieces[i]=atob(await response.json());}}));
   const bytes=new Uint8Array(index.bytes);let offset=0;for(const raw of pieces)for(let i=0;i<raw.length;i++)bytes[offset++]=raw.charCodeAt(i);
-  if(offset!==index.bytes)throw Error('model_size');const gltf=await new GLTFLoader().parseAsync(bytes.buffer,base.href);
+  if(offset!==index.bytes)throw Error('model_size');
+  const digest=await crypto.subtle.digest('SHA-256',bytes);if(Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('')!==index.sha256)throw Error('model_integrity');const gltf=await new GLTFLoader().parseAsync(bytes.buffer,base.href);
   for(const name of ['Idle','Walk','Run','Hit','Death'])if(!gltf.animations.some(c=>c.name===name))throw Error('missing_animation_'+name);
   gltf.scene.getObjectByName('COCKRO_Rifle')?.traverse(o=>o.visible=false);
   rig=makeActor(gltf);
@@ -18,7 +19,7 @@ export function loadCockroach3D(){
   scene=new T.Scene();scene.add(rig.root,new T.HemisphereLight(0xffffff,0x839582,2.4));const light=new T.DirectionalLight(0xffedcf,2.8);light.position.set(3,5,4);scene.add(light);
   camera=new T.OrthographicCamera(-1.7,1.7,2.7,-.7,.01,100);camera.position.set(0,3,6);camera.lookAt(0,1,0);
   rig.play('Guard');rig.seek(0);return true;
- })().catch(e=>{pending=null;throw e;});return pending;
+ })().catch(e=>{console.warn('COCKRO 3D unavailable; using compatibility renderer:',e.message);rig=null;renderer?.dispose();renderer=null;return false;});return pending;
 }
 export function drawCockroach3D(ctx,actor,x,y,size){
  if(!rig||!renderer||renderer.getContext().isContextLost())return false;
