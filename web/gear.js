@@ -48,11 +48,11 @@ export function rollDrop(m,rng=Math.random){
  const r=rng();let rarity=r<.04?3:r<.16?2:r<.45?1:0;if(m.boss)rarity=Math.max(2,rarity);else if(m.elite)rarity=Math.max(1,rarity);
  return makeItem(slot,tier,rarity,rng);
 }
-export function addToBag(s,it){if(s.bag.length>=BAG_SIZE){s.gold+=sellPrice(it);return false;}s.bag.push(it);return true;}
+export function addToBag(s,it){if(s.bag.length>=BAG_SIZE){s.stones+=sellPrice(it);return false;}s.bag.push(it);return true;}
 export function canEquip(s,it){return !!it&&!isRetiredArmor(it)&&SLOT_ORDER.includes(it.slot)&&s.level>=TIERS[it.tier].level;}
 export function equip(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return t('ไม่พบไอเท็ม');const it=s.bag[i];if(!canEquip(s,it))return ui`ต้องเลเวล ${TIERS[it.tier].level}`;s.bag.splice(i,1);const old=s.equip[it.slot];if(old)s.bag.push(old);s.equip[it.slot]=it;return null;}
 export function unequip(s,slot){const it=s.equip[slot];if(!it)return t('ช่องว่าง');if(s.bag.length>=BAG_SIZE)return t('กระเป๋าเต็ม');s.bag.push(it);s.equip[slot]=null;return null;}
-export function sell(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return 0;const [it]=s.bag.splice(i,1),g=sellPrice(it);s.gold+=g;return g;}
+export function sell(s,id){const i=s.bag.findIndex(x=>x.id===id);if(i<0)return 0;const [it]=s.bag.splice(i,1),g=sellPrice(it);s.stones+=g;return g;}
 export function freshGear(s){s.equip=Object.fromEntries(SLOT_ORDER.map(k=>[k,null]));s.equip.weapon=makeItem('weapon',0,0);s.bag=[];return s;}
 const validItem=it=>it&&SLOT_ORDER.includes(it.slot)&&!isRetiredArmor(it)&&typeof it.id==='string'&&SLOTS[it.slot]&&Number.isInteger(it.tier)&&it.tier>=0&&it.tier<TIERS.length&&Number.isInteger(it.rarity)&&it.rarity>=0&&it.rarity<RARITY.length;
 export function normalizeGear(s,v={}){
@@ -64,7 +64,7 @@ export function normalizeGear(s,v={}){
 export function heroPower(s,base){return Math.round(base+Object.values(s.equip||{}).reduce((a,it)=>a+(it?itemPower(it):0),0));}
 
 
-// Save keys remain compatible: gold = spending money G, stones = rare upgrade gold.
+// Save keys remain compatible: stones is COCKRO; gold is retained as inactive legacy data.
 export const gearUpgradeCost=it=>COSTS[it.plus||0]||0;
 export const gearUpgradeG=it=>0;
 export const upgradeMaterial=it=>'alloy';
@@ -74,8 +74,9 @@ export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
  const result=enhance(s,it,useProtection,rng);if(result?.success)countActivity(s,'upgrade');return !!result;
 }
 export function gearShopPrice(slot,tier){return slot==='weapon'?1000+500*tier*tier:600+250*tier*tier;}
-export function buyShopGear(s,slot,tier=tierForLevel(s.level)){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;const cost=gearShopPrice(slot,tier);const currency=slot==='weapon'?'gold':'stones';if(!Number.isFinite(s[currency])||s[currency]<cost)return false;s[currency]-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
+export function buyShopGear(s,slot,tier=tierForLevel(s.level)){if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;const cost=gearShopPrice(slot,tier);const currency='stones';if(!Number.isFinite(s[currency])||s[currency]<cost)return false;s[currency]-=cost;s.bag.push(makeItem(slot,tier,2));return true;}
 
 
 
 export function rollInsectArmor(){return null;}
+

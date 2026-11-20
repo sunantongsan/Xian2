@@ -1,5 +1,7 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"แต้มสเตตัส":"Stat points",
+"แต้มสกิล":"Skill points",
 "ใช้ตั๋วป้องกัน":"Use protection ticket",
 "แต้มฝึกฝน":"Training points",
 "สูงสุด +12":"Maximum +12",
@@ -1344,5 +1346,6 @@ Object.assign(EN,{
  'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
  'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
 });
+
 
 

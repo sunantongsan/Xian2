@@ -2,7 +2,7 @@ import {t,ui} from './i18n.js';
 export const PET_PRICE=20000, PET_SEARCH_RADIUS=400, PET_PICKUP_RADIUS=45;
 export const LOOT_PETS=Object.freeze({dog:{get name(){return t('หมา');},tile:0},cat:{get name(){return t('แมว');},tile:1},chicken:{get name(){return t('ไก่');},tile:2},tiger:{get name(){return t('เสือ');},tile:3},buffalo:{get name(){return t('ควาย');},tile:4}});
 export function normalizePets(s,v=s){const old=v.lootPets||{};const owned=Array.isArray(old.owned)?[...new Set(old.owned.filter(id=>typeof id==='string'&&Object.hasOwn(LOOT_PETS,id)))]:[];s.lootPets={owned,active:owned.includes(old.active)?old.active:null};}
-export function buyPet(s,id){if(typeof id!=='string'||!Object.hasOwn(LOOT_PETS,id))return false;normalizePets(s);if(s.lootPets.owned.includes(id)||!Number.isFinite(s.gold)||s.gold<PET_PRICE)return false;s.gold-=PET_PRICE;s.lootPets.owned.push(id);s.lootPets.active=id;return true;}
+export function buyPet(s,id){if(typeof id!=='string'||!Object.hasOwn(LOOT_PETS,id))return false;normalizePets(s);if(s.lootPets.owned.includes(id)||!Number.isFinite(s.stones)||s.stones<PET_PRICE)return false;s.stones-=PET_PRICE;s.lootPets.owned.push(id);s.lootPets.active=id;return true;}
 export function equipPet(s,id){normalizePets(s);if(id!==null&&!s.lootPets.owned.includes(id))return false;s.lootPets.active=id;return true;}
 export function stepPet(p,loot,dt,now,trace){
  const id=p.s.lootPets?.active;if(!id||!Object.hasOwn(LOOT_PETS,id)||p.hp<=0||p.offline){p.pet=null;return;}
@@ -12,3 +12,4 @@ export function stepPet(p,loot,dt,now,trace){
  const dx=target.x-pet.x,dy=target.y-pet.y,d=Math.hypot(dx,dy),stop=target===p?65:8,step=Math.min(Math.max(0,d-stop),Math.max(0,Math.min(dt,.25))*360);
  pet.moving=step>1;if(step){const pos=trace(pet,{x:pet.x+dx/d*step,y:pet.y+dy/d*step});pet.face=dx-dy<0?-1:1;pet.x=pos.x;pet.y=pos.y;}
 }
+

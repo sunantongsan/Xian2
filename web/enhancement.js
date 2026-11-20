@@ -26,7 +26,8 @@ export function applyRegen(p,dt,maxHP,maxMP){
  let hp=0,mp=0;for(const slot of ENHANCE_SLOTS){const opt=specialInfo(p.s.equip?.[slot]?.special);if(opt?.stat==='hpRegen')hp+=opt.value;if(opt?.stat==='mpRegen')mp+=opt.value;}
  p.hp=Math.min(maxHP,p.hp+maxHP*Math.min(.04,hp)*ticks);p.mp=Math.min(maxMP,(p.mp||0)+maxMP*mp*ticks);
 }
-export function exchangeGold(s,amount){if(!Number.isSafeInteger(amount)||amount<1||amount>1000||s.stones<amount||s.gold+amount*10000>1e10)return false;s.stones-=amount;s.gold+=amount*10000;return true;}
+export function exchangeGold(){return false;}
+
 
 
 

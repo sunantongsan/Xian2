@@ -17,13 +17,13 @@ import {gearTotals,freshGear,normalizeGear} from './gear.js';
 import {BALANCE_VERSION,levelXP,migrateXP,PLAYER_GROWTH} from './balance.js';
 import {buffMultiplier,normalizeTownBuff} from './town-buff.js';
 export const VERSION=1;
-export function fresh(hero){const s={version:VERSION,mutationVersion:MUTATION_VERSION,mutationStage:0,jobBranch:null,statProgressionVersion:STAT_PROGRESSION_VERSION,legacyStatLevels:0,name:'',townBuffUntil:0,enhancementVersion:2,balanceVersion:BALANCE_VERSION,mpPotions:5,adTickets:[],accountRewardReceipts:[],playReceipts:[],pvpReports:[],hero,level:1,xp:0,gold:100000,potions:10,stones:0,upgrade:0,zone:0,kills:0,seen:[],bosses:[],sound:true,quality:'auto',attributes:{vit:0,str:0,int:0,agi:0},statPoints:0,skillPoints:0,skillRanks:{},reputation:0,autoAttack:false};normalizeEconomy(s);normalizePets(s);normalizeExpTickets(s);normalizeSkills(s);normalizeUpgradeItems(s);normalizeCheckin(s);freshGear(s);normalizeFashion(s);return s;}
+export function fresh(hero){const s={version:VERSION,mutationVersion:MUTATION_VERSION,mutationStage:0,jobBranch:null,statProgressionVersion:STAT_PROGRESSION_VERSION,legacyStatLevels:0,name:'',townBuffUntil:0,enhancementVersion:2,balanceVersion:BALANCE_VERSION,mpPotions:5,adTickets:[],accountRewardReceipts:[],playReceipts:[],pvpReports:[],hero,level:1,xp:0,gold:0,potions:10,stones:0,upgrade:0,zone:0,kills:0,seen:[],bosses:[],sound:true,quality:'auto',attributes:{vit:0,str:0,int:0,agi:0},statPoints:0,skillPoints:0,skillRanks:{},reputation:0,autoAttack:false};normalizeEconomy(s);normalizePets(s);normalizeExpTickets(s);normalizeSkills(s);normalizeUpgradeItems(s);normalizeCheckin(s);freshGear(s);normalizeFashion(s);return s;}
 export function xpNeed(level){return levelXP(level);}
 export function maxHP(s){return buffMultiplier(s)*Math.round((120+s.level*PLAYER_GROWTH.hp)*mutationGrowth(s.hero,s.level,mutationStage(s))+s.upgrade*12+(s.attributes?.vit||0)*12+gearTotals(s).hp);}
 export function damage(s){return buffMultiplier(s)*Math.round((16+s.level*PLAYER_GROWTH.attack)*mutationGrowth(s.hero,s.level,mutationStage(s))+s.upgrade*8+(s.attributes?.str||0)*2+gearTotals(s).atk);}
-export function reward(s,m,rng=Math.random){const prior=statProgression(s,s.level);s.statProgressionVersion=prior.statProgressionVersion;s.legacyStatLevels=prior.legacyStatLevels;countActivity(s,'hunt');if(m.boss)countActivity(s,'boss');s.gold+=m.gold;s.xp=pendingMutation(s)?0:Math.min(1e8,s.xp+Math.floor(m.xp*expMultiplier(s)));s.kills++;s.reputation=(s.reputation||0)+(m.boss?25:1);if(!s.seen.includes(m.id))s.seen.push(m.id);if(m.boss&&!s.bosses.includes(m.id))s.bosses.push(m.id);const stone=false;normalizeUpgradeItems(s);advanceLevels(s);return stone;}
-export function buyPotion(s){if(s.gold<50||s.potions>=99999)return false;s.gold-=50;s.potions++;return true;}
-export function buyMPPotion(s){if(s.gold<60||(s.mpPotions||0)>=99999)return false;s.gold-=60;s.mpPotions=(s.mpPotions||0)+1;return true;}
+export function reward(s,m,rng=Math.random){const prior=statProgression(s,s.level);s.statProgressionVersion=prior.statProgressionVersion;s.legacyStatLevels=prior.legacyStatLevels;countActivity(s,'hunt');if(m.boss)countActivity(s,'boss');s.stones=Math.min(COIN_CAP,s.stones+Math.max(0,Math.floor(m.gold||0)));s.xp=pendingMutation(s)?0:Math.min(1e8,s.xp+Math.floor(m.xp*expMultiplier(s)));s.kills++;s.reputation=(s.reputation||0)+(m.boss?25:1);if(!s.seen.includes(m.id))s.seen.push(m.id);if(m.boss&&!s.bosses.includes(m.id))s.bosses.push(m.id);const stone=false;normalizeUpgradeItems(s);advanceLevels(s);return stone;}
+export function buyPotion(s){if(s.stones<50||s.potions>=99999)return false;s.stones-=50;s.potions++;return true;}
+export function buyMPPotion(s){if(s.stones<60||(s.mpPotions||0)>=99999)return false;s.stones-=60;s.mpPotions=(s.mpPotions||0)+1;return true;}
 export function upgradeCost(s){return 3+s.upgrade*2;}
 export function upgrade(s){const cost=upgradeCost(s);if(s.upgrade>=20||s.stones<cost)return false;s.stones-=cost;s.upgrade++;return true;}
 export function unlocked(s,z){return z===0;}
@@ -61,4 +61,5 @@ export function reputationTitle(s){return s.reputation>=10000?t('ตำนาน
 
 
 export function advanceLevels(s){while(s.level<210&&!pendingMutation(s)&&s.xp>=xpNeed(s.level)){s.xp-=xpNeed(s.level);s.level++;s.statPoints=(s.statPoints||0)+STAT_POINTS_PER_LEVEL;s.skillPoints=(s.skillPoints||0)+10;}if(pendingMutation(s))s.xp=0;if(s.level===210)s.xp=Math.min(s.xp,xpNeed(210));}
+
 

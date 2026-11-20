@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {BAG_SIZE} from '../web/gear.js';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
 import {EXP_TICKETS} from '../web/exp-tickets.js';
-const CAPS={gold:1e10,stones:1e12};
+const CAPS={stones:1e12};
 const integer=(n,max)=>Number.isSafeInteger(n)&&n>0&&n<=max;
 function need(ok,message){if(!ok)throw Error(message);}
 export function take(s,kind,id,quantity){
@@ -68,7 +68,7 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  case 'closeShop':need(shop,'shop_missing');shop.open=false;break;
  case 'listItem':{need(shop?.character===p.id,'shop_missing');need(shop.listings.length<12,'shop_full');need(Object.hasOwn(CAPS,d.currency)&&integer(d.price,CAPS[d.currency]),'invalid_price');shop.listings.push({key:randomUUID(),cargo:take(s,d.kind,d.id,d.quantity),currency:d.currency,price:d.price});break;}
  case 'cancelListing':{need(shop,'shop_missing');const i=shop.listings.findIndex(it=>it.key===d.key);need(i>=0,'item_missing');give(s,shop.listings[i].cargo);shop.listings.splice(i,1);break;}
- case 'buy':{const target=Object.entries(next.shops).find(([account,x])=>account!==p.account&&x.character===d.seller);need(target,'shop_missing');const sale=target[1];need(active(sale),'seller_offline');const seller=getActor(sale.character);need(seller,'shop_missing');need(!seller.economyBusy,'account_busy');need(Math.hypot(p.x-sale.x,p.y-sale.y)<=350,'seller_too_far');const i=sale.listings.findIndex(it=>it.key===d.key);need(i>=0,'item_missing');const item=sale.listings[i];need(d.price===item.price&&d.currency===item.currency,'price_changed');need(s[item.currency]>=item.price,'insufficient_funds');const recipient=state(seller);need(recipient[item.currency]+item.price<=CAPS[item.currency],'wallet_full');give(s,item.cargo);s[item.currency]-=item.price;recipient[item.currency]+=item.price;sale.sales??=[];sale.sales.push({at:Date.now(),buyer:p.name,cargo:item.cargo,currency:item.currency,price:item.price});sale.sales=sale.sales.slice(-50);sale.listings.splice(i,1);break;}
+ case 'buy':{const target=Object.entries(next.shops).find(([account,x])=>account!==p.account&&x.character===d.seller);need(target,'shop_missing');const sale=target[1];need(active(sale),'seller_offline');const seller=getActor(sale.character);need(seller,'shop_missing');need(!seller.economyBusy,'account_busy');need(Math.hypot(p.x-sale.x,p.y-sale.y)<=350,'seller_too_far');const i=sale.listings.findIndex(it=>it.key===d.key);need(i>=0,'item_missing');const item=sale.listings[i];need(item.currency==='stones','invalid_currency');need(d.price===item.price&&d.currency===item.currency,'price_changed');need(s[item.currency]>=item.price,'insufficient_funds');const recipient=state(seller);need(recipient[item.currency]+item.price<=CAPS[item.currency],'wallet_full');give(s,item.cargo);s[item.currency]-=item.price;recipient[item.currency]+=item.price;sale.sales??=[];sale.sales.push({at:Date.now(),buyer:p.name,cargo:item.cargo,currency:item.currency,price:item.price});sale.sales=sale.sales.slice(-50);sale.listings.splice(i,1);break;}
  default:throw Error('invalid_request');
  }
  next.revision++;const tx={ledger:next,characters:Object.fromEntries([...changed].map(([actor,save])=>[actor.id,save]))};try{write(walPath,tx);writeHook?.();apply(tx);}catch{failed=true;throw Error('save_unavailable');}ledger=next;if(['setVaultPin','changeVaultPin'].includes(d.action))grants.set(p,{hash:v.pinHash,until:Date.now()+300000});for(const [actor,save]of changed){actor.s=save;actor.dirty=false;actor.lastSaved=Date.now();}refreshSigns();return view(p);
@@ -79,6 +79,7 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  const ownsListedItems=(account,id)=>ledger.shops[account]?.character===id&&ledger.shops[account].listings.length>0;
  return {run,view,lockVault,refreshSigns,stalls,removeAccount,ownsListedItems,get failed(){return failed;}};
 }
+
 
 
 
