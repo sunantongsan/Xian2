@@ -1,0 +1,45 @@
+name: Deploy verified COCKRO 7.1.5
+on:
+  push:
+    branches: [fix/red-cockro-floating-joystick-20261120]
+    paths: ['.github/workflows/cockro-715-deploy.yml']
+permissions: {contents: read}
+concurrency:
+  group: cockro-online-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 051f622dcc50b7119dc6a0154c95658c5322ef24
+          persist-credentials: false
+          sparse-checkout: server/releases
+      - name: Install verified server with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          old=5cd97c5cabaf032c39b78af76dcaf42b5f32aa242d1e8043aafa8acdb569fe56
+          new=6da0603d0a37f623abb5a006adfa27421796d2017d1edf875853a02534ff61e3
+          stage=/srv/cockro-deploy/online-stage/online-server.cjs
+          backup=/srv/cockro-deploy/online-stage/pre-7.1.5.cjs
+          echo "$old  /opt/cockro-online/online-server.cjs" | sha256sum -c -
+          cp /opt/cockro-online/online-server.cjs "$backup"
+          gzip -dc server/releases/7.1.5.cjs.gz > "$stage"
+          echo "$new  $stage" | sha256sum -c -
+          rollback() { cp "$backup" "$stage"; sudo -n /usr/local/sbin/cockro-deploy-online "$old"; }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online "$new"
+          ok=0
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --max-time 5 http://127.0.0.1:8091/online/health | python3 -c 'import json,sys; h=json.load(sys.stdin); assert h["ok"] and h["release"]=="7.1.5" and h["currency"]=="COCKRO"'; then ok=1; break; fi
+            sleep 2
+          done
+          test "$ok" = 1
+          systemctl is-active cockro-online.service
+          echo "$new  /opt/cockro-online/online-server.cjs" | sha256sum -c -
+          curl --fail --silent --max-time 15 https://game.guardscan.xyz/online/health
+          trap - ERR
