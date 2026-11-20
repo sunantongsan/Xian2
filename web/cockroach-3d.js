@@ -39,6 +39,7 @@ export function drawCockroach3D(ctx,actor,x,y,size){
   frame=document.createElement('canvas');frame.width=frame.height=SIZE;frame.getContext('2d').drawImage(renderer.domElement,0,0);cache.set(key,frame);
   if(cache.size>96)cache.delete(cache.keys().next().value);
  }
- if(actor.portrait)ctx.drawImage(frame,32,48,192,192,25,0,240,240);else ctx.drawImage(frame,x-size*.75,y-size*1.5*feetAnchor,size*1.5,size*1.5);return true;
+ const drawSize=size*(actor.sheet?1.5:1.8);
+ if(actor.portrait)ctx.drawImage(frame,32,48,192,192,25,0,240,240);else ctx.drawImage(frame,x-drawSize/2,y-drawSize*feetAnchor,drawSize,drawSize);return true;
 }
 

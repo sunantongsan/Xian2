@@ -16,7 +16,11 @@ export function lockHands(root,b=boneMap(root),oneHand=false){
 
  for(const [side,grip,sign] of (oneHand?[['Right',0,1]]:[['Right',0,1],['Left',SECOND_GRIP,-1]])){const h=b[side+'Hand'];if(!h)continue;const q=sq.clone().multiply(Q().setFromAxisAngle(V(1,0,0),sign*Math.PI/2));const target=sword.localToWorld(V(0,grip,0)).sub(V(0,PALM,0).applyQuaternion(q));const pole=root.localToWorld(V(side==='Right'?-.85:.85,.95,.1));solve(b[side+'Arm'],b[side+'ForeArm'],h,target,pole);orientWorld(h,q);}
 }
-export function equipSword(root){let sword=root.getObjectByName('MeleeSword');if(sword)return sword;sword=new T.Group();sword.name='MeleeSword';const mat=new T.MeshStandardMaterial({color:0xe2f7ff,metalness:.65,roughness:.25});const blade=new T.Mesh(new T.BoxGeometry(.14,.86,.045),mat);blade.position.y=.58;sword.add(blade);const tip=new T.Mesh(new T.ConeGeometry(.10,.2,4),mat);tip.position.y=1.11;tip.rotation.y=Math.PI/4;sword.add(tip);const grip=new T.Mesh(new T.CylinderGeometry(.036,.036,.36,8),new T.MeshStandardMaterial({color:0x553e37}));grip.position.y=-.12;sword.add(grip);const pommel=new T.Mesh(new T.SphereGeometry(.05,8,6),new T.MeshStandardMaterial({color:0xe9bd6a}));pommel.position.y=-.31;sword.add(pommel);const guard=new T.Mesh(new T.BoxGeometry(.31,.065,.09),new T.MeshStandardMaterial({color:0xffcb62,metalness:.5,roughness:.3}));guard.position.y=.14;sword.add(guard);sword.traverse(o=>{if(o.isMesh)o.castShadow=true});sword.position.set(-.03,1.18,.12);sword.quaternion.setFromEuler(new T.Euler(.7,-.22,0,'YXZ'));root.add(sword);return sword;}
+export function equipSword(root){let sword=root.getObjectByName('MeleeSword');if(sword)return sword;sword=new T.Group();sword.name='MeleeSword';const mat=new T.MeshStandardMaterial({color:0xe2f7ff,metalness:.65,roughness:.25});// Tapered diamond cross-section: thin sharp edges at ±X, broad faces along ±Z.
+const geo=new T.BufferGeometry(),vertices=[],indices=[];
+for(const [y,w,d] of [[.15,.07,.023],[.95,.052,.018],[1.21,0,0]])vertices.push(-w,y,0,0,y,d,w,y,0,0,y,-d);
+for(let ring=0;ring<2;ring++)for(let side=0;side<4;side++){const a=ring*4+side,b=ring*4+(side+1)%4,c=a+4,d=b+4;indices.push(a,b,c,b,d,c);}
+geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();const blade=new T.Mesh(geo,mat);blade.name='Blade';sword.add(blade);const grip=new T.Mesh(new T.CylinderGeometry(.036,.036,.36,8),new T.MeshStandardMaterial({color:0x553e37}));grip.position.y=-.12;sword.add(grip);const pommel=new T.Mesh(new T.SphereGeometry(.05,8,6),new T.MeshStandardMaterial({color:0xe9bd6a}));pommel.position.y=-.31;sword.add(pommel);const guard=new T.Mesh(new T.BoxGeometry(.31,.065,.09),new T.MeshStandardMaterial({color:0xffcb62,metalness:.5,roughness:.3}));guard.position.y=.14;sword.add(guard);sword.traverse(o=>{if(o.isMesh)o.castShadow=true});sword.position.set(-.03,1.18,.12);sword.quaternion.setFromEuler(new T.Euler(.7,-.22,0,'YXZ'));root.add(sword);return sword;}
 // Shoulder carry, overhead anticipation, then cut down toward the hero's left (+X).
 const keys=[
  [0,-.28,1.28,.24,0,-1.25,0,0,.015,0,0],
@@ -31,12 +35,23 @@ const keys=[
 ];
 // A volume-preserving elastic silhouette, applied after hand constraints.
 // Scale about the soles; both hands and the sword share this final deformation.
-export function elasticScale(time){const k=[[0,1],[.15,.94],[.29,.88],[.35,.9],[.43,1.16],[.54,.9],[.65,1.14],[.75,.94],[.88,1]];let i=0;while(i<k.length-2&&time>k[i+1][0])i++;const u=T.MathUtils.clamp((time-k[i][0])/(k[i+1][0]-k[i][0]),0,1),e=u*u*(3-2*u),y=T.MathUtils.lerp(k[i][1],k[i+1][1],e);return V(1/Math.sqrt(y),y,1/Math.sqrt(y));}
+export function elasticScale(time){const weight=Math.sin(Math.PI*T.MathUtils.clamp(time/ATTACK_DURATION,0,1));const y=1-.018*weight;return V(1/Math.sqrt(y),y,1/Math.sqrt(y));}
 
 // Shape-preserving cubic tangents avoid a full stop at every intermediate pose.
 function sample(t){let i=0;while(i<keys.length-2&&keys[i+1][0]<t)i++;const a=keys[i],b=keys[i+1],h=b[0]-a[0],u=T.MathUtils.clamp((t-a[0])/h,0,1);
  const tangent=(n,j)=>{if(n===0||n===keys.length-1)return 0;const p=keys[n-1],q=keys[n],r=keys[n+1],d0=(q[j]-p[j])/(q[0]-p[0]),d1=(r[j]-q[j])/(r[0]-q[0]);return d0*d1<=0?0:2*d0*d1/(d0+d1);};
  return a.map((v,j)=>j===0?t:(2*u**3-3*u*u+1)*v+(u**3-2*u*u+u)*h*tangent(i,j)+(-2*u**3+3*u*u)*b[j]+(u**3-u*u)*h*tangent(i+1,j));}
+
+// Local X is the cutting edge, Y is the blade, Z is the broad-face normal.
+// Align X to the tip's velocity projected across Y, so cuts cannot slap flat-side first.
+export function swordPose(t,name='Slash'){
+ const k=sample(T.MathUtils.clamp(t,0,ATTACK_DURATION)),diagonal=name==='Sweep'?.65:name==='Cleave'?.08:-.55,angle=k[5];
+ const direction=V(Math.sin(diagonal)*Math.cos(angle),Math.cos(diagonal)*Math.cos(angle),Math.sin(angle));
+ const edge=V(-Math.sin(diagonal)*Math.sin(angle),-Math.cos(diagonal)*Math.sin(angle),Math.cos(angle));
+ const position=V(-.28+Math.sin(diagonal)*(k[2]-1.28),1.36+Math.cos(diagonal)*(k[2]-1.28),k[3]-.12);
+ const normal=edge.clone().cross(direction).normalize();
+ return {position,quaternion:Q().setFromRotationMatrix(new T.Matrix4().makeBasis(edge,direction,normal))};
+}
 
 export function meleeClips(g){const idle=g.animations.find(c=>c.name==='Idle');if(!idle)return [];const root=g.scene,bones=boneMap(root),sword=root.getObjectByName('MeleeSword');if(!sword)return [];const mixer=new T.AnimationMixer(root);mixer.clipAction(idle).play();mixer.setTime(0);root.updateMatrixWorld(true);const rest=[];root.traverse(o=>rest.push({o,p:o.position.clone(),q:o.quaternion.clone(),s:o.scale.clone()}));const feet={};for(const side of ['Left','Right'])feet[side]=bones[side+'Foot'].getWorldPosition(V());
  const restore=()=>{for(const b of rest){b.o.position.copy(b.p);b.o.quaternion.copy(b.q);b.o.scale.copy(b.s);}root.updateMatrixWorld(true);};
@@ -48,14 +63,7 @@ export function meleeClips(g){const idle=g.animations.find(c=>c.name==='Idle');i
  else{
  move(bones.Hips,V(hip*.06,-crouch,step*.2));rotate('Hips',lean*.22,hip);rotate('Spine',lean*.35,chest*.30);rotate('Spine1',lean*.25,chest*.30);rotate('Spine2',lean*.18,chest*.40);rotate('Neck',-lean*.25,-(hip+chest)*.45);rotate('Head',-lean*.2,-(hip+chest)*.25);
  for(const side of ['Left','Right']){const foot=feet[side].clone();foot.x=side==='Left'?.23:-.23;foot.z+=side==='Left'?step:-step*.15;const lift=side==='Left'?Math.max(0,Math.sin(T.MathUtils.clamp((t-.31)/.23,0,1)*Math.PI))*.055:0;foot.y+=lift;solve(bones[side+'UpLeg'],bones[side+'Leg'],bones[side+'Foot'],foot,root.localToWorld(V(side==='Left'?.3:-.3,.5,.8)));}
- let px=x,py=y,pz=z-.12,rx=tilt,ry=yaw,rz=0;
- if(name!=='Guard'){
-  const strike=Math.sin(Math.PI*T.MathUtils.clamp((t-.30)/.40,0,1));
-  rz=-.65*strike;
-  if(name==='Sweep'){px=x*(1-2*strike);py-=.15*strike;ry=yaw*(1-2*strike);rz=.9*strike;rx=tilt*(1-.3*strike);}
-  if(name==='Cleave'){px=x*(1-.35*strike);py+=.12*Math.sin(Math.PI*T.MathUtils.clamp(t/.43,0,1));rz=-.35*strike;}
- }
- sword.position.set(px,py+.08,pz);sword.quaternion.setFromEuler(new T.Euler(rx,ry,rz,'YXZ'));
+ const pose=swordPose(name==='Guard'?0:t,name);sword.position.copy(pose.position);sword.quaternion.copy(pose.quaternion);
  }
  root.updateMatrixWorld(true);lockHands(root,bones,name==='Guard');
  for(const [n,b] of Object.entries(bones))if(/Hand(Index|Middle|Ring|Pinky)[123]$/.test(n))b.quaternion.multiply(Q().setFromEuler(new T.Euler(.8,0,0)));
@@ -66,6 +74,7 @@ export function meleeClips(g){const idle=g.animations.find(c=>c.name==='Idle');i
  const clips=['Slash','Sweep','Cleave','Roll','Guard'].map(make);mixer.stopAllAction();mixer.uncacheRoot(root);restore();return clips;
 }
 export function actor(g){const visual=g.scene,isHero=g.animations.some(c=>c.name==='Shoot');if(isHero)equipSword(visual);const bones=boneMap(visual),clips=[...g.animations,...meleeClips(g)],root=isHero?new T.Group():visual;if(isHero){root.name='ElasticHero';root.add(visual);}const mixer=new T.AnimationMixer(visual),actions={};for(const c of clips)actions[c.name]=mixer.clipAction(c);let current='',clock=0,flinch=0;
-const constrain=()=>{if(!isHero)return;root.scale.setScalar(1);root.updateMatrixWorld(true);if(!root.userData.ranged){const carry=['Guard','Idle','Walk','Run'].includes(current);if(carry){const sword=visual.getObjectByName('MeleeSword');sword.position.set(-.28,1.36,.12);sword.quaternion.setFromEuler(new T.Euler(-1.25,0,0,'YXZ'));}lockHands(visual,bones,carry);}const t=actions[current]?.time||0;if(current==='Slash'||current==='Sweep'||current==='Cleave')root.scale.copy(elasticScale(t));else if(current==='Run'){const y=1+Math.sin(clock*17)*.10;root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}else if(current==='Roll'||current==='Shoot'){const y=current==='Roll'?leapScale(Math.min(1,t/.64)):1-.12*Math.sin(Math.min(1,t/.36)*Math.PI);root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}else if(current==='Guard'||current==='Idle'){const breath=.78*Math.sin(clock*2.65)+.22*Math.sin(clock*5.3-.6);const y=1+breath*.018;root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}if(flinch>0){const age=.26-flinch;const y=1-.25*Math.exp(-age*12)*Math.cos(age*26);root.scale.x/=Math.sqrt(y);root.scale.z/=Math.sqrt(y);root.scale.y*=y;}
+const constrain=()=>{if(!isHero)return;root.scale.setScalar(1);root.updateMatrixWorld(true);if(!root.userData.ranged){const carry=['Guard','Idle','Walk','Run'].includes(current);if(carry){const sword=visual.getObjectByName('MeleeSword');sword.position.set(-.28,1.36,.12);sword.quaternion.copy(swordPose(0).quaternion);}lockHands(visual,bones,carry);}const t=actions[current]?.time||0;if(current==='Slash'||current==='Sweep'||current==='Cleave')root.scale.copy(elasticScale(t));else if(current==='Run'){const y=1+Math.sin(clock*17)*.10;root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}else if(current==='Roll'||current==='Shoot'){const y=current==='Roll'?leapScale(Math.min(1,t/.64)):1-.12*Math.sin(Math.min(1,t/.36)*Math.PI);root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}else if(current==='Guard'||current==='Idle'){const breath=.78*Math.sin(clock*2.65)+.22*Math.sin(clock*5.3-.6);const y=1+breath*.018;root.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));}if(flinch>0){const age=.26-flinch;const y=1-.25*Math.exp(-age*12)*Math.cos(age*26);root.scale.x/=Math.sqrt(y);root.scale.z/=Math.sqrt(y);root.scale.y*=y;}
  root.updateMatrixWorld(true);};
 return {root,mixer,actions,react(){flinch=.26;constrain();},play(name,once=false){if(root.userData.ranged){if(name==='Slash'||name==='Cleave')name='Shoot';else if(name==='Guard')name='Idle';}if(current===name&&!once)return;const next=actions[name];if(!next)return;const old=actions[current];next.reset().setLoop(once?T.LoopOnce:T.LoopRepeat,once?1:Infinity);next.clampWhenFinished=once;next.play();if(old&&old!==next)next.crossFadeFrom(old,name==='Roll'?.04:.08,false);current=name;},update(dt){clock+=dt;flinch=Math.max(0,flinch-dt);mixer.update(dt);constrain();},seek(t){clock=t;mixer.setTime(t);constrain();}};}
+

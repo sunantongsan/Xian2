@@ -693,3 +693,12 @@ html.chat-typing #controls{visibility:hidden}
 #controls .movement,#joystick{display:none!important} canvas#game{touch-action:none}
 
 #floatingJoystick{position:fixed;width:108px;height:108px;transform:translate(-50%,-50%);border:2px solid #d5faff99;border-radius:50%;background:#85d9ec28;pointer-events:none;z-index:12;box-shadow:0 0 12px #b7efff33}#floatingJoystick[hidden]{display:none}#floatingJoystick i{position:absolute;left:50%;top:50%;width:36px;height:36px;border:2px solid #efffffcc;border-radius:50%;background:#b3eaff88;transform:translate(-50%,-50%)}.character-points{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:6px}.character-points span{font-size:11px;text-align:center;color:#d3eced;background:#274651;border-radius:8px;padding:4px}.character-points b{display:block;font-size:17px;color:#fff2b8}
+
+/* Compact point links remain tappable without adding a row of cards. */
+#modal #modalContent .character-armory .character-points{display:flex;flex-wrap:wrap;gap:0 10px;margin:0;flex-shrink:0;min-height:28px;align-items:center}
+#modal #modalContent .character-armory .character-points button:not(:disabled){background:none!important;border:0!important;box-shadow:none!important;border-radius:0;padding:4px 0;min-height:28px;height:auto;font-size:10px;line-height:18px;color:#d3eced!important;flex:1;white-space:nowrap}
+#modal .character-armory .character-points b{display:inline;font-size:12px;color:#fff2b8;margin-left:3px}
+#modal .character-armory .sheet-side{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#modal .character-armory .sheet-side>*{flex-shrink:0}
+#modal .character-armory .derived span{background:none;border:0;box-shadow:none}
+#modal .character-armory #dollCanvas{object-fit:fill}

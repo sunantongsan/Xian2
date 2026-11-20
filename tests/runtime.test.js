@@ -7,7 +7,7 @@ globalThis.Audio=class{constructor(){this.paused=true;}play(){this.paused=false;
 globalThis.innerWidth=844;globalThis.innerHeight=390;globalThis.devicePixelRatio=1;
 globalThis.cancelAnimationFrame=()=>{};globalThis.requestAnimationFrame=()=>0;globalThis.NodeFilter={SHOW_TEXT:4};globalThis.document={documentElement:{lang:"th",classList:{remove(){},add(){},toggle(){}},style:{setProperty(){}}},createTreeWalker(){return {nextNode(){return null}}},body:{append(){},appendChild(){},classList:{add(){},remove(){},toggle(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
-source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,drawPvpStatus,celebrateReward,ads,isOnline:()=>onlineMode};';
+source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,drawPvpStatus,celebrateReward,ads,statMenu,offline(){onlineMode=false},isOnline:()=>onlineMode};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const {fresh}=await import('../web/core.js');
 const {language}=await import('../web/i18n.js');language.choose('th');
@@ -65,3 +65,5 @@ test("PvP HUD renders online and offline opponents at mobile width",()=>{for(con
 
 
 
+
+test('character point links open working stats, skills and enhancement screens',()=>{const v=fixture();probe.set(v);probe.offline();probe.statMenu();assert.match(element('modalContent').innerHTML,/id="pointsSkills"/);element('pointsSkills').onclick();assert.match(element('modalContent').innerHTML,/data-train=/);probe.statMenu();element('pointsTraining').onclick();assert.match(element('modalContent').innerHTML,/data-forge="true"/);probe.statMenu();element('pointsStats').onclick();assert.match(element('modalContent').innerHTML,/id="statConfirm"/);});
