@@ -5,7 +5,7 @@ const elements=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},addEventListener(){},appendChild(){},setAttribute(){},querySelectorAll(){return []},hasAttribute(){return false},querySelector(){return element('child'+id)},getContext(){return new Proxy({},{get:()=>()=>{}})},toDataURL(){return 'data:image/png;base64,'},showModal(){this.open=true},close(){this.open=false},hidden:false});return elements.get(id);}
 globalThis.Audio=class{constructor(){this.paused=true;}play(){this.paused=false;return Promise.resolve();}pause(){this.paused=true;}};
 globalThis.innerWidth=844;globalThis.innerHeight=390;globalThis.devicePixelRatio=1;
-globalThis.cancelAnimationFrame=()=>{};globalThis.requestAnimationFrame=()=>0;globalThis.NodeFilter={SHOW_TEXT:4};globalThis.document={documentElement:{lang:"th",classList:{remove(){},add(){},toggle(){}},style:{setProperty(){}}},createTreeWalker(){return {nextNode(){return null}}},body:{appendChild(){},classList:{add(){},remove(){},toggle(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
+globalThis.cancelAnimationFrame=()=>{};globalThis.requestAnimationFrame=()=>0;globalThis.NodeFilter={SHOW_TEXT:4};globalThis.document={documentElement:{lang:"th",classList:{remove(){},add(){},toggle(){}},style:{setProperty(){}}},createTreeWalker(){return {nextNode(){return null}}},body:{append(){},appendChild(){},classList:{add(){},remove(){},toggle(){}}},getElementById:element,createElement:()=>element('portrait-canvas'),querySelectorAll:()=>[],addEventListener(){},hidden:false};globalThis.addEventListener=()=>{};globalThis.window=globalThis;globalThis.localStorage={setItem(){}};
 let source=fs.readFileSync(new URL('../web/game.js',import.meta.url),'utf8').replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL('../web/'+path.slice(2),import.meta.url).href}'`).replace('boot();','');
 source+='\nexport const probe={set(v){s=v.s;p=v.p;enemies=v.enemies;town=false;scene=null;paused=false;target=null;move=null;route=[];cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};fields=[];effects=[];attackHeld=false;keys.clear();},get(){return {s,p,enemies,target}},update,enemyAI,attack,hurt,skill,title,net,refreshOnlineShop,onlineInventory,drawPvpStatus,celebrateReward,ads,isOnline:()=>onlineMode};';
 const {probe}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
@@ -62,5 +62,6 @@ test('closing a video early never displays a success dialog',()=>{
 
 
 test("PvP HUD renders online and offline opponents at mobile width",()=>{for(const offline of [false,true])assert.doesNotThrow(()=>probe.drawPvpStatus({name:"Rival",offline,hp:80,maxHp:140}));});
+
 
 
