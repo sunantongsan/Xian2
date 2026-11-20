@@ -67,7 +67,7 @@ export function heroPower(s,base){return Math.round(base+Object.values(s.equip||
 // Save keys remain compatible: stones is COCKRO; gold is retained as inactive legacy data.
 export const gearUpgradeCost=it=>COSTS[it.plus||0]||0;
 export const gearUpgradeG=it=>0;
-export const upgradeMaterial=it=>'alloy';
+export const upgradeMaterial=()=>null;
 export const upgradeChance=(it,protectedAttempt=false)=>Math.min(1,((SUCCESS[it.plus||0]||0)+(protectedAttempt?5:0))/100);
 export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
  const it=s.equip?.[slot];if(!ENHANCE_SLOTS.includes(slot)||!it)return false;
