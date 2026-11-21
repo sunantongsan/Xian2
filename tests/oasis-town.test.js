@@ -16,7 +16,7 @@ test('town has exactly two open roads; hunting route never switches scenes',()=>
 });
 
 test('desert return and revive use city 2; merchant is restricted to city',()=>{
- const w=new World(),s=fresh('sword-cockro'),p=w.join('oasis',s);s.gold=100000;
+ const w=new World(),s=fresh('sword-cockro'),p=w.join('oasis',s);s.stones=100000;
  w.enter(p,'star',5);assert(!w.home(p));const n=s.potions;
  w.command(p,{type:'op',op:'buy',quantity:1},100);assert.equal(s.potions,n);
  w.enter(p,'star',0);assert(w.home(p));w.command(p,{type:'op',op:'buy',quantity:1},102);assert(s.potions>n);
@@ -29,3 +29,4 @@ test('distant desert monsters sleep',()=>{
  far.state='idle';far.clock=0;for(let n=0;n<30;n++)w.tick(.05,200+n*.05);
  assert.equal(far.x,before.x);assert.equal(far.y,before.y);assert.equal(far.moving,false);
 });
+

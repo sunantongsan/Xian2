@@ -12,8 +12,8 @@ export function normalizeExpTickets(s,v=s,now=Date.now()){
 export function expMultiplier(s,now=Date.now()){return s.expBoost?.until>now?EXP_TICKETS[s.expBoost.id]?.multiplier||1:1;}
 export function buyExpTicket(s,id){
  if(!Object.hasOwn(EXP_TICKETS,id))return false;const it=EXP_TICKETS[id];
- if(!Number.isFinite(s.gold)||s.gold<it.price||(s.expTickets?.[id]||0)>=99999)return false;
- s.expTickets??={};s.gold-=it.price;s.expTickets[id]=(s.expTickets[id]||0)+1;return true;
+ if(!Number.isFinite(s.stones)||s.stones<it.price||(s.expTickets?.[id]||0)>=99999)return false;
+ s.expTickets??={};s.stones-=it.price;s.expTickets[id]=(s.expTickets[id]||0)+1;return true;
 }
 export function useExpTicket(s,id,replaceUntil=0,now=Date.now()){
  if(!Object.hasOwn(EXP_TICKETS,id)||!Number.isSafeInteger(s.expTickets?.[id])||s.expTickets[id]<1)return false;
@@ -21,3 +21,4 @@ export function useExpTicket(s,id,replaceUntil=0,now=Date.now()){
  if(s.expBoost?.until>now&&replaceUntil!==s.expBoost.until)return false;
  s.expTickets[id]--;s.expBoost={id,until:now+EXP_DURATION};return true;
 }
+

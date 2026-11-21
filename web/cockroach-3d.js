@@ -1,3 +1,4 @@
+import {applyCockroachPalette} from './cockroach-palette.js';
 import * as T from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {actor as makeActor} from './stage-rig.js';
@@ -13,7 +14,7 @@ export function loadCockroach3D(){
   const digest=await crypto.subtle.digest('SHA-256',bytes);if(Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('')!==index.sha256)throw Error('model_integrity');const gltf=await new GLTFLoader().parseAsync(bytes.buffer,base.href);
   for(const name of ['Idle','Walk','Run','Hit','Death'])if(!gltf.animations.some(c=>c.name===name))throw Error('missing_animation_'+name);
   gltf.scene.getObjectByName('COCKRO_Rifle')?.traverse(o=>o.visible=false);
-  rig=makeActor(gltf);
+  applyCockroachPalette(gltf.scene);rig=makeActor(gltf);
   try{renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});}catch{console.warn("3D unavailable; using the cockroach compatibility renderer");return false;}renderer.setPixelRatio(1);renderer.setSize(SIZE,SIZE);renderer.setClearColor(0x000000,0);renderer.outputColorSpace=T.SRGBColorSpace;
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();cache.clear();});
   scene=new T.Scene();scene.add(rig.root,new T.HemisphereLight(0xffffff,0x839582,2.4));const light=new T.DirectionalLight(0xffedcf,2.8);light.position.set(3,5,4);scene.add(light);
@@ -38,5 +39,7 @@ export function drawCockroach3D(ctx,actor,x,y,size){
   frame=document.createElement('canvas');frame.width=frame.height=SIZE;frame.getContext('2d').drawImage(renderer.domElement,0,0);cache.set(key,frame);
   if(cache.size>96)cache.delete(cache.keys().next().value);
  }
- if(actor.portrait)ctx.drawImage(frame,32,48,192,192,25,0,240,240);else ctx.drawImage(frame,x-size*.75,y-size*1.5*feetAnchor,size*1.5,size*1.5);return true;
+ const drawSize=size*(actor.sheet?1.5:1.8);
+ if(actor.portrait)ctx.drawImage(frame,32,48,192,192,25,0,240,240);else ctx.drawImage(frame,x-drawSize/2,y-drawSize*feetAnchor,drawSize,drawSize);return true;
 }
+

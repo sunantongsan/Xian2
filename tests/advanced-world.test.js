@@ -19,7 +19,7 @@ test('all levels can enter every map gate while invalid gates stay rejected',()=
  assert.equal(w.enter(p,'star',99),false);assert.equal(w.enter(p,'forest',99),false);assert.equal(w.enter(p,'unknown',0),false);
 });
 test('advanced enemy kills, boss records and rewards survive save round-trip',()=>{
- const s=fresh('sword-cockro');s.level=61;s.mutationStage=2;for(const m of ADVANCED_MONSTERS)reward(s,m,()=>1);const copy=validSave(s);assert.equal(copy.seen.length,66);assert.equal(copy.bosses.length,6);assert(copy.gold>100000);assert(copy.level>61);
+ const s=fresh('sword-cockro');s.level=61;s.mutationStage=2;for(const m of ADVANCED_MONSTERS)reward(s,m,()=>1);const copy=validSave(s);assert.equal(copy.seen.length,66);assert.equal(copy.bosses.length,6);assert(copy.stones>0);assert(copy.level>61);
 });
 test('all twenty drawings and dead/boss states produce finite canvas geometry',()=>{
  let draws=0;const gradient={addColorStop(){}};const g=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'?()=>gradient:(...args)=>{for(const x of args)if(typeof x==='number')assert(Number.isFinite(x),key);draws++;},set:()=>true});
@@ -34,4 +34,5 @@ test('online area attacks hit nearby players and directional attacks respect the
   if(kind==='dash'){assert(e.x>e.homeX+100);assert.equal(b.hp,before);}
  }
 });
+
 

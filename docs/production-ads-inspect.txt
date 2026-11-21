@@ -1,0 +1,22 @@
+active
+6da0603d0a37f623abb5a006adfa27421796d2017d1edf875853a02534ff61e3  /opt/cockro-online/online-server.cjs
+#!/usr/bin/python3
+import hashlib, os, pathlib, re, subprocess, sys
+if len(sys.argv)!=2 or not re.fullmatch(r'[0-9a-f]{64}',sys.argv[1]):
+    raise SystemExit('Expected release SHA256')
+source='/srv/cockro-deploy/online-stage/online-server.cjs'
+fd=os.open(source,os.O_RDONLY|os.O_NOFOLLOW)
+with os.fdopen(fd,'rb') as f: data=f.read(2000001)
+if len(data)>2000000 or hashlib.sha256(data).hexdigest()!=sys.argv[1]:
+    raise SystemExit('Release checksum mismatch')
+root=pathlib.Path('/opt/cockro-online')
+current=root/'online-server.cjs'
+if current.exists(): (root/'previous.cjs').write_bytes(current.read_bytes())
+nextfile=root/'next.cjs'
+nextfile.write_bytes(data)
+nextfile.chmod(0o644)
+os.replace(nextfile,current)
+subprocess.run(['systemctl','restart','cockro-online.service'],check=True)
+['COCKRO_TEST_REWARDS??String(admob_config_default.internalTestRewards||false))==="true",directory:process.env.COCKRO_ONL']
+['internalTestRewards:true};backupBefore416(process', 'internalTestRewards||false))==="true",directory:p']
+{"ok":true,"version":"cockro-online-4","release":"7.1.5","currency":"COCKRO","gameplayBase":"4.50.2","singleCharacter":true,"protectionTickets":true,"desertMap":true,"oasisCity":true,"desertMapRevision":20261116,"desertTiles":384,"desertPopulation":855,"fullSuitDrops":false,"suitTypes":0,"identityCleanupPublicKey":"MCowBQYDK2VwAyEAsswjezdMSurwcHUHTarW8F288b7HsvEoQNNOT0K6OEg=","ssv":{"verified":0,"rejected":0,"lastError":null},"advancedSpecies":20,"forestSpecies":20,"forestRoaming":true,"forestPopulation":1213,"forestBosses":46,"roamingCharacters":0,"players":0,"offlinePlayers":8,"persistentPvp":true,"groundLoot":true,"capacity":64}

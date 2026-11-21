@@ -1,0 +1,37 @@
+name: Inspect COCKRO production ads
+on:
+  push:
+    branches: [fix/red-cockro-floating-joystick-20261120]
+    paths: ['.github/workflows/production-ads-inspect.yml']
+permissions: {contents: write}
+jobs:
+  inspect:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect deployment contract and ad mode without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee /tmp/cockro-ads-inspect.txt) 2>&1
+          systemctl is-active cockro-online.service
+          sha256sum /opt/cockro-online/online-server.cjs
+          cat /usr/local/sbin/cockro-deploy-online
+          python3 - <<'PY'
+          import pathlib,re
+          s=pathlib.Path('/opt/cockro-online/online-server.cjs').read_text()
+          for pattern in [r'COCKRO_TEST_REWARDS.{0,100}',r'internalTestRewards.{0,30}']:
+              print(re.findall(pattern,s))
+          PY
+          curl --fail --silent --max-time 5 http://127.0.0.1:8091/online/health
+      - name: Record inspection
+        run: |
+          mkdir -p docs
+          cp /tmp/cockro-ads-inspect.txt docs/production-ads-inspect.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/production-ads-inspect.txt
+          git commit -m 'Record production ads inspection [skip ci]'
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}

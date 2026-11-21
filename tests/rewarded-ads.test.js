@@ -17,7 +17,7 @@ test('signed callback grants requested item once and survives save/restart',asyn
  let s=fresh('sword-cockro');const t=issueRewardTicket(s,'protectionTicket'),p=await verifier()(signed(callback(t)));
  assert.equal(applyVerifiedReward(s,p),true);assert.equal(s.protectionTickets,1);
  s=validSave(JSON.parse(JSON.stringify(s)));assert.equal(applyVerifiedReward(s,p),false);assert.equal(s.protectionTickets,1);
- assert.throws(()=>applyVerifiedReward(s,{...p,transaction_id:'tx2'}));assert.equal(s.gold,100000);assert.equal(s.stones,0);
+ assert.throws(()=>applyVerifiedReward(s,{...p,transaction_id:'tx2'}));assert.equal(s.gold,0);assert.equal(s.stones,0);
 });
 test('tampering, wrong unit/reward, missing signature, duplicate parameter rejected',async()=>{
  const s=fresh('sword-cockro'),t=issueRewardTicket(s,'protectionTicket'),v=verifier(),raw=signed(callback(t));
@@ -101,3 +101,4 @@ test('ticket retry retains the bounded daily request limit',()=>{
  for(let i=0;i<100;i++)issueRewardTicket(s,'protectionTicket',now+i);
  assert.throws(()=>issueRewardTicket(s,'protectionTicket',now+100),/ad_limit/);
 });
+

@@ -1,5 +1,6 @@
 plugins { id 'com.android.application' }
-def internalTestAds = providers.gradleProperty('cockroTestAds').orElse('false').get().toBoolean()
+// Published releases always use this account's production ad units.
+def internalTestAds = false
 def adsConfig = new groovy.json.JsonSlurper().parse(rootProject.file('admob-config.json'))
 def adsApp = providers.environmentVariable('ADMOB_APP_ID').orElse(adsConfig.appId).get()
 def adsUnit = providers.environmentVariable('ADMOB_REWARDED_UNIT_ID').orElse(adsConfig.rewardedUnitId).get()
@@ -55,7 +56,7 @@ dependencies {
 // Fail closed: a Store build must never ship sample IDs or missing account configuration.
 tasks.register('validateProductionAds') {
  doLast {
-  if (!(adsApp ==~ /ca-app-pub-\d{16}~\d{10}/) || !(adsUnit ==~ /ca-app-pub-\d{16}\/\d{10}/) || adsApp.contains('3940256099942544') || adsUnit.contains('3940256099942544')) {
+  if (!(adsConfig.bannerUnitId ==~ /ca-app-pub-\d{16}\/\d{10}/) || adsConfig.bannerUnitId.contains('3940256099942544') || !(adsApp ==~ /ca-app-pub-\d{16}~\d{10}/) || !(adsUnit ==~ /ca-app-pub-\d{16}\/\d{10}/) || adsApp.contains('3940256099942544') || adsUnit.contains('3940256099942544')) {
    throw new GradleException('Set real ADMOB_APP_ID and ADMOB_REWARDED_UNIT_ID before building release.')
   }
  }

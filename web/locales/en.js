@@ -1,5 +1,15 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ใบป้องกัน":"Protection ticket",
+"ใบป้องกันตีบวก":"Enhancement protection",
+"ซื้อใบป้องกัน":"Buy protection ticket",
+"ดูวิดีโอรับใบป้องกัน 1 ใบ":"Watch a video for 1 protection ticket",
+"ใช้ครั้งละ 1 ใบ • เพิ่มโอกาสสำเร็จ 5% • ล้มเหลวเสีย 1 COCKRO":"Use 1 ticket • +5 percentage points success chance • Failure costs 1 COCKRO",
+"COCKRO หรือใบป้องกันไม่พอ":"Insufficient COCKRO or protection tickets",
+"ใช้กับยา":"Applies to potions",
+
+"แต้มสเตตัส":"Stat points",
+"แต้มสกิล":"Skill points",
 "ใช้ตั๋วป้องกัน":"Use protection ticket",
 "แต้มฝึกฝน":"Training points",
 "สูงสุด +12":"Maximum +12",
@@ -1344,5 +1354,6 @@ Object.assign(EN,{
  'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
  'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
 });
+
 
 

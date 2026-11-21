@@ -27,9 +27,9 @@ test('no potions are invented and forged skill/damage cannot bypass PvP validati
  const {w,a,b}=pair();b.hp=40;b.s.potions=b.s.mpPotions=0;b.mp=0;w.disconnect(b);a.s.equipped=[];w.command(a,{type:'skillPlayer',target:'b',slot:0,damage:999999},100);assert.equal(b.hp,40);w.command(a,{type:'attackPlayer',target:'b'},101);w.tick(.1,101.1);resolvePvpImpacts(w,101.32);assert.equal(b.s.potions,0);assert.equal(b.s.mpPotions,0);assert(b.hp<40);
 });
 test('loot waits on ground, only close living owner can collect once, expires after eight seconds',()=>{
- const {w,a,b}=pair();w.enter(a,'forest');const e={id:'loot-boss',x:a.x+200,y:a.y,hp:1,def:{id:1060,boss:true,level:10,gold:100,xp:1},homeX:a.x+200,homeY:a.y};const before={g:a.s.gold,alloy:a.s.upgradeItems.alloy,bag:a.s.bag.length};w.hit(a,e,2,100);assert.equal(a.s.gold,before.g);assert.equal(a.s.upgradeItems.alloy,before.alloy);assert.equal(a.s.bag.length,before.bag);assert.equal(w.loot.length,2);
- Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,2);Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.gold,before.g+100);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag+1);w.collectGround(102);assert.equal(a.s.gold,before.g+100);
- e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.gold,before.g+100);
+ const {w,a,b}=pair();w.enter(a,'forest');const e={id:'loot-boss',x:a.x+200,y:a.y,hp:1,def:{id:1060,boss:true,level:10,gold:100,xp:1},homeX:a.x+200,homeY:a.y};const before={g:a.s.stones,alloy:a.s.upgradeItems.alloy,bag:a.s.bag.length};w.hit(a,e,2,100);assert.equal(a.s.stones,before.g);assert.equal(a.s.upgradeItems.alloy,before.alloy);assert.equal(a.s.bag.length,before.bag);assert.equal(w.loot.length,2);
+ Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,2);Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+100);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag+1);w.collectGround(102);assert.equal(a.s.stones,before.g+100);
+ e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+100);
 });
 test('full inventory leaves equipment on ground instead of silently selling it',()=>{
  const s=fresh('sword-cockro');s.bag=Array.from({length:40},()=>s.equip.weapon);const gold=s.gold;assert.equal(collectLoot(s,{kind:'gear',item:s.equip.weapon,count:1}),false);assert.equal(s.gold,gold);
@@ -37,4 +37,5 @@ test('full inventory leaves equipment on ground instead of silently selling it',
 test('yellow monsters only retaliate; red monsters initiate combat on proximity',()=>{
  for(const aggressive of [false,true]){const w=new World(),p=w.join('p',fresh('sword-cockro'));w.enter(p,'forest');const e=w.mobs.forest[0];Object.assign(e,{x:p.x+40,y:p.y,homeX:p.x+40,homeY:p.y,hp:999999,state:'idle',clock:0});e.def={...e.def,aggressive,attack:'melee'};w.mobs.forest=[e];w.mobs.star=[];w.tick(.1,100);assert.equal(e.state,aggressive?'windup':'idle');assert.equal(aggressiveMonster(e.def),aggressive);assert.equal(monsterNameColor(e.def),aggressive?'#ff6b68':'#ffe16b');if(!aggressive){w.hit(p,e,1,101);e.clock=0;w.tick(.1,101.1);assert.equal(e.state,'windup');}}
 });
+
 
