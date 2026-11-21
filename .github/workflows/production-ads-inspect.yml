@@ -1,0 +1,25 @@
+name: Inspect COCKRO production ads
+on:
+  push:
+    branches: [fix/red-cockro-floating-joystick-20261120]
+    paths: ['.github/workflows/production-ads-inspect.yml']
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 2
+    steps:
+      - name: Inspect deployment contract and ad mode without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          systemctl is-active cockro-online.service
+          sha256sum /opt/cockro-online/online-server.cjs
+          cat /usr/local/sbin/cockro-deploy-online
+          python3 - <<'PY'
+          import pathlib,re
+          s=pathlib.Path('/opt/cockro-online/online-server.cjs').read_text()
+          for pattern in [r'COCKRO_TEST_REWARDS.{0,100}',r'internalTestRewards.{0,30}']:
+              print(re.findall(pattern,s))
+          PY
+          curl --fail --silent --max-time 5 http://127.0.0.1:8091/online/health
