@@ -131,14 +131,8 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
  // ---------- props ----------
  const sprites=new Map();
  function sprite(kind,zone,variant){const key=kind+zone+'.'+variant;if(sprites.has(key))return sprites.get(key);const S=1.3,W=130,H=190,cv=canvas(W*S,H*S),g=cv.getContext('2d');g.scale(S,S);g.translate(W/2,H-14);drawProp(g,kind,STAR_ZONES[zone]||STAR_ZONES[0],variant);const sp={cv,W,H,ax:W/2,ay:H-14};sprites.set(key,sp);return sp;}
- // Atlas order from the prompt: 0-2 trees/plants, 3-4 rocks, 5-6 small structures, 7 glowing landmark.
- // Structures and landmarks only stand inside dense prop clusters so they never overhang paths.
- const ROCKY=new Set(['rock','meteor','wreck']);
- function paintedProp(k,c,r,h){
-  let dense=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const j=at(c+dc,r+dr);if(j>=0&&(scene.prop[j]||!scene.walk[j]))dense++;}
-  if(dense===9&&hash(c,r,131)<.22)return 5+Math.floor(hash(c,r,132)*3);
-  return ROCKY.has(k)?3+Math.floor(h*2):Math.floor(h*3);
- }
+ // Keep natural scenery in the field. Buildings have their own authored positions.
+ const ROCKY=new Set(['rock','meteor','sandstone']);
  function props(view,out,g){
   const v=visibleTiles(view,1);
   for(let r=v.r0;r<=v.r1;r++)for(let c=v.c0;c<=v.c1;c++){const i=r*N+c,k=scene.prop[i];if(!k||k==='foundation')continue;const x=(c+.5)*T,y=(r+.5)*T,[X,Y]=iso(x,y),sx=view.ox+X*view.scale,sy=view.oy+Y*view.scale;if(sx<-90*view.scale||sx>view.w+90*view.scale||sy<-20||sy>view.h+200*view.scale)continue;
@@ -147,7 +141,7 @@ export function createStarRenderer(scene,{quality='auto',art={},images=new Map()
     out.push({sort:x+y,fn:()=>g.drawImage(im,(n%2)*cw,Math.floor(n/2)*ch,cw,ch,sx-size/2,sy-size*.92,size,size)});continue;
    }
    const h=hash(c,r,123),flip=k!=='town-wall'&&hash(c,r,125)>.5,z=scene.zone[i],atlas=art[z]?.props,aim=atlas&&images.get(atlas.file);
-   if(aim){const [cw,ch]=atlas.cell,base=atlas.base,n=paintedProp(k,c,r,h),target=n<3?205:n<5?120:n<7?230:190,sc=target/atlas.heights[n]*(.85+hash(c,r,124)*.3)*view.scale,sx0=n%4*cw,sy0=Math.floor(n/4)*ch;
+   if(aim){const [cw,ch]=atlas.cell,base=atlas.base,n=ROCKY.has(k)?3+Math.floor(h*2):Math.floor(h*3),target=n<3?205:120,sc=target/atlas.heights[n]*(.85+hash(c,r,124)*.3)*view.scale,sx0=n%4*cw,sy0=Math.floor(n/4)*ch;
     out.push({sort:x+y,fn:flip&&n<5?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(aim,sx0,sy0,cw,ch,-cw/2*sc,-base*sc,cw*sc,ch*sc);g.restore();}:()=>g.drawImage(aim,sx0,sy0,cw,ch,sx-cw/2*sc,sy-base*sc,cw*sc,ch*sc)});continue;}
    const sp=sprite(k,scene.zone[i],Math.floor(h*3)),sc=(k==='town-wall'?1:.82+hash(c,r,124)*.32)*view.scale;
    out.push({sort:x+y,fn:flip?()=>{g.save();g.translate(sx,sy);g.scale(-1,1);g.drawImage(sp.cv,-sp.ax*sc,-sp.ay*sc,sp.W*sc,sp.H*sc);g.restore();}:()=>g.drawImage(sp.cv,sx-sp.ax*sc,sy-sp.ay*sc,sp.W*sc,sp.H*sc)});}

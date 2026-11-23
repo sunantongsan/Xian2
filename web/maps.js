@@ -53,7 +53,7 @@ MAPS.town={...MAPS.town,width:2400,height:1600,get name(){return t('เมือ
  [[.46,.25],[.51,.22],[.55,.27],[.55,.31],[.51,.33],[.46,.31]]],
  pois:[
  {uv:MERCHANT_UV,get name(){return t('พ่อค้าทุ่งกุลา');},action:'shop'},
- {uv:[.85,.505],get name(){return t('ช่างตีเหล็ก');},action:'forge'},
+ {uv:[.32,.36],get name(){return t('ช่างตีเหล็ก');},action:'forge'},
  {uv:DOCTOR_UV,get name(){return t('ปราชญ์แห่งทุ่งกุลา');},action:'mutation'},
  {uv:[.50,.37],get name(){return t('ลานฝึกเวทมนตร์');},action:'skills'},
  {uv:[.50,.94],get name(){return t('ทุ่งกุลา • เลเวล 1–60');},action:'road',road:'forest'},

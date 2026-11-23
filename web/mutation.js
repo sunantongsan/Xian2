@@ -1,7 +1,7 @@
 import {validBranch} from './jobs.js';
 import {jobFor} from './job-progression.js';
 export const MUTATION_VERSION=1;
-export const DOCTOR_UV=Object.freeze([.80,.495]);
+export const DOCTOR_UV=Object.freeze([.655,.32]);
 
 // Legacy save fields carry level-based combat bonuses and existing skill IDs.
 export function mutationStage(s){return jobFor(s?.hero,s?.level)?.stage || 0;}
