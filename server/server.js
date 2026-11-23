@@ -10,6 +10,7 @@ import {capturePresence,finishFight} from './pvp.js';
 import {createAccounts} from './accounts.js';
 import {CHARACTER_SLOTS,characterId,characterRoster,readCharacter} from './characters.js';
 
+import {hunterStatistics} from './hunter-statistics.js';
 import http from 'node:http';
 import {issueTestTicket,completeTestTicket} from './test-rewards.js';
 import {issueRewardTicket,applyVerifiedReward,createSSVVerifier} from './rewarded-ads.js';
@@ -23,7 +24,8 @@ import {fresh,validSave} from '../web/core.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier}={}){
  mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new World({maxPlayers,testRewards,roamers}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
- const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
+ const hunts=hunterStatistics(world);
+ const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);hunts.record(p.id,p.s);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
  backupBefore416(directory,'7.1.1-retired-items');
  let commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
  backupBefore416(directory,'single-character-4502-v1');
@@ -31,7 +33,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
  commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
  migrateArmorSaves(directory);migrateRetiredSystems(directory); // After commerce WAL recovery, before loading any characters.
  // Restore only characters that have logged out since persistent presence was introduced.
- for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state&&!accounts.deletion.isCharacterDeleted(file.slice(0,-5)))world.restore(file.slice(0,-5),state);}catch{diskFailure=true;}}
+ for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state&&!accounts.deletion.isCharacterDeleted(file.slice(0,-5))){const id=file.slice(0,-5);hunts.record(id,state);world.restore(id,state);}}catch{diskFailure=true;}}
  const billing=createBillingService(directory,billingVerifier);
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
  const verifySSV=ssvVerifier||createSSVVerifier({unit:adUnit});let verifying=0;
@@ -67,7 +69,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(accounts.deletion.isDeleted(owner))commerce.removeAccount(owner);
  if((result&&d.action==='delete')||accounts.deletion.isDeleted(owner)){
  const ids=d.action==='delete'? [characterId(owner,d.character)]:CHARACTER_SLOTS.map(slot=>characterId(owner,slot));
- for(const id of ids){for(const [key,fight]of [...world.fights])if(fight.a===id||fight.b===id)finishFight(world,key,'interrupted','interrupted',Date.now()/1000);world.sleepers.delete(id);}
+ for(const id of ids){for(const [key,fight]of [...world.fights])if(fight.a===id||fight.b===id)finishFight(world,key,'interrupted','interrupted',Date.now()/1000);world.sleepers.delete(id);hunts.remove(id);}
  }}
 }send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!test)throw Error('login_required');if(d.hero!=='sword-cockro')throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
  for(const slot of CHARACTER_SLOTS){const body=world.sleepers.get(characterId(account,slot));if(body?.dirty)persist(body);}
@@ -89,6 +91,10 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
  send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'7.1.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
+    if(d.type==='hunterStats'){
+     if(now-(ws.lastHunterStats||0)<400)return;
+     ws.lastHunterStats=now;send(ws,{type:'hunterStats',...hunts.view(p)});return;
+    }
     if(d.type==='chat'){try{chat.handle(p,d);}catch(e){send(ws,{type:'chatError',message:e.message});}return;}
     if(d.type==='commerce'){
      try{const result=commerce.run(p,d);for(const socket of connections){const actor=socket.player?.();if(actor)send(socket,world.snapshot(actor));}send(ws,{type:'commerceResult',ok:true,...result});}
@@ -118,7 +124,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
      try{const copy=structuredClone(p.s),ticket=issueRewardTicket(copy,d.item);persist({id:p.id,s:copy});p.s=copy;p.dirty=false;send(ws,{type:'adTicket',user:p.id,nonce:ticket.nonce,item:ticket.item});}
      catch(error){send(ws,{type:'adError',message:['save_unavailable','ad_limit','already_claimed','invalid_reward'].includes(error.message)?error.message:'ad_unavailable'});}return;
     }
-    world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});}
+    world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});if(d.op==='exchangeBounty')send(ws,{type:'hunterStats',...hunts.view(p)});}
    }catch(error){send(ws,{type:'error',message:['version_mismatch','login_required','name_required','invalid_name','already_online','room_full','account_missing','save_unavailable','character_missing','character_limit'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
   });
   ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){commerce.lockVault(p);world.disconnect(p);try{persist(p);}catch{}if(!managing)activeAccounts.delete(p.account);}});ws.player=()=>p;

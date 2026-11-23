@@ -5,6 +5,7 @@ import {COSTS,trainingPoints,buyProtectionTicket,PROTECTION_PRICE,PROTECTION_CAP
 import {INSECT_DISPLAY_SCALE} from './insect-sprites.js';
 import {suitItemArt} from './suit-item-art.js';
 import {suitIcon} from './insect-armor.js';
+import {bountyRate} from './hunt-bounty.js';
 import {baseAttackRange} from './jobs.js';
 import {createMonsterCache} from './monster-cache.js';
 import {createFrameLoop} from './frame-loop.js';
@@ -127,7 +128,10 @@ const ads=new RewardedAdsClient(state=>{
  else refreshRewardButtons();
  celebrateReward();
 });
-net.onOpResult=result=>{if(result.op==='dailyCheckin'){dailyGiftPending=false;clearTimeout(dailyGiftTimer);if(onlineView==='gifts'){checkinMenu();const label=$('checkinMessage');if(label)label.textContent=result.message||(result.ok?t('รับรางวัลแล้ว'):t('ยังรับรางวัลไม่ได้'));}else toast(result.message||(result.ok?t('รับรางวัลเช็กอินแล้ว'):t('ยังรับรางวัลไม่ได้')));if(result.ok)rewardFanfare();return;}if(result.op==='useExpTicket'){toast(result.ok?t('เปิดใช้งานตั๋ว EXP แล้ว'):result.message||t('ยังใช้ตั๋วไม่ได้'));return;}if(result.op==='townBuff'&&!result.ok){toast(t('ยังรับบัฟไม่ได้ กรุณาอยู่ในเมืองและออกจากการต่อสู้'));return;}if(result.op==='allocateStats'){statPending=false;if(onlineView==='character'){if(result.ok){statMenu('stats');toast(t('อัปค่าสถานะสำเร็จ'));}else{statDraftRefresh?.();$('statMessage').textContent=result.message||t('ทำรายการไม่สำเร็จ');}}return;}if(forgePending&&result.op==='upgradeGear'&&result.enhanced===false){forgePending=null;clearTimeout(forgeTimer);upgradeFailure(result.message);return;}if(forgePending&&result.op===forgePending.op){const before=forgePending;forgePending=null;clearTimeout(forgeTimer);const it=s.equip?.[before.slot];if(it&&JSON.stringify(it)!==before.signature){if(before.op==='rerollSpecial'){forge();toast(t('สุ่มได้ ')+specialInfo(it.special).name);gameAudio.success();}else celebrateUpgrade(it,before.stats);}else toast(t('ยังอัปเกรดไม่ได้ กรุณาตรวจวัสดุและเงิน'));}if(!purchasePending)return;if(result.requestId!==purchasePending.id)return;const changed=result.ok===true||(result.ok===undefined&&purchasePending.before!==shopAmounts());purchasePending=null;clearTimeout(purchaseTimer);const label=$('purchaseStatus');if(label)label.textContent=changed?t('ซื้อสำเร็จ • ของเข้ากระเป๋าและบันทึกแล้ว'):(result.message||t('ยังซื้อไม่ได้ กรุณาตรวจยอดเงินแล้วลองใหม่'));if(onlineView==='shop')refreshOnlineShop();};
+net.onOpResult=result=>{if(result.op==='exchangeBounty'){
+ if($('huntNotice')&&modal.open)$('huntNotice').textContent=t(result.ok?'แลกค่าหัวแล้ว':'แลกไม่สำเร็จ โปรดตรวจอัตราและยอดล่าสุด');
+ return;
+ }if(result.op==='dailyCheckin'){dailyGiftPending=false;clearTimeout(dailyGiftTimer);if(onlineView==='gifts'){checkinMenu();const label=$('checkinMessage');if(label)label.textContent=result.message||(result.ok?t('รับรางวัลแล้ว'):t('ยังรับรางวัลไม่ได้'));}else toast(result.message||(result.ok?t('รับรางวัลเช็กอินแล้ว'):t('ยังรับรางวัลไม่ได้')));if(result.ok)rewardFanfare();return;}if(result.op==='useExpTicket'){toast(result.ok?t('เปิดใช้งานตั๋ว EXP แล้ว'):result.message||t('ยังใช้ตั๋วไม่ได้'));return;}if(result.op==='townBuff'&&!result.ok){toast(t('ยังรับบัฟไม่ได้ กรุณาอยู่ในเมืองและออกจากการต่อสู้'));return;}if(result.op==='allocateStats'){statPending=false;if(onlineView==='character'){if(result.ok){statMenu('stats');toast(t('อัปค่าสถานะสำเร็จ'));}else{statDraftRefresh?.();$('statMessage').textContent=result.message||t('ทำรายการไม่สำเร็จ');}}return;}if(forgePending&&result.op==='upgradeGear'&&result.enhanced===false){forgePending=null;clearTimeout(forgeTimer);upgradeFailure(result.message);return;}if(forgePending&&result.op===forgePending.op){const before=forgePending;forgePending=null;clearTimeout(forgeTimer);const it=s.equip?.[before.slot];if(it&&JSON.stringify(it)!==before.signature){if(before.op==='rerollSpecial'){forge();toast(t('สุ่มได้ ')+specialInfo(it.special).name);gameAudio.success();}else celebrateUpgrade(it,before.stats);}else toast(t('ยังอัปเกรดไม่ได้ กรุณาตรวจวัสดุและเงิน'));}if(!purchasePending)return;if(result.requestId!==purchasePending.id)return;const changed=result.ok===true||(result.ok===undefined&&purchasePending.before!==shopAmounts());purchasePending=null;clearTimeout(purchaseTimer);const label=$('purchaseStatus');if(label)label.textContent=changed?t('ซื้อสำเร็จ • ของเข้ากระเป๋าและบันทึกแล้ว'):(result.message||t('ยังซื้อไม่ได้ กรุณาตรวจยอดเงินแล้วลองใหม่'));if(onlineView==='shop')refreshOnlineShop();};
 net.onAdReward=reward=>{testTicket=null;adPending=false;clearTimeout(adTimeout);if(reward.duplicate)return;adMessage='';pendingCelebration=reward;celebrateReward();};
 net.onAdTicket=ticket=>{if(ticket.test)testTicket=ticket;if(!adPending||!onlineMode)return;clearTimeout(adTimeout);if(!ads.show(ticket)){adPending=false;adNotice(t('ติดต่อระบบโฆษณาในแอปไม่สำเร็จ กรุณาปิดแล้วเปิดแอปใหม่'));return;}adNotice(t('กำลังโหลดวิดีโอโฆษณา…'));adTimeout=setTimeout(()=>{adPending=false;adScreenOpen=false;adNotice(t('ระบบโฆษณาไม่ตอบกลับ กรุณาปิดแล้วเปิดแอปใหม่'));},50000);};
 net.onAdError=message=>{adPending=false;clearTimeout(adTimeout);adNotice(message==='test_limit'?t('รับไอเท็มทดสอบครบ 20 ครั้งแล้ว'):({ad_pending:t('เซิร์ฟเวอร์โฆษณากำลังอัปเดต กรุณาลองใหม่'),ad_limit:t('คำขอโฆษณาวันนี้ครบขีดจำกัดแล้ว'),already_claimed:t('รับรางวัลเช็กอินวันนี้แล้ว'),invalid_reward:t('รางวัลนี้ยังรับไม่ได้ กรุณาตรวจไอเท็มและพื้นที่กระเป๋า'),save_unavailable:t('เซิร์ฟเวอร์บันทึกข้อมูลไม่ได้ กรุณาลองใหม่'),ads_disabled:t('เซิร์ฟเวอร์ยังไม่เปิดโฆษณา'),ad_unavailable:t('ขอโฆษณาไม่สำเร็จ กรุณาลองใหม่')})[message]||t('ระบบโฆษณายังไม่พร้อม • ')+message);};
@@ -626,7 +630,7 @@ async function exitGame(){
  };
 }
 function settings(){
- show(ui`<section class="text-settings"><h2>${t('ตั้งค่า')}</h2><label for="gameLanguage">${t('ภาษา')}</label><select id="gameLanguage"><option value="th" ${language.current==='th'?'selected':''}>${'ไทย'}</option><option value="en" ${language.current==='en'?'selected':''}>English</option></select><p id="languageStatus" role="status"></p>${button('toggleSound',t(s.sound?t('เสียง: เปิด'):t('เสียง: ปิด')))}${button('toggleQuality',t(s.quality==='low'?t('ภาพ: ประหยัดเครื่อง'):t('ภาพ: อัตโนมัติ')))}${button('switchCharacter',t('เปลี่ยนตัวละคร'))}${button('accountCenter',t('จัดการบัญชี / ประวัติเติมเงิน'))}${button('privacyButton',t('ความเป็นส่วนตัว'))}${button('settingsBack',t('กลับ'))}</section>`);
+ show(ui`<section class="text-settings"><h2>${t('ตั้งค่า')}</h2><label for="gameLanguage">${t('ภาษา')}</label><select id="gameLanguage"><option value="th" ${language.current==='th'?'selected':''}>${'ไทย'}</option><option value="en" ${language.current==='en'?'selected':''}>English</option></select><p id="languageStatus" role="status"></p>${button('toggleSound',t(s.sound?t('เสียง: เปิด'):t('เสียง: ปิด')))}${button('toggleQuality',t(s.quality==='low'?t('ภาพ: ประหยัดเครื่อง'):t('ภาพ: อัตโนมัติ')))}${button('hunterStats',t('สถิติ'))}${button('switchCharacter',t('เปลี่ยนตัวละคร'))}${button('accountCenter',t('จัดการบัญชี / ประวัติเติมเงิน'))}${button('privacyButton',t('ความเป็นส่วนตัว'))}${button('settingsBack',t('กลับ'))}</section>`);
  $('gameLanguage').onchange=()=>{
   const control=$('gameLanguage'),selected=control.value,previous=language.current,requestId=String(Date.now());
   $('gameLanguage').disabled=true;$('languageStatus').textContent=t('กำลังบันทึกภาษา…');
@@ -640,7 +644,38 @@ function settings(){
 
  $('toggleSound').onclick=()=>{s.sound=!s.sound;try{localStorage.setItem('cockro-sound',s.sound?'on':'off');}catch{}gameAudio.sync(s.sound);save();settings();};
  $('toggleQuality').onclick=()=>{s.quality=s.quality==='low'?'auto':'low';resize();save();settings();};
+ $('hunterStats').onclick=hunterMenu;
  $('switchCharacter').onclick=title;$('accountCenter').onclick=accountCenter;$('privacyButton').onclick=privacy;$('settingsBack').onclick=menu;
+}
+
+function hunterMenu(){
+ show(`<section class="text-settings"><h2>${t('สถิติ')}</h2><div id="huntData"></div>
+ <p role="status" id="huntNotice"></p><button id="huntExchange" hidden></button>
+ ${button('huntRefresh',t('อัปเดตสถิติ'))}${button('huntBack',t('กลับ'))}</section>`);
+ const box=$('huntData'),notice=$('huntNotice'),exchange=$('huntExchange'),refresh=$('huntRefresh');
+ let timer;
+ function wait(){
+  clearTimeout(timer);refresh.disabled=true;exchange.disabled=true;
+  timer=setTimeout(()=>{if(box.isConnected&&modal.open){refresh.disabled=false;notice.textContent=t('กรุณาอัปเดตสถิติอีกครั้ง');}},6000);
+ }
+ function request(){
+  if(!onlineMode||!net.ready){notice.textContent=t('เชื่อมต่อเกมออนไลน์เพื่อดูสถิติ');return;}
+  wait();notice.textContent=t('กำลังโหลด…');net.send({type:'hunterStats'});
+ }
+ net.onHunterStats=data=>{
+  if(!box.isConnected||!modal.open)return;
+  clearTimeout(timer);refresh.disabled=false;
+  if(notice.textContent===t('กำลังโหลด…'))notice.textContent='';
+  const fmt=n=>n.toLocaleString(language.current==='en'?'en-US':'th-TH');
+  const rate=bountyRate(data.online),coins=Math.floor(data.heads/rate);
+  const rows=[[t('บัญชีที่มีตัวละคร'),fmt(data.accounts)],[t('ออนไลน์ตอนนี้'),fmt(data.online)],
+   [t('ตัวละครที่มี COCKRO มากที่สุด'),data.leader?`${data.leader.name} · ${fmt(data.leader.coins)} COCKRO`:'—'],
+   [t('ค่าหัวของฉัน'),fmt(data.heads)],[t('อัตราแลกตอนนี้'),fmt(rate)+' '+t('หัวต่อ 1 COCKRO')]];
+  box.replaceChildren(...rows.map(([label,value])=>{const row=document.createElement('p');row.textContent=label+' · '+value;return row;}));
+  exchange.hidden=false;exchange.disabled=coins<1;exchange.textContent=t('แลกค่าหัว')+' · '+fmt(coins)+' COCKRO';
+  exchange.onclick=()=>{wait();net.send({type:'op',op:'exchangeBounty',coins,rate,revision:data.revision});};
+ };
+ refresh.onclick=request;$('huntBack').onclick=()=>{clearTimeout(timer);settings();};request();
 }
 
 async function accountCenter(){

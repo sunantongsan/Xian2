@@ -8,7 +8,12 @@ import * as T from '../web/vendor/three.module.js';
 import {buyMerchantStack} from '../web/merchant.js';
 import {exchangeGold} from '../web/enhancement.js';
 import {World} from '../server/world.js';
-test('monster coins wait on ground, credit COCKRO only and preserve legacy gold',()=>{const s=fresh('sword-cockro');s.gold=12345;s.stones=67;const drops=monsterRewards(s,{id:'test',gold:23,xp:10,boss:false},()=>.99);assert.equal(s.stones,67);assert.equal(s.gold,12345);const coin=drops.find(d=>d.kind==='cockro');assert.equal(coin.count,23);assert.equal(lootName(coin),'COCKRO');assert(collectLoot(s,coin));assert.equal(s.stones,90);assert.equal(s.gold,12345);assert.equal(validSave(s).stones,90);assert.equal(validSave(s).gold,12345);});
+test('kills credit one head and keep old balances intact',()=>{
+ const s=fresh('sword-cockro');s.gold=12345;s.stones=67;
+ const drops=monsterRewards(s,{id:'test',gold:23,xp:10,boss:false},()=>.99);
+ assert.equal(s.bountyHeads,1);assert.equal(drops.length,0);
+ const saved=validSave(s);assert.equal(saved.bountyHeads,1);assert.equal(saved.stones,67);assert.equal(saved.gold,12345);
+});
 test('invalid or overflowing drops cannot change balances; old ground coins settle as COCKRO',()=>{const s=fresh('sword-cockro');s.stones=COIN_CAP;for(const count of [1,-1,0,NaN,Infinity,.5])assert.equal(collectLoot(s,{kind:'cockro',count}),false);assert.equal(s.stones,COIN_CAP);s.stones=0;assert(collectLoot(s,{kind:'gold',count:2}));assert.equal(s.stones,2);assert.equal(s.gold,0);});
 test('potions and merchant use COCKRO and old exchange is disabled',()=>{const s=fresh('sword-cockro');s.gold=100000;assert.equal(buyPotion(s),false);s.stones=200;assert(buyPotion(s));assert.equal(s.stones,150);assert(buyMerchantStack(s,'buyMP',null,2,{}));assert.equal(s.stones,30);assert.equal(s.gold,100000);assert.equal(exchangeGold(s,1),false);});
 test('floating joystick appears at contact, moves bounded, hides on pinch/release/cancel',()=>{const handlers={},shown=[];const canvas={addEventListener:(k,f)=>handlers[k]=f,setPointerCapture(){}};const control=bindWorldInput(canvas,{enabled:()=>true,tap(){},steer(){},stop(){},getZoom:()=>1,zoom(){},joystick:v=>shown.push(v)});const send=(type,id,x=100,y=100)=>handlers[type]({type,pointerId:id,clientX:x,clientY:y,button:0,preventDefault(){}});send('pointerdown',1);assert.deepEqual(shown.at(-1),{x:100,y:100,dx:0,dy:0});send('pointermove',1,300,100);assert.equal(shown.at(-1).dx,38);send('pointerdown',2,400,100);assert.equal(shown.at(-1),null);send('pointerup',1);send('pointerup',2);send('pointerdown',3);control.cancel();assert.equal(shown.at(-1),null);});

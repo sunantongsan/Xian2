@@ -6,9 +6,8 @@ import {UPGRADE_ITEMS} from './upgrade-items.js';
 export const LOOT_SECONDS=8,LOOT_RADIUS=65;
 // XP and kill credit are immediate; all tangible rewards wait on the ground.
 export function monsterRewards(s,m,rng=Math.random){
- const coins=s.stones;reward(s,m,rng);
- const rewards=[];if(s.stones>coins)rewards.push({kind:'cockro',count:s.stones-coins});
- s.stones=coins;const item=rollDrop(m,rng);if(item)rewards.push({kind:'gear',item,count:1});return rewards;
+ reward(s,m,rng);
+ const rewards=[];const item=rollDrop(m,rng);if(item)rewards.push({kind:'gear',item,count:1});return rewards;
 }
 export function lootName(d,hero){return (d.kind==='cockro'||d.kind==='gold')?'COCKRO':d.kind==='material'?UPGRADE_ITEMS[d.itemId].name:itemName(d.item,hero);}
 export function collectLoot(s,d){
