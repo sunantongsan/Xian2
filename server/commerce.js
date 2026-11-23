@@ -10,7 +10,7 @@ const integer=(n,max)=>Number.isSafeInteger(n)&&n>0&&n<=max;
 function need(ok,message){if(!ok)throw Error(message);}
 export function take(s,kind,id,quantity){
  need(integer(quantity,99999),'invalid_quantity');
- if(kind==='gear'){need(quantity===1,'invalid_quantity');const i=s.bag.findIndex(it=>it.id===id);need(i>=0&&!isRetiredArmor(s.bag[i]),'item_missing');return {kind,id,quantity:1,item:s.bag.splice(i,1)[0]};}
+ if(kind==='gear'){need(quantity===1,'invalid_quantity');const i=s.bag.findIndex(it=>it.id===id);need(i>=0&&!isRetiredArmor(s.bag[i]),'item_missing');need(!s.bag[i].expiresAt,'item_not_transferable');return {kind,id,quantity:1,item:s.bag.splice(i,1)[0]};}
  const [holder,key]=stack(s,kind,id);need((holder[key]||0)>=quantity,'item_missing');holder[key]-=quantity;return {kind,id,quantity};
 }
 function stack(s,kind,id){

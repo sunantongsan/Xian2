@@ -69,17 +69,14 @@ test('internal demo ticket persists once, replies after snapshot, and is disable
 
 
 
-test('doctor socket operation persists refunded points and mutation across reconnect without duplicate refunds',async t=>{
- const {DOCTOR_UV}=await import('../web/mutation.js');
- const directory=mkdtempSync(join(tmpdir(),'cockro-mutation-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
+test('old class-change requests cannot refund points or switch heroes across reconnect',async t=>{
+ const directory=mkdtempSync(join(tmpdir(),'cockro-same-hero-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
  const url=`ws://127.0.0.1:${app.server.address().port}/online/world`,a=await client(url,{type:'hello',version:PROTOCOL,create:true,name:'Mutator',hero:'sword-cockro'});t.after(()=>a.ws.terminate());
- const p=app.world.players.get(a.welcome.id);Object.assign(p.s,{level:20,xp:0,statPoints:46,attributes:{str:12,vit:8,int:4,agi:6}});Object.assign(p,shopWorld(DOCTOR_UV,SHOP_MAPS.town));
- a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await until(()=>a.messages.some(m=>m.type==='state'&&m.self.save.mutationStage===1));
- const saved=JSON.parse(readFileSync(join(directory,p.id+'.json')));assert.equal(saved.statPoints,76);assert.equal(saved.xp,0);assert.deepEqual(saved.attributes,{str:0,vit:0,int:0,agi:0});
- a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await new Promise(r=>setTimeout(r,100));assert.equal(p.s.statPoints,76);
- a.ws.close();await until(()=>!app.world.players.has(p.id));const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());assert.equal(b.welcome.save.mutationStage,1);assert.equal(b.welcome.save.statPoints,76);assert.equal(b.welcome.save.xp,0);
+ const p=app.world.players.get(a.welcome.id);Object.assign(p.s,{level:20,xp:17,statPoints:46,attributes:{str:12,vit:8,int:4,agi:6}});
+ a.ws.send(JSON.stringify({type:'op',op:'mutate'}));await until(()=>a.messages.some(m=>m.type==='opResult'&&!m.ok&&m.op==='mutate'));
+ a.ws.close();await until(()=>!app.world.players.has(p.id));const b=await client(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});t.after(()=>b.ws.terminate());
+ assert.equal(b.welcome.save.hero,'sword-cockro');assert.equal(b.welcome.save.statPoints,46);assert.equal(b.welcome.save.xp,17);assert.equal(b.welcome.save.attributes.str,12);
 });
-
 
 test('retired suit equip is rejected over websocket and cannot survive reconnect',async t=>{
  const {makeItem}=await import('../web/gear.js');

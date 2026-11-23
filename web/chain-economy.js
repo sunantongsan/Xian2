@@ -12,7 +12,12 @@ export function enhance(s,it,useProtection=false,rng=Math.random){
  const success=roll<(SUCCESS[p]+(useProtection?5:0))/100;
  s.stones-=!success&&useProtection?1:cost;
  if(useProtection)s.protectionTickets--;
- if(success)it.plus=p+1;
+ if(success){
+  // Conditional position within the successful interval is uniform.
+  const fraction=roll/Math.min(1,(SUCCESS[p]+(useProtection?5:0))/100);
+  it.plus=p+1;
+  it.forgeBonus=(it.forgeBonus||0)+1+Math.floor(fraction*5);
+ }
  it.upgradeFails=0;
  return {success,cost:!success&&useProtection?1:cost,protected:useProtection};
 }
