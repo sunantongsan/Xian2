@@ -1,13 +1,13 @@
 import {COIN_CAP} from './chain-economy.js';
 import {t,ui} from './i18n.js';
-import {killBountyTenths,addHuntGold} from './hunt-bounty.js';
+import {killBountyTenths,addHuntGold,goldEventMultiplier} from './hunt-bounty.js';
 import {reward} from './core.js';
 import {rollDrop,rollInsectArmor,itemName,BAG_SIZE} from './gear.js';
 import {UPGRADE_ITEMS} from './upgrade-items.js';
 export const LOOT_SECONDS=8,LOOT_RADIUS=65;
 // XP and kill credit are immediate; all tangible rewards wait on the ground.
-export function monsterRewards(s,m,rng=Math.random){
- const gold=killBountyTenths(s.level,m)/10;
+export function monsterRewards(s,m,rng=Math.random,multiplier=goldEventMultiplier()){
+ const gold=killBountyTenths(s.level,m,multiplier)/10;
  reward(s,m,rng);
  const rewards=[{kind:'huntGold',count:gold}];
  const item=rollDrop(m,rng);

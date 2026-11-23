@@ -1,12 +1,23 @@
 import {COIN_CAP} from './chain-economy.js';
 
-// Keep fractional hunting credit in integer tenths so repeated kills add exactly.
-export function killBountyTenths(playerLevel,monster){
- const gap=playerLevel-(monster.level??playerLevel);
- const tenths=gap<=0?10:gap<10?8:gap<20?5:1;
- const matchedLevel=Math.min(playerLevel,monster.level||1);
- const huntingTier=1+Math.min(3,Math.floor(matchedLevel/40));
- return (monster.boss?10:monster.elite?3:1)*huntingTier*tenths*(monster.depths?2:1);
+// Set a scheduled event here for device play and the server's default calendar.
+export const scheduledGoldEvent=null;
+
+export function goldEventMultiplier(event=scheduledGoldEvent,now=Date.now()){
+ if(!event||!Number.isSafeInteger(event.multiplier)||event.multiplier<=1)return 1;
+ return now>=event.startMs&&now<event.endMs?event.multiplier:1;
+}
+
+// All calculations use tenths of G, including the credit carried between pickups.
+export function killBountyTenths(playerLevel,monster,eventMultiplier=1){
+ const monsterLevel=monster.level??1;
+ const baseTenths=10+(monsterLevel-1);
+ const gap=playerLevel-monsterLevel;
+ const percent=gap<=0?100:gap<10?80:gap<20?50:10;
+ const rank=monster.boss?10:monster.elite?3:1;
+ const location=monster.depths?2:1;
+ const normalTenths=Math.max(1,Math.floor(baseTenths*rank*location*percent/100));
+ return normalTenths*eventMultiplier;
 }
 export const GOLD_CAP=10000000000;
 export const GOLD_PER_COCKRO=1;

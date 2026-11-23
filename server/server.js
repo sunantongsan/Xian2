@@ -22,8 +22,8 @@ import {mkdirSync,readFileSync,writeFileSync,renameSync,existsSync,readdirSync} 
 import {join} from 'node:path';
 import {HEROES,PROTOCOL} from './world.js';
 import {fresh,validSave} from '../web/core.js';
-export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier}={}){
- mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new PrivateSessions({maxPlayers,testRewards}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
+export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier,goldEvent}={}){
+ mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new PrivateSessions({maxPlayers,testRewards,goldEvent}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
  const hunts=hunterStatistics(world);
  const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);hunts.record(p.id,p.s);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};

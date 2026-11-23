@@ -17,7 +17,7 @@ test('loot waits on ground, only close living owner can collect once, expires af
  w.hit(a,e,2,100);assert.equal(a.s.gold,0);assert.equal(w.loot.length,3);
  assert.deepEqual(w.loot.filter(d=>d.kind==='cockro').map(d=>d.count),[1]);
  Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,3);
- Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag+1);assert.equal(a.s.gold,10);
+ Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag+1);assert.equal(a.s.gold,19);
  w.collectGround(102);assert.equal(a.s.stones,before.g+1);
  e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);
 });
