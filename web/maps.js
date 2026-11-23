@@ -1,4 +1,5 @@
 import {t,ui} from './i18n.js';
+import {DEPTHS_MAP} from './crystal-depths.js';
 import {DOCTOR_UV} from './mutation.js';
 // Ground geometry is authored against the actual alien map, not the retired village.
 // Tile maps (type 'tiles', e.g. นครทะเลทราย) are handled by tilemap.js.
@@ -25,6 +26,7 @@ export const REGIONS=[
  {id:5,get name(){return t('ทุ่งผู้พิทักษ์');},min:51,max:60,center:[1/6,.25],entry:[1/6,.40]}
 ];
 export const MAPS={
+ depths:DEPTHS_MAP,
  town:{id:'town',get name(){return t('หมู่บ้านฮีโร่ • สถานีออโรรา');},image:'maps/aurora-outpost.webp',width:4000,height:2666,spawn:[.50,.445],walk:[
  // Main plaza follows its painted perimeter, with broad side promenades.
  [[.29,.28],[.71,.28],[.77,.32],[.73,.43],[.76,.53],[.70,.64],[.61,.71],[.39,.71],[.25,.66],[.23,.54],[.27,.43],[.23,.31]],
@@ -56,6 +58,7 @@ MAPS.town={...MAPS.town,width:2400,height:1600,get name(){return t('เมือ
  {uv:[.50,.37],get name(){return t('ลานฝึกเวทมนตร์');},action:'skills'},
  {uv:[.50,.94],get name(){return t('ทุ่งกุลา • เลเวล 1–60');},action:'road',road:'forest'},
  {uv:[.94,.50],get name(){return t('ดันเจียนฮีโร่ • เลเวล 61–120');},action:'road',road:'star'},
+ {uv:[.79,.89],get name(){return DEPTHS_MAP.name+' • Lv.120+';},action:'road',road:'depths'},
  {uv:[.06,.50],get name(){return t('ดันเจียนออโรรา');},action:'road',road:'aurora'}]};
 MAPS.forest={...MAPS.forest,get name(){return t('ทุ่งกุลา • เลเวล 1–60');},theme:'fantasy',image:'maps/thung-kula-fields.webp',pois:[{uv:[1/6,.95],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]};
 

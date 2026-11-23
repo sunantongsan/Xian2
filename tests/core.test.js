@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MONSTERS,ZONES,HEROES} from '../web/catalog.js';
 import {fresh,reward,xpNeed,validSave,buyPotion,upgrade,unlocked,inCone} from '../web/core.js';
-test('two worlds cover levels 1–120 with six bosses each',()=>{assert.equal(ZONES.length,2);assert.equal(MONSTERS.length,152);assert.equal(new Set(MONSTERS.map(m=>m.id)).size,152);assert.deepEqual(MONSTERS.filter(m=>!m.boss&&m.art!=='forest-v2').map(m=>m.level),Array.from({length:120},(_,i)=>i+1));assert.equal(MONSTERS.filter(m=>m.boss).length,12);for(const m of MONSTERS)assert(m.hp>0&&m.damage>0&&m.cooldown>0);});
+test('original hunting grounds cover levels 1–120 with six bosses each',()=>{const original=MONSTERS.filter(m=>!m.depths);assert.equal(ZONES.length,2);assert.equal(original.length,152);assert.equal(new Set(MONSTERS.map(m=>m.id)).size,MONSTERS.length);assert.deepEqual(original.filter(m=>!m.boss&&m.art!=='forest-v2').map(m=>m.level),Array.from({length:120},(_,i)=>i+1));assert.equal(original.filter(m=>m.boss).length,12);for(const m of MONSTERS)assert(m.hp>0&&m.damage>0&&m.cooldown>0);});
 test('save round-trip and reject corrupt or foreign save',()=>{const s=fresh(HEROES[0].id);assert.deepEqual(validSave(JSON.parse(JSON.stringify(s))),s);assert.equal(validSave({version:99}),null);assert.equal(validSave({...s,level:NaN}),null);assert.equal(validSave({...s,hero:'bad'}),null);assert.equal(validSave({...s,gold:-2}).gold,0);});
 test('each kill advances the level counter through former promotion and level caps',()=>{
  for(const level of [1,19,59,209,210,240]){

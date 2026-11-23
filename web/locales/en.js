@@ -1,5 +1,11 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"รังผลึกใต้พิภพ":"Crystal Hive Depths",
+"ราชันรังผลึก":"Hive sovereign",
+"องครักษ์ผลึก":"Crystal sentinel",
+"อสูรผลึก":"Crystal beast",
+"เข้าได้ตั้งแต่เลเวล 120":"Requires level 120",
+"ฝูงมอนดุ • ค่าหัว ×2 • เตรียมยาให้พร้อม":"Aggressive packs · Double bounty · Bring potions",
 "ล่าเพื่อขึ้นเลเวล":"Kills to next level",
 "ล่าใกล้เลเวลเพื่อรับค่าหัวเต็ม • โบนัสเพิ่มที่เลเวล 40, 80 และ 120":"Hunt at your level for full bounty. Bonuses increase at levels 40, 80 and 120.",
 "พรฟื้นพลัง":"Renewal",

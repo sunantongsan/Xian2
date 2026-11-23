@@ -6,7 +6,7 @@ export function killBountyTenths(playerLevel,monster){
  const tenths=gap<=0?10:gap<10?8:gap<20?5:1;
  const matchedLevel=Math.min(playerLevel,monster.level||1);
  const huntingTier=1+Math.min(3,Math.floor(matchedLevel/40));
- return (monster.boss?10:monster.elite?3:1)*huntingTier*tenths;
+ return (monster.boss?10:monster.elite?3:1)*huntingTier*tenths*(monster.depths?2:1);
 }
 export function bountyBalance(s){return s.bountyHeads+(s.bountyRemainder||0)/10;}
 export function creditKillBounty(s,monster){
