@@ -11,17 +11,26 @@ const until=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r
 async function connect(app,token,name='Presence Tester'){
  const ws=new WebSocket(`ws://127.0.0.1:${app.server.address().port}/online/world`,{origin:'http://localhost:8080'}),c={ws};ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='welcome')c.welcome=d;if(d.type==='state')c.state=d;if(d.type==='error')c.error=d.message;});await once(ws,'open');ws.send(JSON.stringify({type:'hello',version:PROTOCOL,create:!token,token,name,hero:'sword-cockro'}));await until(()=>c.state||c.error);assert(!c.error,c.error);return c;
 }
-test('real sockets keep offline body, persist defeat and potions through server restart and reconnect',async t=>{
- const directory=mkdtempSync(join(tmpdir(),'cockro-presence-'));let app=startServer({port:0,directory,test:true});await once(app.server,'listening');t.after(()=>app.close());
- const a=await connect(app,null,'Online Attacker'),b=await connect(app,null,'Offline Defender');const token=b.welcome.token,id=b.welcome.id;
- const pa=app.world.players.get(a.welcome.id),pb=app.world.players.get(id);app.world.enter(pa,'forest');app.world.enter(pb,'forest');app.world.mobs.forest=[];
- pb.x=pa.x+40;pb.y=pa.y;pb.hp=35;pb.mp=0;const pos={x:pb.x,y:pb.y},pots=pb.s.potions;
- b.ws.close();await until(()=>app.world.sleepers.has(id));await until(()=>a.state.players.some(p=>p.id===id&&p.offline));
- a.ws.send(JSON.stringify({type:'attackPlayer',target:id}));await until(()=>pb.s.potions===pots-1);assert.equal(pb.s.mpPotions,4);
- // Fixture puts defender at final-hit HP; damage still enters through authenticated command.
- pb.s.potions=0;pb.hp=1;await new Promise(r=>setTimeout(r,550));a.ws.send(JSON.stringify({type:'attackPlayer',target:id}));await until(()=>pb.hp===0);await until(()=>JSON.parse(readFileSync(join(directory,id+'.json'))).worldState.hp===0);
- const reports=pb.s.pvpReports;assert.equal(reports.at(-1).opponent,'Online Attacker');assert.equal(reports.at(-1).result,'lost');assert.equal(reports.at(-1).potions,1);
- await app.close();app=startServer({port:0,directory,test:true});await once(app.server,'listening');assert.equal(app.world.sleepers.get(id).hp,0);
- const back=await connect(app,token);t.after(()=>back.ws.terminate());assert.equal(back.state.self.hp,0);assert.equal(back.state.self.map,'forest');assert.deepEqual({x:back.state.self.x,y:back.state.self.y},pos);assert.equal(back.welcome.save.pvpReports.at(-1).result,'lost');assert.equal(back.welcome.save.mpPotions,4);assert.equal(app.world.sleepers.has(id),false);
- back.ws.send(JSON.stringify({type:'op',op:'readPvpReports'}));await until(()=>back.state.self.save.pvpReports.every(r=>!r.unread));
+test('private maps isolate monsters and discard the session on exit while preserving progress',async t=>{
+ const directory=mkdtempSync(join(tmpdir(),'cockro-solo-'));
+ let app=startServer({port:0,directory,test:true});
+ await once(app.server,'listening');t.after(()=>app.close());
+ const a=await connect(app,null,'Hunter A'),b=await connect(app,null,'Hunter B');
+ const pa=app.world.getActor(a.welcome.id),pb=app.world.getActor(b.welcome.id);
+ const wa=app.world.sessions.get(pa.id),wb=app.world.sessions.get(pb.id);
+ wa.enter(pa,'forest');wb.enter(pb,'forest');
+ const first=wa.mobs.forest[0],other=wb.mobs.forest[0];
+ wa.hit(pa,first,first.hp+1,Date.now()/1000);
+ assert.equal(other.hp,other.def.hp);assert.equal(pa.s.bountyHeads,1);assert.equal(pb.s.bountyHeads,0);
+ assert.deepEqual(app.world.snapshot(pa).players,[]);
+ const position=[pa.x,pa.y],token=a.welcome.token;
+ a.ws.close();await until(()=>!app.world.getActor(pa.id));
+ assert.equal(app.world.sessions.size,1);
+ b.ws.close();await until(()=>app.world.sessions.size===0);
+ await app.close();app=startServer({port:0,directory,test:true});await once(app.server,'listening');
+ assert.equal(app.world.sessions.size,0);
+ const resumed=await connect(app,token);t.after(()=>resumed.ws.terminate());
+ assert.equal(resumed.welcome.save.bountyHeads,1);
+ assert.equal(resumed.state.self.map,'forest');
+ assert.deepEqual([resumed.state.self.x,resumed.state.self.y],position);
 });

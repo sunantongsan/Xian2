@@ -6,7 +6,8 @@ import {createChat} from './chat.js';
 import {createCommerce} from './commerce.js';
 import {createBillingService} from './play-billing.js';
 import {stateForWire} from './state-wire.js';
-import {capturePresence,finishFight} from './pvp.js';
+import {capturePresence} from '../web/solo-world.js';
+import {PrivateSessions} from './private-sessions.js';
 import {createAccounts} from './accounts.js';
 import {CHARACTER_SLOTS,characterId,characterRoster,readCharacter} from './characters.js';
 
@@ -19,21 +20,30 @@ import {createHash,randomBytes} from 'node:crypto';
 import {characterName} from '../web/character-name.js';
 import {mkdirSync,readFileSync,writeFileSync,renameSync,existsSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
-import {World,HEROES,PROTOCOL} from './world.js';
+import {HEROES,PROTOCOL} from './world.js';
 import {fresh,validSave} from '../web/core.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier}={}){
- mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new World({maxPlayers,testRewards,roamers}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
+ mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const world=new PrivateSessions({maxPlayers,testRewards}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
  const hunts=hunterStatistics(world);
  const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);hunts.record(p.id,p.s);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
  backupBefore416(directory,'7.1.1-retired-items');
- let commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
+ // Offline merchants participate in ledger transactions without entering a game session.
+ function merchantAccount(id){
+  const player=world.getActor(id);
+  if(player)return player;
+  if(!/^[a-f0-9]{64}$/.test(id)||accounts.deletion.isCharacterDeleted(id))return;
+  const path=join(directory,id+'.json');
+  if(existsSync(path))return {id,s:JSON.parse(readFileSync(path,'utf8'))};
+ }
+ const commerceOptions={players:()=>world.players,getActor:merchantAccount,capture:p=>{if(p.map)capturePresence(p);},record:hunts.record};
+ let commerce=createCommerce(directory,commerceOptions);
  backupBefore416(directory,'single-character-4502-v1');
  migrateAllCharacters(directory);
- commerce=createCommerce(directory,{players:()=>world.players,getActor:id=>world.getActor(id),capture:capturePresence});
+ commerce=createCommerce(directory,commerceOptions);
  migrateArmorSaves(directory);migrateRetiredSystems(directory); // After commerce WAL recovery, before loading any characters.
- // Restore only characters that have logged out since persistent presence was introduced.
- for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state&&!accounts.deletion.isCharacterDeleted(file.slice(0,-5))){const id=file.slice(0,-5);hunts.record(id,state);world.restore(id,state);}}catch{diskFailure=true;}}
+ // Index saved balances without spawning disconnected characters.
+ for(const file of readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n))){try{const state=validSave(JSON.parse(readFileSync(join(directory,file),'utf8')));if(state&&!accounts.deletion.isCharacterDeleted(file.slice(0,-5))){const id=file.slice(0,-5);hunts.record(id,state);}}catch{diskFailure=true;}}
  const billing=createBillingService(directory,billingVerifier);
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
  const verifySSV=ssvVerifier||createSSVVerifier({unit:adUnit});let verifying=0;
@@ -59,7 +69,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.1.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:world.roamers.size,players:world.players.size,offlinePlayers:world.sleepers.size,persistentPvp:true,groundLoot:true,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.1.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144){if(data.type==='state')data.stalls=data.self.map==='town'?commerce.stalls().filter(it=>Math.hypot(it.x-data.self.x,it.y-data.self.y)<1800).slice(0,64):[];const packet=stateForWire(data,ws.eventCursor||0);ws.send(JSON.stringify(packet));if(packet.type==='state')for(const e of packet.events)ws.eventCursor=Math.max(ws.eventCursor||0,e.id);}else ws.close(1013,'slow_connection');};
@@ -69,10 +79,9 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(accounts.deletion.isDeleted(owner))commerce.removeAccount(owner);
  if((result&&d.action==='delete')||accounts.deletion.isDeleted(owner)){
  const ids=d.action==='delete'? [characterId(owner,d.character)]:CHARACTER_SLOTS.map(slot=>characterId(owner,slot));
- for(const id of ids){for(const [key,fight]of [...world.fights])if(fight.a===id||fight.b===id)finishFight(world,key,'interrupted','interrupted',Date.now()/1000);world.sleepers.delete(id);hunts.remove(id);}
+ for(const id of ids){hunts.remove(id);}
  }}
 }send(ws,{type:'accountResult',...result});}catch(e){send(ws,{type:'error',message:e.message});}finally{ws.close(1000);}return;}if(!p){if(d.type!=='hello'||d.version!==PROTOCOL)throw Error('version_mismatch');let token=d.token;let created=false;if(d.preview===true&&!token)throw Error('invalid_token');if(d.create===true&&!token){if(!test)throw Error('login_required');if(d.hero!=='sword-cockro')throw Error('invalid_hero');if(readdirSync(directory).filter(n=>n.endsWith('.json')).length>=5000)throw Error('account_capacity');token=randomBytes(32).toString('hex');created=true;}if(typeof token!=='string'||!/^\w{64}$/.test(token))throw Error('invalid_token');const account=created?createHash('sha256').update(token).digest('hex'):accounts.resolve(token);
- for(const slot of CHARACTER_SLOTS){const body=world.sleepers.get(characterId(account,slot));if(body?.dirty)persist(body);}
  const main=created?fresh(d.hero):readCharacter(directory,account);
  if(!main&&!accounts.exists(account))throw Error('account_missing');
  if(d.preview===true){send(ws,{type:'roster',...accounts.languageProfile(account,d.deviceLocale),characters:characterRoster(directory,account)});clearTimeout(timer);ws.close(1000);return;}
@@ -129,10 +138,10 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
   });
   ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){commerce.lockVault(p);world.disconnect(p);try{persist(p);}catch{}if(!managing)activeAccounts.delete(p.account);}});ws.player=()=>p;
  });
- let previous=Date.now();const ticker=setInterval(()=>{const now=Date.now();if(commerce.failed)return;commerce.refreshSigns();world.tick(Math.min(.2,(now-previous)/1000),now/1000);previous=now;for(const p of world.sleepers.values()){if(p.dirty&&now-(p.lastSaved||0)>=1000){try{persist(p);}catch{}}}for(const ws of connections){const p=ws.player();if(!p)continue;try{if(p.dirty&&now-(p.lastSaved||0)>=5000)persist(p);send(ws,world.snapshot(p));}catch{send(ws,{type:'error',message:'save_unavailable'});ws.close(1011);}}},100);
+ let previous=Date.now();const ticker=setInterval(()=>{const now=Date.now();if(commerce.failed||!world.players.size){previous=now;return;}commerce.refreshSigns();world.tick(Math.min(.2,(now-previous)/1000),now/1000);previous=now;for(const ws of connections){const p=ws.player();if(!p)continue;try{if(p.dirty&&now-(p.lastSaved||0)>=5000)persist(p);send(ws,world.snapshot(p));}catch{send(ws,{type:'error',message:'save_unavailable'});ws.close(1011);}}},100);
  const deletionWorker=setInterval(()=>accounts.deletion.processPending().catch(()=>{}),60000);accounts.deletion.processPending().catch(()=>{});
  const heartbeat=setInterval(()=>{for(const ws of connections){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}for(const [ip,q] of limits)if(q.at(-1)<Date.now()-60000)limits.delete(ip);},20000);
- server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);clearInterval(deletionWorker);for(const key of [...world.fights.keys()])finishFight(world,key,'interrupted','interrupted',Date.now()/1000);for(const p of world.actors()){try{persist(p);}catch{}}for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
+ server.listen(port,host);const close=async()=>{clearInterval(ticker);clearInterval(heartbeat);clearInterval(deletionWorker);for(const p of world.actors()){try{persist(p);}catch{}}for(const ws of connections)ws.terminate();await new Promise(ok=>server.close(ok));};return {server,world,close};
 }
 
 

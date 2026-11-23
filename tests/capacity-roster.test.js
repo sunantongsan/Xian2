@@ -12,11 +12,11 @@ const hello={type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword
 async function setup(t,maxPlayers=64){const directory=mkdtempSync(join(tmpdir(),'cockro-roster-'));const app=startServer({port:0,directory,test:true,maxPlayers});await once(app.server,'listening');t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true});});return {...app,directory,url:`ws://127.0.0.1:${app.server.address().port}/online/world`};}
 async function client(url,message){const ws=new WebSocket(url,{origin:'http://localhost:8080'});ws.on('open',()=>ws.send(JSON.stringify(message)));const [raw]=await once(ws,'message');return {ws,data:JSON.parse(raw)};}
 async function until(fn){for(let i=0;i<60;i++){if(fn())return;await new Promise(r=>setTimeout(r,30));}throw Error('timed out');}
-test('64 live sockets share a world and bounded nearby views; capacity remains enforced',async t=>{
+test('64 live sockets have private maps; capacity remains enforced',async t=>{
  const app=await setup(t),clients=[];t.after(()=>clients.forEach(c=>c.ws.terminate()));
  for(let i=0;i<64;i++){const c=await client(app.url,hello);assert.equal(c.data.type,'welcome');clients.push(c);}
  assert.equal(app.world.players.size,64);
- for(const p of app.world.players.values())assert.equal(app.world.snapshot(p).players.length,32);
+ for(const p of app.world.players.values())assert.equal(app.world.snapshot(p).players.length,0);
  const extra=await client(app.url,hello);assert.equal(extra.data.message,'room_full');extra.ws.terminate();
  const response=await fetch(`http://127.0.0.1:${app.server.address().port}/online/health`);assert.equal((await response.json()).capacity,64);
 });

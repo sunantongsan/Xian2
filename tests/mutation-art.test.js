@@ -27,7 +27,7 @@ test('renderer uses one whole pose, no extra weapon overlay, and waits for compl
 });
 test('equipment snapshot and local inventory select same mutation without new save fields',()=>{
  const w=new World(),s=fresh('sword-cricket');s.level=60;const p=w.join('a',s),q=w.join('b',fresh('sword-cockro'));
- const remote=w.snapshot(q).players.find(v=>v.id==='a');assert.equal(mutationArtFor(remote.hero,remote.level),mutationArtFor(s.hero,heroAppearance(s).level));assert.equal(remote.hero,s.hero);
+ assert.deepEqual(w.snapshot(q).players,[]);const remote=w.snapshot(p).self;assert.equal(mutationArtFor(remote.hero,remote.level),mutationArtFor(s.hero,heroAppearance(s).level));assert.equal(remote.hero,s.hero);
 });
 test('asset loading deduplicates in-flight requests, retries failure and invalidates portrait on success',async()=>{
  const expectedRequests=2*(heroAssetFiles('sword-cricket',20).length+MANTIS_FILES.length);
