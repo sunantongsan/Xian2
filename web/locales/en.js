@@ -1,5 +1,15 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"เข้าสู่บัญชีเพื่อเติม COCKRO":"Sign in to purchase COCKRO",
+"เล่นบนเครื่อง · เซฟแยก":"Play on device · separate save",
+"สถิติบนเครื่อง":"Device statistics",
+"นักล่า":"Hunter",
+"20 หัวต่อ 1 COCKRO":"20 bounty points per COCKRO",
+"กำลังโหลดตัวละคร…":"Loading character\u2026",
+"เซฟถูกเปิดจากหน้าต่างอื่น กรุณาเข้าเกมใหม่":"Save opened in another window. Reopen the game.",
+"อ่านเซฟบนเครื่องไม่ได้":"Could not read the device save",
+"บันทึกบนเครื่องไม่สำเร็จ":"Could not save on this device",
+
 "สถิติ":"Statistics",
 "อัปเดตสถิติ":"Refresh statistics",
 "บัญชีที่มีตัวละคร":"Accounts with a character",

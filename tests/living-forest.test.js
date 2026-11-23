@@ -16,7 +16,7 @@ test('forest paths and deep woods share collision on server; world edges remain 
  const units=new World().mobs.forest.filter(e=>!e.def.boss);let offPath=0;for(const e of units){const uv=toUV(e,MAPS.forest),u=(uv[0]*9)%1,v=(uv[1]*6)%1;if(u<.22||u>.78||v<.27||v>.73)offPath++;}assert(offPath>units.length*.45);
 });
 test('unengaged monsters wander, pause, face movement and stay near their own home',()=>{
- const w=new World(),units=w.mobs.forest.slice(30,50),before=units.map(e=>({x:e.x,y:e.y}));w.mobs.forest=units;w.mobs.star=[];let moving=0,paused=0;
+ const w=new World(),units=w.mobs.forest.slice(30,50),before=units.map(e=>({x:e.x,y:e.y}));w.mobs.forest=units;w.mobs.star=[];const observer=w.join("observer",fresh("sword-cockro"));w.enter(observer,"forest");Object.assign(observer,{x:100000,y:100000});let moving=0,paused=0;
  for(let i=0;i<400;i++){w.tick(.1,1000+i*.1);for(const e of units){e.moving?moving++:paused++;assert(walkable(MAPS.forest,e));assert(Math.hypot(e.x-e.homeX,e.y-e.homeY)<240);}}
  assert(moving>500&&paused>100);assert(units.some((e,i)=>Math.hypot(e.x-before[i].x,e.y-before[i].y)>40));assert(units.every(e=>e.walkDistance>0));
 });

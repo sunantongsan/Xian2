@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {World} from '../server/world.js';
-import {capturePresence} from '../server/pvp.js';
+import {capturePresence} from '../web/solo-world.js';
 import {fresh,validSave} from '../web/core.js';
 import {parseTiled,tileIndex} from '../web/tilemap.js';
 import {STAR_HOME_RADIUS,STAR_REVISION} from '../web/star-data.js';

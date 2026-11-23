@@ -25,11 +25,11 @@ export function give(s,cargo){
 }
 // Synchronous WAL commits all affected saves and the ledger before acknowledging.
 // Failed writes fence gameplay until restart replays the durable transaction.
-export function createCommerce(directory,{players,getActor=id=>players().get(id),capture=()=>{},writeHook}={}){
+export function createCommerce(directory,{players,getActor=id=>players().get(id),capture=()=>{},record=()=>{},writeHook}={}){
  const ledgerPath=join(directory,'commerce.json'),walPath=join(directory,'commerce-pending.json');let failed=false;
  const syncDir=()=>{const fd=openSync(directory,'r');try{fsyncSync(fd);}finally{closeSync(fd);}};
  const write=(file,value)=>{writeFileSync(file+'.tmp',JSON.stringify(value),{mode:0o600});const fd=openSync(file+'.tmp','r');try{fsyncSync(fd);}finally{closeSync(fd);}renameSync(file+'.tmp',file);syncDir();};
- function apply(tx){for(const [id,s]of Object.entries(tx.characters)){need(/^[a-f0-9]{64}$/.test(id),'invalid_character');write(join(directory,id+'.json'),s);}write(ledgerPath,tx.ledger);unlinkSync(walPath);syncDir();}
+ function apply(tx){for(const [id,s]of Object.entries(tx.characters)){need(/^[a-f0-9]{64}$/.test(id),'invalid_character');write(join(directory,id+'.json'),s);record(id,s);}write(ledgerPath,tx.ledger);unlinkSync(walPath);syncDir();}
  if(existsSync(walPath))apply(JSON.parse(readFileSync(walPath,'utf8')));
  let ledger=existsSync(ledgerPath)?JSON.parse(readFileSync(ledgerPath,'utf8')):{revision:0,vaults:{},shops:{}};
  let removed=0;

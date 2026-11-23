@@ -27,12 +27,12 @@ test('all packed rectangles exist, fit atlas and render atomically',()=>{
   const before=n;images.delete(data.pages[0]);assert.equal(drawLayeredHero(ctx,images,hero,{},0,0,110),undefined);assert.equal(n,before);
  }
 });
-test('equipment appearance survives save reload and reaches remote snapshots',()=>{
+test('equipment appearance survives save reload and reaches its private snapshot',()=>{
  for(const hero of Object.keys(LAYERED_HEROES)){
   const w=new World(),s=fresh(hero),p=w.join('a',s),other=w.join('b',fresh(hero));
   for(const item of [null,{slot:'weapon',rarity:0,tier:0},{slot:'weapon',rarity:0,tier:6}]){
    p.s.equip.weapon=item;const saved=JSON.parse(JSON.stringify(p.s));const look=equippedWeaponLook(saved);
-   assert.equal(w.snapshot(p).self.weaponLook,look);assert.equal(w.snapshot(other).players.find(q=>q.id==='a').weaponLook,look);
+   assert.equal(w.snapshot(p).self.weaponLook,look);assert.deepEqual(w.snapshot(other).players,[]);
    assert.equal(look,item?LAYERED_HEROES[hero].weapons[0]:'none');
   }
  }
