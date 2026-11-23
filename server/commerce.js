@@ -4,6 +4,7 @@ import {existsSync,readFileSync,writeFileSync,renameSync,unlinkSync,openSync,clo
 import {join} from 'node:path';
 import {BAG_SIZE} from '../web/gear.js';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
+import {POTIONS,addBottle,potionStacks} from '../web/merchant.js';
 import {EXP_TICKETS} from '../web/exp-tickets.js';
 const CAPS={stones:1e12};
 const integer=(n,max)=>Number.isSafeInteger(n)&&n>0&&n<=max;
@@ -11,6 +12,14 @@ function need(ok,message){if(!ok)throw Error(message);}
 export function take(s,kind,id,quantity){
  need(integer(quantity,99999),'invalid_quantity');
  if(kind==='gear'){need(quantity===1,'invalid_quantity');const i=s.bag.findIndex(it=>it.id===id);need(i>=0&&!isRetiredArmor(s.bag[i]),'item_missing');need(!s.bag[i].expiresAt,'item_not_transferable');return {kind,id,quantity:1,item:s.bag.splice(i,1)[0]};}
+ if(kind==='potion'){
+  const type=Object.hasOwn(POTIONS,id)?POTIONS[id].type:id;
+  need(['hp','mp'].includes(type),'item_not_transferable');
+  need((potionStacks(s,type).find(row=>row.id===id)?.count||0)>=quantity,'item_missing');
+  if(id!==type){s.potionStock[id]-=quantity;if(!s.potionStock[id])delete s.potionStock[id];}
+  s[type==='hp'?'potions':'mpPotions']-=quantity;
+  return {kind,id,quantity};
+ }
  const [holder,key]=stack(s,kind,id);need((holder[key]||0)>=quantity,'item_missing');holder[key]-=quantity;return {kind,id,quantity};
 }
 function stack(s,kind,id){
@@ -21,6 +30,9 @@ function stack(s,kind,id){
 }
 export function give(s,cargo){
  if(cargo.kind==='gear'){need(!isRetiredArmor(cargo.item),'item_retired');need(s.bag.length<BAG_SIZE,'bag_full');need(!s.bag.some(it=>it.id===cargo.item.id)&&!Object.values(s.equip).some(it=>it?.id===cargo.item.id),'duplicate_item');s.bag.push(structuredClone(cargo.item));return;}
+ if(cargo.kind==='potion'&&Object.hasOwn(POTIONS,cargo.id)){
+  need(addBottle(s,cargo.id,cargo.quantity),'bag_full');return;
+ }
  const [holder,key]=stack(s,cargo.kind,cargo.id);need((holder[key]||0)+cargo.quantity<=99999,'bag_full');holder[key]=(holder[key]||0)+cargo.quantity;
 }
 // Synchronous WAL commits all affected saves and the ledger before acknowledging.

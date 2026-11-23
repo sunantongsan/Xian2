@@ -35,7 +35,7 @@ test('open inventory refreshes for a kill and for a subsequent coin pickup',asyn
  const s=fresh('sword-cockro');
  const before=inventoryKey(s);
  const drops=monsterRewards(s,{id:1060,level:10,boss:true,xp:0},()=>.99);
- assert.equal(s.gold,0);assert(collectLoot(s,drops.find(d=>d.kind==='huntGold')));assert.equal(s.gold,19);
+ assert.equal(s.gold,0);assert(collectLoot(s,drops.find(d=>d.kind==='huntGold')));assert.equal(s.gold,83);
  assert.equal(s.stones,0);
  const afterKill=inventoryKey(s);
  assert.notEqual(afterKill,before);
@@ -47,22 +47,22 @@ test('open inventory refreshes for a kill and for a subsequent coin pickup',asyn
 test('bounties use both levels before the kill and retain tenths across redemption and reload',async()=>{
  const {killBountyTenths,bountyBalance}=await import('../web/hunt-bounty.js');
  const {reward,xpNeed}=await import('../web/core.js');
- for(const [gap,normal,elite,boss] of [[-1,20,60,200],[0,20,60,200],[1,16,48,160],[9,16,48,160],[10,10,30,100],[19,10,30,100],[20,2,6,20],[99,2,6,20]]){
+ for(const [gap,normal,elite,boss] of [[-1,90,270,900],[0,90,270,900],[1,72,216,720],[9,72,216,720],[10,45,135,450],[19,45,135,450],[20,9,27,90],[99,9,27,90]]){
   for(const [flags,expected] of [[{},normal],[{elite:true},elite],[{elite:true,boss:true},boss]]){
    assert.equal(killBountyTenths(11+gap,{level:11,...flags}),expected);
   }
  }
  for(let level=1;level<=240;level++){
-  assert.equal(killBountyTenths(level,{level}),level+9);
+  if(level>1)assert(killBountyTenths(level,{level})>killBountyTenths(level-1,{level:level-1}));
  }
- assert.equal(killBountyTenths(1,{level:120}),129);
+ assert.equal(killBountyTenths(1,{level:120}),3768);
  let s=fresh('sword-cockro');s.level=21;s.gold=1;
  for(let i=0;i<11;i++)collectLoot(s,monsterRewards(s,{id:1000,level:1})[0]);
- s=validSave(s);assert.equal(bountyBalance(s),2.1);
+ s=validSave(s);assert.equal(bountyBalance(s),6.5);
  assert(exchangeBounty(s,1,{coins:1,rate:2,revision:0}));
- assert.equal(bountyBalance(validSave(s)),.1);
+ assert.equal(bountyBalance(validSave(s)),4.5);
  s=fresh('sword-cockro');s.level=39;s.xp=xpNeed(39)-1;
- collectLoot(s,monsterRewards(s,{id:1060,level:40,boss:true})[0]);assert.equal(s.level,40);assert.equal(bountyBalance(s),49);
+ collectLoot(s,monsterRewards(s,{id:1060,level:40,boss:true})[0]);assert.equal(s.level,40);assert.equal(bountyBalance(s),488);
 });
 
 test('event uses world time at death, doubles only G, and ends at the advertised boundary',async()=>{

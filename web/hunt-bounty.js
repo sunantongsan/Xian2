@@ -11,7 +11,7 @@ export function goldEventMultiplier(event=scheduledGoldEvent,now=Date.now()){
 // All calculations use tenths of G, including the credit carried between pickups.
 export function killBountyTenths(playerLevel,monster,eventMultiplier=1){
  const monsterLevel=monster.level??1;
- const baseTenths=10+(monsterLevel-1);
+ const baseTenths=50+(monsterLevel-1)+Math.floor((monsterLevel**2-1)/4);
  const gap=playerLevel-monsterLevel;
  const percent=gap<=0?100:gap<10?80:gap<20?50:10;
  const rank=monster.boss?10:monster.elite?3:1;

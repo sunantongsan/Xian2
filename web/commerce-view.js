@@ -1,5 +1,6 @@
 import {suitIcon} from './insect-armor.js';
 import {t,ui} from './i18n.js';
+import {POTIONS} from './merchant.js';
 import {inventoryEntries} from './inventory.js';
 import {itemName,SLOTS,RARITY} from './gear.js';
 import {UPGRADE_ITEMS} from './upgrade-items.js';
@@ -7,7 +8,7 @@ import {EXP_TICKETS} from './exp-tickets.js';
 export function createCommerceView({net,show,state,toast,escapeHTML:e,art}){
  let data=null,tab='vault',seller=null,pending=false,pinChange=false;
  const $=id=>document.getElementById(id),money=k=>k==='gold'?'G':'COCKRO coin';
- const name=c=>c.kind==='gear'?itemName(c.item,state().hero):c.kind==='material'?UPGRADE_ITEMS[c.id].name:c.kind==='ticket'?EXP_TICKETS[c.id].name:c.id==='hp'?t('ยา HP'):t('ยา MP');
+ const name=c=>c.kind==='gear'?itemName(c.item,state().hero):c.kind==='material'?UPGRADE_ITEMS[c.id].name:c.kind==='ticket'?EXP_TICKETS[c.id].name:(c.id==='hp'||POTIONS[c.id]?.type==='hp'?t('ยา HP'):t('ยา MP'))+(POTIONS[c.id]?' +'+POTIONS[c.id].restore:'');
  const pic=c=>art({kind:c.kind,id:c.id,item:c.item|| (c.kind==='material'?UPGRADE_ITEMS[c.id]:EXP_TICKETS[c.id])});
  const card=c=>`<span class="commerce-art ${c.kind==='gear'&&suitIcon(c.item)?'commerce-suit-art':''}">${pic(c)}</span><span><b>${e(name(c))}</b><small>×${c.quantity||c.count||1}${c.kind==='gear'?' • '+e(RARITY[c.item.rarity].name):''}</small></span>`;
  const button=(id,label)=>`<button id="${id}" ${pending?'disabled':''}>${label}</button>`;

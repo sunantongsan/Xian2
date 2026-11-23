@@ -33,12 +33,12 @@ test('full bounties double, credit once, and boss records survive saving',()=>{
  const p=w.join('hero',s);w.enter(p,'depths');
  const boss=w.mobs.depths.find(e=>e.def.level===240&&e.def.boss);
  assert.equal(boss.def.damage,Math.round(monsterStats(240,{boss:true}).damage*1.5));
- for(const [rank,points,reduced] of [[{},25.8,2.5],[{elite:true},77.4,7.7],[{boss:true},258,25.8]]){
+ for(const [rank,points,reduced] of [[{},753.6,75.3],[{elite:true},2260.8,226],[{boss:true},7536,753.6]]){
   assert.equal(killBountyTenths(120,{depths:true,level:120,...rank})/10,points);
   assert.equal(killBountyTenths(150,{depths:true,level:120,...rank})/10,reduced);
  }
  w.hit(p,boss,boss.hp+1,21);w.hit(p,boss,10,22);
- assert.equal(w.loot.find(d=>d.kind==='huntGold').count,498);assert.equal(s.kills,1);
+ assert.equal(w.loot.find(d=>d.kind==='huntGold').count,29376);assert.equal(s.kills,1);
  assert.deepEqual(w.loot.filter(d=>d.kind==='cockro').map(d=>d.count),[1]);
  assert(validSave(s).bosses.includes(boss.def.id));
 });
