@@ -27,3 +27,18 @@ test('wealth ranking includes old saves without active presence and excludes del
  assert.equal(stats.view(p).accounts,2);assert.equal(stats.view(p).leader.name,'B');
  stats.remove('b');assert.deepEqual(stats.view(p).leader,{name:'A',coins:10});
 });
+
+test('open inventory refreshes for a kill and for a subsequent coin pickup',async()=>{
+ const {inventoryKey}=await import('../web/inventory.js');
+ const {monsterRewards,collectLoot}=await import('../web/ground-loot.js');
+ const s=fresh('sword-cockro');
+ const before=inventoryKey(s);
+ const drops=monsterRewards(s,{id:1060,level:10,boss:true,xp:0},()=>.99);
+ assert.equal(s.bountyHeads,10);
+ assert.equal(s.stones,0);
+ const afterKill=inventoryKey(s);
+ assert.notEqual(afterKill,before);
+ assert(collectLoot(s,drops.find(d=>d.kind==='cockro')));
+ assert.equal(s.stones,1);
+ assert.notEqual(inventoryKey(s),afterKill);
+});

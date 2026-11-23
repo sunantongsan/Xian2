@@ -7,7 +7,11 @@ export const LOOT_SECONDS=8,LOOT_RADIUS=65;
 // XP and kill credit are immediate; all tangible rewards wait on the ground.
 export function monsterRewards(s,m,rng=Math.random){
  reward(s,m,rng);
- const rewards=[];const item=rollDrop(m,rng);if(item)rewards.push({kind:'gear',item,count:1});return rewards;
+ const rewards=[];
+ const item=rollDrop(m,rng);
+ if(item)rewards.push({kind:'gear',item,count:1});
+ if(m.boss)rewards.push({kind:'cockro',count:1});
+ return rewards;
 }
 export function lootName(d,hero){return (d.kind==='cockro'||d.kind==='gold')?'COCKRO':d.kind==='material'?UPGRADE_ITEMS[d.itemId].name:itemName(d.item,hero);}
 export function collectLoot(s,d){

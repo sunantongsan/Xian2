@@ -24,7 +24,7 @@ export function monsterStats(level,{boss=false,elite=false,toughness=1}={}){
  const referenceAttack = 30 + 10 * levelsGained;
  const hitsAtLevel = 7 + 11 * levelsGained / (levelsGained + 15);
  const hp = referenceAttack * hitsAtLevel;
- return {hp:Math.round(hp*monsterMutationGrowth(level)*toughness*(boss?7:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*.9*monsterMutationGrowth(level)*(boss?1.65:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
+ return {hp:Math.round(hp*monsterMutationGrowth(level)*toughness*(boss?8:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*.9*monsterMutationGrowth(level)*(boss?2:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
 }
 
 
