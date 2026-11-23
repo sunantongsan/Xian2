@@ -18,9 +18,12 @@ export const manaRegen=s=>6.5+Math.min(6,(s.attributes?.int||0)*.02);
 // Ease enemy growth over ten levels after each mutation; no sudden wall on unlock.
 export const monsterMutationGrowth=level=>1+.10*Math.max(0,Math.min(1,(level-20)/10))+.12*Math.max(0,Math.min(1,(level-60)/10));
 export function monsterStats(level,{boss=false,elite=false,toughness=1}={}){
- // More encounters per level, shorter individual fights. Rank and species
- // toughness still matter; bosses retain seven times normal health.
- const hp=(110+level*65+level*level*.25)*(1+2*(1-Math.exp(-(level-1)/10)));
+ // Anchor the curve to a same-level fighter with ordinary equipment. HP is
+ // fixed at spawn so upgrading a weapon or joining a party keeps its benefit.
+ const levelsGained = level - 1;
+ const referenceAttack = 30 + 10 * levelsGained;
+ const hitsAtLevel = 7 + 11 * levelsGained / (levelsGained + 15);
+ const hp = referenceAttack * hitsAtLevel;
  return {hp:Math.round(hp*monsterMutationGrowth(level)*toughness*(boss?7:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*.9*monsterMutationGrowth(level)*(boss?1.65:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
 }
 
