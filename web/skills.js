@@ -2,7 +2,6 @@ import {t,ui} from './i18n.js';
 import {mutationStage} from './mutation.js';
 import {BRANCHES,branchFor} from './jobs.js';
 import {language} from './i18n.js';
-import {jobFor} from './job-progression.js';
 // Shared, deterministic skill rules: UI and combat consume the same definitions.
 export const FORMS={wave:{get name(){return t('คลื่นพลัง');},range:320,radius:36,power:1.8,mp:18,cd:5,get desc(){return t('แนวตรงตามทิศเป้าหมาย');}},circle:{get name(){return t('กวาดรอบตัว');},range:155,radius:155,power:1.4,mp:22,cd:7,get desc(){return t('โจมตีศัตรูรอบตัว');}},bolt:{get name(){return t('กระสุนพลังงาน');},range:400,radius:0,power:2.3,mp:16,cd:4,get desc(){return t('โจมตีเป้าหมายเดียวระยะไกล');}},dash:{get name(){return t('พุ่งแทง');},range:230,radius:45,power:1.7,mp:24,cd:8,get desc(){return t('พุ่งผ่านศัตรูในแนวตรง');}},field:{get name(){return t('สนามพลัง');},range:300,radius:120,power:.65,mp:32,cd:12,get desc(){return t('สร้างพื้นที่โจมตี 4 ครั้งใน 3 วินาที');}}};
 export const ELEMENTS={wind:{get name(){return t('ลม');},color:'#a6f3dd',get desc(){return t('ผลักศัตรูออก 45 หน่วย');}},fire:{get name(){return t('ไฟ');},color:'#ff9a50',get desc(){return t('เผาไหม้ 3 วินาที รวม 45% พลังโจมตี');}},ice:{get name(){return t('น้ำแข็ง');},color:'#81ddff',get desc(){return t('ลดความเร็ว 35% นาน 3 วินาที');}},lightning:{get name(){return t('สายฟ้า');},color:'#d8b4ff',get desc(){return t('เพิ่มความเสียหายทันที 20%');}},poison:{get name(){return t('พิษ');},color:'#a8dc64',get desc(){return t('พิษ 6 วินาที รวม 60% พลังโจมตี');}}};
@@ -104,7 +103,7 @@ function classSkills(s){
  const stage=mutationStage(s)||0;
  const list=baseClassSkills(s).map((r,i)=>({...r,name:(stage?(language.current==='en'?(stage===2?'Master ':'Advanced '):(stage===2?'ขั้นสูง • ':'ขั้นสอง • ')):'')+(FANTASY_NAMES[s.hero]?.[i]||r.name),combat:{...FORMS[r.form],...(r.combat||{}),power:(r.combat?.power??FORMS[r.form].power)*(stage===2?1.2:stage===1?1.1:1)}}));
  const b=BRANCHES[branchFor(s)];
- if(stage&&b)list.push({id:'job-'+branchFor(s),name:(language.current==='en'?b.en:b.name)+' • '+(b.effect==='heal'?'พรฟื้นพลัง / Renewal':'วิชาประจำสาย / Signature'),level:20,form:b.form,element:b.element,mods:b.mods,effect:b.effect,combat:{mp:28,cd:10,power:2.4,range:380,radius:b.form==='circle'?170:110}});
+ if(stage&&b)list.push({id:'job-'+branchFor(s),name:(b.effect==='heal'?t('พรฟื้นพลัง'):t('ท่าประจำตัว')),level:20,form:b.form,element:b.element,mods:b.mods,effect:b.effect,combat:{mp:28,cd:10,power:2.4,range:380,radius:b.form==='circle'?170:110}});
  return list;
 }
 

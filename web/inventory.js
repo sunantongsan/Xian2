@@ -10,5 +10,5 @@ export function inventoryEntries(s){
   ...FASHION_ITEMS.filter(it=>s.fashion?.owned?.includes(it.id)).map(it=>({key:'fashion:'+it.id,kind:'fashion',id:it.id,item:it,count:1}))
  ];
 }
-export const inventoryKey=s=>JSON.stringify([s.bag,s.equip,s.upgradeItems,s.potions,s.mpPotions,s.fashion,s.gold,s.stones,s.bountyHeads,s.expTickets,s.expBoost]);
+export const inventoryKey=s=>JSON.stringify([s.bag,s.equip,s.upgradeItems,s.potions,s.mpPotions,s.fashion,s.gold,s.stones,s.bountyHeads,s.bountyRemainder,s.expTickets,s.expBoost]);
 

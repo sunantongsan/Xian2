@@ -1,3 +1,4 @@
+import {bountyBalance} from '../web/hunt-bounty.js';
 // One surviving character save per playing account after single-character migration.
 export function hunterStatistics(world){
  const records=new Map();
@@ -18,7 +19,7 @@ export function hunterStatistics(world){
    refreshAfter=now+3000;
   }
   return {accounts:records.size,online:world.players.size,leader,
-   heads:player.s.bountyHeads,revision:player.s.bountyRevision,coins:player.s.stones};
+   heads:bountyBalance(player.s),revision:player.s.bountyRevision,coins:player.s.stones};
  }
  return {record,remove,view};
 }

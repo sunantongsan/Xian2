@@ -42,3 +42,22 @@ test('open inventory refreshes for a kill and for a subsequent coin pickup',asyn
  assert.equal(s.stones,1);
  assert.notEqual(inventoryKey(s),afterKill);
 });
+
+test('bounties use both levels before the kill and retain tenths across redemption and reload',async()=>{
+ const {killBountyTenths,bountyBalance}=await import('../web/hunt-bounty.js');
+ const {reward,xpNeed}=await import('../web/core.js');
+ for(const [gap,factor] of [[-1,10],[0,10],[1,8],[9,8],[10,5],[19,5],[20,1],[99,1]]){
+  for(const [flags,base] of [[{},1],[{elite:true},3],[{elite:true,boss:true},10]])
+   assert.equal(killBountyTenths(10+Math.max(0,gap),{level:gap<0?11:10,...flags}),base*factor);
+ }
+ for(const [level,multiplier] of [[39,1],[40,2],[79,2],[80,3],[119,3],[120,4]])
+  assert.equal(killBountyTenths(level,{level,boss:true}),100*multiplier);
+ assert.equal(killBountyTenths(1,{level:120}),10);
+ let s=fresh('sword-cockro');s.level=21;s.bountyHeads=19;
+ for(let i=0;i<11;i++)reward(s,{id:1000,level:1});
+ s=validSave(s);assert.equal(bountyBalance(s),20.1);
+ assert(exchangeBounty(s,1,{coins:1,rate:20,revision:0}));
+ assert.equal(bountyBalance(validSave(s)),.1);
+ s=fresh('sword-cockro');s.level=39;s.xp=xpNeed(39)-1;
+ reward(s,{id:1060,level:40,boss:true});assert.equal(s.level,40);assert.equal(bountyBalance(s),10);
+});

@@ -5,8 +5,9 @@ const previousKills=level=>Math.round(8+1.2*level+.006*level*level);
 export const previousLevelXP=level=>normalXP(level)*previousKills(level);
 // Exactly +30% over COCKRO v2, rounded up to a whole XP point. Monster XP is
 // intentionally unchanged so raising rewards cannot cancel the new requirement.
-export const levelXP=level=>Math.ceil(previousLevelXP(level)*13/10);
-export const killsPerLevel=level=>Math.ceil(levelXP(level)/normalXP(level));
+export const huntXP=level=>normalXP(Math.min(level,210));
+export const levelXP=level=>Math.ceil(previousLevelXP(Math.min(level,210))*13/10);
+export const killsPerLevel=level=>Math.ceil(levelXP(level)/huntXP(level));
 export function migrateXP(xp,level,version){
  if(version===BALANCE_VERSION)return xp;
  const oldNeed=version===2?previousLevelXP(level):45+level*level*4;

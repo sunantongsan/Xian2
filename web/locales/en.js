@@ -1,5 +1,18 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ล่าเพื่อขึ้นเลเวล":"Kills to next level",
+"ล่าใกล้เลเวลเพื่อรับค่าหัวเต็ม • โบนัสเพิ่มที่เลเวล 40, 80 และ 120":"Hunt at your level for full bounty. Bonuses increase at levels 40, 80 and 120.",
+"พรฟื้นพลัง":"Renewal",
+"ท่าประจำตัว":"Signature skill",
+"ลองกับฮีโร่":"Preview on hero",
+"ทุกฮีโร่":"All heroes",
+"ใช้ได้กับทุกฮีโร่":"Available to all heroes",
+"ฮีโร่คทาเวท":"Arcane Staff Hero",
+"ฮีโร่คทาแสง":"Light Staff Hero",
+"เกราะแมลง • ดรอปจากมอนสเตอร์และบอส • ทุกฮีโร่":"Insect armor \u00b7 Enemy and boss drop \u00b7 All heroes",
+"สวมใส่ได้ทุกฮีโร่":"Wearable by all heroes",
+"สวมได้ทุกฮีโร่":"Wearable by all heroes",
+
 "ระดับเทพ":"Divine",
 "ของเทพ":"Divine gear",
 "อุปกรณ์ถาวรตามขั้นเลเวลปัจจุบัน • ตีบวกตามกติกาเดิม":"Permanent gear for your current level tier. Normal enhancement rules apply.",
