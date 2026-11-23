@@ -1,5 +1,19 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"สถิติ":"Statistics",
+"อัปเดตสถิติ":"Refresh statistics",
+"บัญชีที่มีตัวละคร":"Accounts with a character",
+"ออนไลน์ตอนนี้":"Online now",
+"ตัวละครที่มี COCKRO มากที่สุด":"Richest character",
+"ค่าหัวของฉัน":"My bounty points",
+"อัตราแลกตอนนี้":"Current rate",
+"หัวต่อ 1 COCKRO":"heads per COCKRO",
+"แลกค่าหัว":"Redeem bounty",
+"แลกค่าหัวแล้ว":"Bounty redeemed",
+"แลกไม่สำเร็จ โปรดตรวจอัตราและยอดล่าสุด":"Exchange declined. Check the latest rate and balance.",
+"กรุณาอัปเดตสถิติอีกครั้ง":"Please refresh the statistics.",
+"เชื่อมต่อเกมออนไลน์เพื่อดูสถิติ":"Connect to the game server to see statistics.",
+
 "เช่า 24 ชั่วโมง":"24-hour rental",
 "ถาวร":"Permanent",
 "ใช้ถึง":"Usable until",
