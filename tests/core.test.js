@@ -21,7 +21,7 @@ test('a kill of any enemy counts equally towards the next level',()=>{
  }
  assert.equal(s.level,2);assert.equal(other.level,s.level);assert.equal(s.xp,other.xp);
 });
-test('shops cannot spend missing gold and +20 is final',()=>{const s=fresh('demon-female');s.gold=49;assert.equal(buyPotion(s),false);assert.equal(s.gold,49);s.gold=100;assert.equal(upgrade(s),false);s.stones=3;assert(upgrade(s));assert.equal(s.upgrade,1);assert.equal(s.gold,100);assert.equal(s.stones,0);s.upgrade=20;s.gold=1e8;assert.equal(upgrade(s),false);});
+test('shops cannot spend missing gold and +20 is final',()=>{const s=fresh('demon-female');s.gold=4;assert.equal(buyPotion(s),false);assert.equal(s.gold,4);s.gold=100;assert.equal(upgrade(s),false);s.stones=3;assert(upgrade(s));assert.equal(s.upgrade,1);assert.equal(s.gold,100);assert.equal(s.stones,0);s.upgrade=20;s.gold=1e8;assert.equal(upgrade(s),false);});
 test('retired maps are unavailable and old saves return to current map',()=>{const s=fresh('sword-female');assert(unlocked(s,0));s.level=100;s.bosses=[9,19,29];s.zone=3;assert(!unlocked(s,3));const migrated=validSave(s);assert.equal(migrated.zone,0);assert.equal(migrated.level,100);assert.deepEqual(migrated.bosses,s.bosses);});
 test('enemy cone respects distance, angle wrap and rear dodge',()=>{assert(inCone(-50,0,0,0,Math.PI,100,1));assert(inCone(-50,-1,0,0,Math.PI,100,1));assert(!inCone(50,0,0,0,Math.PI,100,1));assert(!inCone(-150,0,0,0,Math.PI,100,1));});
 

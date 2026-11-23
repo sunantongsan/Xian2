@@ -38,7 +38,7 @@ test('full bounties double, credit once, and boss records survive saving',()=>{
   assert.equal(killBountyTenths(150,{depths:true,level:120,...rank})/10,points/10);
  }
  w.hit(p,boss,boss.hp+1,21);w.hit(p,boss,10,22);
- assert.equal(s.bountyHeads,80);assert.equal(s.kills,1);
+ assert.equal(w.loot.find(d=>d.kind==='huntGold').count,80);assert.equal(s.kills,1);
  assert.deepEqual(w.loot.filter(d=>d.kind==='cockro').map(d=>d.count),[1]);
  assert(validSave(s).bosses.includes(boss.def.id));
 });

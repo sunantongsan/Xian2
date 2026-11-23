@@ -107,10 +107,11 @@ export function buyShopGear(s,slot,tier=tierForLevel(s.level),term='permanent'){
  if(term!=='permanent' && term!=='divine' && !(slot==='weapon'&&term==='day'))return false;
  if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;
  const cost=gearShopPrice(slot,tier,term);
- if(!Number.isSafeInteger(s.stones)||s.stones<cost)return false;
+ const wallet=term==='day'?'gold':'stones';
+ if(!Number.isSafeInteger(s[wallet])||s[wallet]<cost)return false;
  const item=makeItem(slot,tier,term==='divine'?DIVINE_RARITY:2);
  if(term==='day')item.expiresAt=Date.now()+24*60*60*1000;
- s.stones-=cost;s.bag.push(item);return true;
+ s[wallet]-=cost;s.bag.push(item);return true;
 }
 
 export function rollInsectArmor(){return null;}

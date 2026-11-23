@@ -26,7 +26,7 @@ export function applyRegen(p,dt,maxHP,maxMP){
  let hp=0,mp=0;for(const slot of ENHANCE_SLOTS){const opt=specialInfo(p.s.equip?.[slot]?.special);if(opt?.stat==='hpRegen')hp+=opt.value;if(opt?.stat==='mpRegen')mp+=opt.value;}
  p.hp=Math.min(maxHP,p.hp+maxHP*Math.min(.04,hp)*ticks);p.mp=Math.min(maxMP,(p.mp||0)+maxMP*mp*ticks);
 }
-export function exchangeGold(){return false;}
+export {buyGold as exchangeGold} from './hunt-bounty.js';
 
 
 

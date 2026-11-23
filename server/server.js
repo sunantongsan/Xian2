@@ -96,7 +96,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(!state)throw Error('character_missing');if(!created&&!d.newCharacter&&!characterName(state.name))throw Error('name_required');
  if(created||d.newCharacter===true){const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;}
  const id=characterId(account,character);
- if(testRewards&&(created||d.newCharacter===true))state.gold=1000000;
+ // Test ads use the same starting G balance as production.
  accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
  send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'7.1.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}

@@ -1,5 +1,11 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"กดอีกครั้งเพื่อยืนยันการแลก":"Tap again to confirm the exchange",
+"แลกเหรียญ":"Exchange coins",
+"แลก G":"Exchange G",
+"แลก G แล้ว":"G exchanged",
+"ฝูงมอนดุ • G ×2 • เตรียมยาให้พร้อม":"Aggressive packs · Double G · Bring potions",
+"ล่าใกล้เลเวลเพื่อรับ G เต็ม • โบนัสเพิ่มที่เลเวล 40, 80 และ 120":"Hunt near your level for full G. Bonuses increase at levels 40, 80 and 120.",
 "รังผลึกใต้พิภพ":"Crystal Hive Depths",
 "ราชันรังผลึก":"Hive sovereign",
 "องครักษ์ผลึก":"Crystal sentinel",
