@@ -1,0 +1,33 @@
+name: Verify COCKRO MAN Android build 113
+on:
+  push:
+    branches: ['verify/store-113-android-20261123']
+    paths: ['.github/workflows/verify-store-113.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: b1e15de463f49d02636241cc128d0239cad8f150
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: gradle --no-daemon :app:bundleRelease
+      - name: Check the release bundle
+        run: |
+          bundle=app/build/outputs/bundle/release/app-release.aab
+          unzip -tq "$bundle"
+          unzip -Z1 "$bundle" | grep -Fx 'base/assets/game.js'
+          sha256sum "$bundle"
