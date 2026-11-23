@@ -58,8 +58,8 @@ MAPS.town={...MAPS.town,width:2400,height:1600,get name(){return t('เมือ
  {uv:[.50,.37],get name(){return t('ลานฝึกเวทมนตร์');},action:'skills'},
  {uv:[.50,.94],get name(){return t('ทุ่งกุลา • เลเวล 1–60');},action:'road',road:'forest'},
  {uv:[.94,.50],get name(){return t('ดันเจียนฮีโร่ • เลเวล 61–120');},action:'road',road:'star'},
- {uv:[.79,.89],get name(){return DEPTHS_MAP.name+' • Lv.120+';},action:'road',road:'depths'},
- {uv:[.06,.50],get name(){return t('ดันเจียนออโรรา');},action:'road',road:'aurora'}]};
+ {uv:[.06,.50],get name(){return DEPTHS_MAP.name+' • Lv.120+';},action:'road',road:'depths'},
+ {uv:[.79,.89],get name(){return t('ดันเจียนออโรรา');},action:'road',road:'aurora'}]};
 MAPS.forest={...MAPS.forest,get name(){return t('ทุ่งกุลา • เลเวล 1–60');},theme:'fantasy',image:'maps/thung-kula-fields.webp',pois:[{uv:[1/6,.95],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},...REGIONS.map(r=>({uv:r.entry,get name(){return r.name+' • '+r.min+'–'+r.max;},action:'waypoint',region:r.id}))]};
 
 export function regionAt(point){const [u,v]=toUV(point,MAPS.forest);return REGIONS.reduce((best,r)=>Math.hypot(u-r.center[0],v-r.center[1])<Math.hypot(u-best.center[0],v-best.center[1])?r:best,REGIONS[0]);}

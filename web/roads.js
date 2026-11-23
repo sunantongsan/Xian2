@@ -1,7 +1,7 @@
 // Server and renderer share the same road endpoints; level ranges describe monsters only.
 import {MAPS,toWorld} from './maps.js';
 import {DEPTHS_EXIT,DEPTHS_MIN_LEVEL} from './crystal-depths.js';
-export const TOWN_ROADS=[{id:'depths',from:[.67,.77],end:[.79,.89],arrival:[.74,.82],min:DEPTHS_MIN_LEVEL},{id:'forest',from:[.5,.76],end:[.5,.94],arrival:[.5,.87],min:1},{id:'star',from:[.73,.50],end:[.94,.50],arrival:[.87,.50],min:61},{id:'aurora',from:[.27,.50],end:[.06,.50],arrival:[.13,.50],min:1}];
+export const TOWN_ROADS=[{id:'depths',from:[.27,.50],end:[.06,.50],arrival:[.13,.50],min:DEPTHS_MIN_LEVEL},{id:'forest',from:[.5,.76],end:[.5,.94],arrival:[.5,.87],min:1},{id:'star',from:[.73,.50],end:[.94,.50],arrival:[.87,.50],min:61},{id:'aurora',from:[.67,.77],end:[.79,.89],arrival:[.74,.82],min:1}];
 export const FOREST_ROAD_EXIT=[1/6,.95],FOREST_ROAD_ARRIVAL=[1/6,.91];
 export function roadDestination(map,point,level,star){
  const near=w=>Math.hypot(point.x-w.x,point.y-w.y)<85;

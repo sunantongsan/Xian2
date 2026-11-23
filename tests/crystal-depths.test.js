@@ -12,6 +12,13 @@ import {monsterStats} from '../web/balance.js';
 test('level 120 can reach all six chambers and leave through the marked road',()=>{
  const w=new World(),p=w.join('hunter',fresh('sword-cockro'));
  const gate=toWorld(TOWN_ROADS.find(r=>r.id==='depths').end,MAPS.town);
+ const merchant=MAPS.town.pois.find(poi=>poi.action==='shop');
+ const sign=MAPS.town.pois.find(poi=>poi.road==='depths');
+ assert.deepEqual(sign.uv,[.06,.50]);
+ assert.deepEqual(toWorld(sign.uv,MAPS.town),gate);
+ assert(routeTo(MAPS.town,toWorld(merchant.uv,MAPS.town),gate).length);
+ assert.equal(roadDestination('town',toWorld(merchant.uv,MAPS.town),121),null);
+ assert.equal(roadDestination('town',toWorld([.79,.89],MAPS.town),1).map,'aurora');
  assert(walkable(MAPS.town,gate));assert(!roadDestination('town',gate,119));
  p.s.level=119;w.command(p,{type:'enter',map:'depths'},10);assert.equal(p.map,'town');
  p.s.level=120;const entrance=roadDestination('town',gate,120);assert.equal(entrance.map,'depths');
@@ -27,6 +34,8 @@ test('level 120 can reach all six chambers and leave through the marked road',()
  saved.level=100;assert.equal(w.makeActor('low',saved).map,'town');
  const exit=toWorld(DEPTHS_EXIT,MAPS.depths);Object.assign(p,exit);w.command(p,{type:'move',...exit,seq:2},24);
  assert.equal(p.map,'town');assert(walkable(MAPS.town,p));
+ assert.deepEqual({x:p.x,y:p.y},toWorld([.13,.50],MAPS.town));
+ assert.equal(roadDestination('town',p,120),null);
 });
 test('full bounties double, credit once, and boss records survive saving',()=>{
  const w=new World(),s=fresh('sword-cockro');s.level=240;

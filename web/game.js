@@ -345,12 +345,16 @@ async function loadRoadScene(d){if(travelBusy)return;travelBusy=true;paused=true
 function drawTownRoads(){if(!town||!scene)return;ctx.save();ctx.lineCap='butt';for(const road of TOWN_ROADS){const a=toWorld(road.from,scene),b=toWorld(road.end,scene),qa=project(a.x,a.y),qb=project(b.x,b.y);for(const [width,color]of []){ctx.strokeStyle=color;ctx.lineWidth=width*scale;ctx.beginPath();ctx.moveTo(qa.x,qa.y);ctx.lineTo(qb.x,qb.y);ctx.stroke();}const dx=qb.x-qa.x,dy=qb.y-qa.y,len=Math.hypot(dx,dy),nx=-dy/len,ny=dx/len;ctx.strokeStyle='#d8e7e799';ctx.lineWidth=1;for(let d=len;d<len;d+=48*scale){const x=qa.x+dx*d/len,y=qa.y+dy*d/len;ctx.beginPath();ctx.moveTo(x+nx*40*scale,y+ny*40*scale);ctx.lineTo(x-nx*40*scale,y-ny*40*scale);ctx.stroke();}// Painted floor markings: rendered before every actor, with no signboard or HUD layer.
 const ink='#fff1ad';
 ctx.save();ctx.globalAlpha=1;
-const tx=qa.x+dx*.27,ty=qa.y+dy*.27;
+const labelPosition=road.id==='depths' ? .60 : .27;
+const tx=qa.x+dx*labelPosition,ty=qa.y+dy*labelPosition;
 ctx.translate(tx,ty);ctx.scale(scale,scale*.9);
 ctx.font='bold 40px GameThai,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.lineWidth=5;ctx.strokeStyle='#172c3e';ctx.fillStyle=ink;
-for(const [text,y] of [[road.id==='aurora'?t('ดันเจียน'):t('เลเวล'),-25],[road.id==='forest'?'1–60':road.id==='aurora'?'AURORA':road.id==='depths'?'120+':'61–120',25]]){ctx.strokeText(text,0,y,150);ctx.fillText(text,0,y,150);}ctx.restore();
-const ux=dx/len,uy=dy/len,ax=qa.x+dx*.43,ay=qa.y+dy*.43,shaft=20*scale,wing=13*scale;
+const roadLabel=road.id==='depths'?MAPS.depths.name:road.id==='aurora'?t('ดันเจียน'):t('เลเวล');
+const labelWidth=road.id==='depths'?240:150;
+for(const [text,y] of [[roadLabel,-25],[road.id==='forest'?'1–60':road.id==='aurora'?'AURORA':road.id==='depths'?'Lv.120+':'61–120',25]]){ctx.strokeText(text,0,y,labelWidth);ctx.fillText(text,0,y,labelWidth);}ctx.restore();
+const arrowPosition=road.id==='depths' ? .89 : .43;
+const ux=dx/len,uy=dy/len,ax=qa.x+dx*arrowPosition,ay=qa.y+dy*arrowPosition,shaft=20*scale,wing=13*scale;
 ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle=ink;ctx.lineWidth=5*scale;ctx.lineJoin='round';ctx.lineCap='round';
 ctx.beginPath();ctx.moveTo(ax-ux*shaft,ay-uy*shaft);ctx.lineTo(ax+ux*shaft,ay+uy*shaft);
 ctx.moveTo(ax+ux*(shaft-wing)+nx*wing,ay+uy*(shaft-wing)+ny*wing);ctx.lineTo(ax+ux*shaft,ay+uy*shaft);ctx.lineTo(ax+ux*(shaft-wing)-nx*wing,ay+uy*(shaft-wing)-ny*wing);ctx.stroke();ctx.restore();}ctx.restore();}
