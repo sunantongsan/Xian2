@@ -105,14 +105,14 @@ test('hunter statistics count offline and reconnected accounts and redemption pe
  const first=await until(()=>hunter.messages.find(m=>m.type==='hunterStats'));
  assert.equal(first.accounts,2);assert.equal(first.online,1);assert.equal(first.heads,45);
  assert.deepEqual(first.leader,{name:'RichHunter',coins:12345});
- const exchange={type:'op',op:'exchangeBounty',rate:2,coins:2,revision:0};
+ const exchange={type:'op',op:'exchangeBounty',rate:10,coins:2,revision:0};
  hunter.ws.send(JSON.stringify(exchange));await until(()=>hunter.messages.some(m=>m.op==='exchangeBounty'&&m.ok));
  const saved=JSON.parse(readFileSync(join(directory,hunter.welcome.id+'.json')));
- assert.equal(saved.gold,41);assert.equal(saved.stones,balance+2);
+ assert.equal(saved.gold,25);assert.equal(saved.stones,balance+2);
  hunter.ws.close();await until(()=>!app.world.players.has(hunter.welcome.id));
  const again=await client(url,{type:'hello',version:PROTOCOL,token:hunter.welcome.token});t.after(()=>again.ws.terminate());
- assert.equal(again.welcome.save.gold,41);assert.equal(again.welcome.save.bountyRevision,1);
- app.world.players.get(hunter.welcome.id).s.gold+=4;
+ assert.equal(again.welcome.save.gold,25);assert.equal(again.welcome.save.bountyRevision,1);
+ app.world.players.get(hunter.welcome.id).s.gold+=20;
  again.ws.send(JSON.stringify(exchange));await until(()=>again.messages.some(m=>m.op==='exchangeBounty'&&!m.ok));
  const refreshed=await until(()=>again.messages.find(m=>m.type==='hunterStats'));
  assert.equal(refreshed.accounts,2);assert.equal(refreshed.coins,balance+2);assert.equal(refreshed.heads,45);

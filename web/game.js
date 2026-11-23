@@ -631,10 +631,10 @@ function hunterMenu(){
  const multiplier=currentGoldMultiplier();
  const dropInfo=t('มอนเลเวลสูงดรอป G มากขึ้น • ล่ามอนเลเวลเท่ากันหรือสูงกว่าเพื่อรับเต็ม')+(multiplier>1?' · '+t('กิจกรรม G')+' ×'+multiplier:'');
  if(net.deviceSession){
-  show(ui`<h2>${t('สถิติบนเครื่อง')}</h2><small>${dropInfo}</small><p>${'G'} · ${bountyBalance(s)}</p><p>${bountyRate(1)} G → 1 COCKRO</p><select id="goldLot" aria-label="COCKRO"><option>1</option><option>10</option><option>100</option></select>${button('localExchange',t('แลก G'))}${button('huntBack',t('กลับ'))}`);
+  show(ui`<h2>${t('สถิติบนเครื่อง')}</h2><small>${dropInfo}</small><p>${'G'} · ${bountyBalance(s)}</p><p>${bountyRate()} G → 1 COCKRO</p><select id="goldLot" aria-label="COCKRO"><option>1</option><option>10</option><option>100</option></select>${button('localExchange',t('แลก G'))}${button('huntBack',t('กลับ'))}`);
   const lot=$('goldLot');
-  const update=()=>{$('localExchange').disabled=s.gold<Number(lot.value)*bountyRate(1);};lot.onchange=update;update();
-  $('localExchange').onclick=()=>{net.send({type:'op',op:'exchangeBounty',coins:Number(lot.value),rate:bountyRate(1),revision:s.bountyRevision});hunterMenu();};
+  const update=()=>{const cost=Number(lot.value)*bountyRate();$('localExchange').disabled=s.gold<cost;$('localExchange').textContent=cost.toLocaleString()+' G → '+lot.value+' COCKRO';};lot.onchange=update;update();
+  $('localExchange').onclick=()=>{net.send({type:'op',op:'exchangeBounty',coins:Number(lot.value),rate:bountyRate(),revision:s.bountyRevision});hunterMenu();};
   $('huntBack').onclick=settings;return;
  }
  show(`<section class="text-settings"><h2>${t('สถิติ')}</h2><div id="huntData"></div><small>${dropInfo}</small>
@@ -655,7 +655,7 @@ function hunterMenu(){
   clearTimeout(timer);refresh.disabled=false;
   if(notice.textContent===t('กำลังโหลด…'))notice.textContent='';
   const fmt=n=>n.toLocaleString(language.current==='en'?'en-US':'th-TH');
-  const rate=bountyRate(data.online),coins=Math.floor(data.heads/rate);
+  const rate=bountyRate(),coins=Math.floor(data.heads/rate);
   const rows=[[t('บัญชีที่มีตัวละคร'),fmt(data.accounts)],[t('ออนไลน์ตอนนี้'),fmt(data.online)],
    [t('ตัวละครที่มี COCKRO มากที่สุด'),data.leader?`${data.leader.name} · ${fmt(data.leader.coins)} COCKRO`:'—'],
    ['G',fmt(data.heads)],[t('อัตราแลกตอนนี้'),fmt(rate)+' '+'G → 1 COCKRO']];

@@ -6,20 +6,24 @@ import {fresh,validSave} from '../web/core.js';
 import {COIN_CAP} from '../web/chain-economy.js';
 import {hunterStatistics} from '../server/hunter-statistics.js';
 
-test('rates follow current online accounts at tenfold thresholds, up and down',()=>{
- for(const [online,rate] of [[1,2],[100,2],[101,4],[1000,4],[1001,8],[10000,8],[10001,16],[90,2]])assert.equal(bountyRate(online),rate);
+test('ten G buys one COCKRO at any online population',()=>{
+ for(const online of [0,1,100,101,1000,1001,10000,10001]){
+  const s=fresh('sword-cockro');s.gold=10;
+  assert.equal(bountyRate(),10);assert(exchangeBounty(s,online,{coins:1,rate:10,revision:0}));
+  assert.equal(s.gold,0);assert.equal(s.stones,1);
+ }
 });
 test('old saves start at zero and only the quoted whole coins can be exchanged',()=>{
  const old=fresh('sword-cockro');old.kills=80;delete old.bountyHeads;delete old.bountyRevision;
  const s=validSave(old);assert.equal(s.gold,0);assert.equal(s.bountyRevision,0);
- s.gold=10;
- const quote={rate:2,coins:4,revision:0};
+ s.gold=42;
+ const quote={rate:10,coins:4,revision:0};
  for(const change of [{coins:6},{coins:-1},{coins:0.5},{revision:1}]){
   assert.equal(exchangeBounty(s,99,{...quote,...change}),false);
  }
- assert.equal(exchangeBounty(s,101,quote),false);
+ assert.equal(exchangeBounty(s,101,{...quote,rate:2}),false);
  s.stones=COIN_CAP-1;assert.equal(exchangeBounty(s,100,quote),false);
- assert.equal(s.gold,10);s.stones=0;
+ assert.equal(s.gold,42);s.stones=0;
  assert(exchangeBounty(s,100,quote));assert.equal(s.stones,4);assert.equal(s.gold,2);
 });
 test('wealth ranking includes old saves without active presence and excludes deleted characters',()=>{
@@ -56,10 +60,10 @@ test('bounties use both levels before the kill and retain tenths across redempti
   if(level>1)assert(killBountyTenths(level,{level})>killBountyTenths(level-1,{level:level-1}));
  }
  assert.equal(killBountyTenths(1,{level:120}),3768);
- let s=fresh('sword-cockro');s.level=21;s.gold=1;
+ let s=fresh('sword-cockro');s.level=21;s.gold=9;
  for(let i=0;i<11;i++)collectLoot(s,monsterRewards(s,{id:1000,level:1})[0]);
- s=validSave(s);assert.equal(bountyBalance(s),6.5);
- assert(exchangeBounty(s,1,{coins:1,rate:2,revision:0}));
+ s=validSave(s);assert.equal(bountyBalance(s),14.5);
+ assert(exchangeBounty(s,1,{coins:1,rate:10,revision:0}));
  assert.equal(bountyBalance(validSave(s)),4.5);
  s=fresh('sword-cockro');s.level=39;s.xp=xpNeed(39)-1;
  collectLoot(s,monsterRewards(s,{id:1060,level:40,boss:true})[0]);assert.equal(s.level,40);assert.equal(bountyBalance(s),488);

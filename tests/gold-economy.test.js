@@ -18,10 +18,10 @@ test('changing online counts and replaying either exchange cannot mint coins',()
  const s=fresh('sword-cockro');s.stones=100;
  assert(buyGold(s,100,0));assert.equal(s.gold,100);assert.equal(s.stones,0);
  assert(!buyGold(s,100,0));
- const quote={coins:50,rate:2,revision:1};
- assert(!exchangeBounty(s,101,quote));
- assert(exchangeBounty(s,1,quote));assert.equal(s.stones,50);assert.equal(s.gold,0);
- assert(!exchangeBounty(s,1,quote));assert(bountyRate(1000)>1);
+ const quote={coins:10,rate:10,revision:1};
+ assert(!exchangeBounty(s,101,{...quote,rate:2}));
+ assert(exchangeBounty(s,1,quote));assert.equal(s.stones,10);assert.equal(s.gold,0);
+ assert(!exchangeBounty(s,1,quote));assert.equal(bountyRate(),10);
  s.gold=GOLD_CAP;s.stones=50;assert(!buyGold(s,1,2));assert.equal(s.stones,50);
  for(const coins of [0,-1,0.5,NaN,Infinity])assert(!buyGold(s,coins,2));
 });
@@ -31,7 +31,7 @@ test('ten starter kills cover supplies and leave G available for exchange',()=>{
  const other=structuredClone(s);
  assert(buyMerchantStack(s,'buy',null,2));assert.equal(s.gold,26);assert.equal(s.potions,12);
  assert(buyMerchantStack(other,'buy',null,1));
- assert(exchangeBounty(other,1,{coins:2,rate:2,revision:0}));assert.equal(other.gold,34);assert.equal(other.stones,2);
+ assert(exchangeBounty(other,1,{coins:2,rate:10,revision:0}));assert.equal(other.gold,18);assert.equal(other.stones,2);
 });
 test('G can rent a weapon while divine gear still requires COCKRO',()=>{
  const s=fresh('sword-cockro');s.gold=100;
