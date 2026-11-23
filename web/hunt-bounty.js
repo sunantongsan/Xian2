@@ -20,7 +20,7 @@ export function killBountyTenths(playerLevel,monster,eventMultiplier=1){
  return normalTenths*eventMultiplier;
 }
 export const GOLD_CAP=10000000000;
-export const GOLD_PER_COCKRO=1;
+export const GOLD_PER_COCKRO=10;
 export function bountyBalance(s){return s.gold+(s.bountyRemainder||0)/10;}
 export function addHuntGold(s,tenths){
  if(!Number.isSafeInteger(tenths)||tenths<1)return false;
@@ -34,7 +34,7 @@ export function buyGold(s,coins,revision){
  s.stones-=coins;s.bountyRevision++;return true;
 }
 
-export function bountyRate(){return 10;}
+export function bountyRate(){return GOLD_PER_COCKRO;}
 
 export function exchangeBounty(save,_online,quote){
  const rate=bountyRate(),coins=quote.coins;

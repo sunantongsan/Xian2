@@ -14,13 +14,14 @@ test('existing spending gold and unspent bounty migrate once, including tenths',
  assert.equal(migrated.bountyHeads,undefined);
  assert.deepEqual(validSave(migrated),migrated);
 });
-test('changing online counts and replaying either exchange cannot mint coins',()=>{
- const s=fresh('sword-cockro');s.stones=100;
- assert(buyGold(s,100,0));assert.equal(s.gold,100);assert.equal(s.stones,0);
+test('both directions use 10 G per COCKRO, retain fractions and reject replayed exchanges',()=>{
+ const s=fresh('sword-cockro');s.stones=100;s.bountyRemainder=7;
+ assert(buyGold(s,100,0));assert.equal(s.gold,1000);assert.equal(s.stones,0);
  assert(!buyGold(s,100,0));
- const quote={coins:10,rate:10,revision:1};
+ const quote={coins:100,rate:10,revision:1};
  assert(!exchangeBounty(s,101,{...quote,rate:2}));
- assert(exchangeBounty(s,1,quote));assert.equal(s.stones,10);assert.equal(s.gold,0);
+ assert(exchangeBounty(s,1,quote));assert.equal(s.stones,100);assert.equal(s.gold,0);
+ assert.equal(bountyBalance(s),0.7);
  assert(!exchangeBounty(s,1,quote));assert.equal(bountyRate(),10);
  s.gold=GOLD_CAP;s.stones=50;assert(!buyGold(s,1,2));assert.equal(s.stones,50);
  for(const coins of [0,-1,0.5,NaN,Infinity])assert(!buyGold(s,coins,2));
