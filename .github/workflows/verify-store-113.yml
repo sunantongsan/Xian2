@@ -27,10 +27,8 @@ jobs:
         with:
           gradle-version: '8.13'
           cache-disabled: true
-      - uses: android-actions/setup-android@v3
-        with:
-          log-accepted-android-sdk-licenses: false
-      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install Android 36 build tools
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
       - run: gradle --no-daemon :app:bundleRelease
       - name: Check the release bundle
         run: |
