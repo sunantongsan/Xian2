@@ -1,0 +1,46 @@
+name: Deploy verified COCKRO 7.1.7
+on:
+  push:
+    branches: [feature/boss-bounty-wallet]
+    paths: ['.github/workflows/cockro-717-deploy.yml']
+permissions: {contents: read}
+concurrency:
+  group: cockro-online-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, cockro-vps-control]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: c1c7d8529a172efb099141b6a2292f82df76de3b
+          persist-credentials: false
+          sparse-checkout: server/releases
+      - name: Install verified server with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          old=8c0a205232479c284222d408ca107f55a97c61073d89275f57e169830a05f571
+          new=7273b8d49eff3e582f233cf1abf09af8abac90c83b68e641f785fe12793ec320
+          stage=/srv/cockro-deploy/online-stage/online-server.cjs
+          backup=/srv/cockro-deploy/online-stage/pre-7.1.7.cjs
+          echo "$old  /opt/cockro-online/online-server.cjs" | sha256sum -c -
+          cp /opt/cockro-online/online-server.cjs "$backup"
+          gzip -dc server/releases/7.1.7.cjs.gz > "$stage"
+          echo "$new  $stage" | sha256sum -c -
+          /opt/cockro-online/node --check "$stage"
+          rollback() { cp "$backup" "$stage"; sudo -n /usr/local/sbin/cockro-deploy-online "$old"; }
+          trap rollback ERR
+          sudo -n /usr/local/sbin/cockro-deploy-online "$new"
+          ok=0
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --max-time 5 http://127.0.0.1:8091/online/health | python3 -c 'import json,sys; h=json.load(sys.stdin); assert h["ok"] and h["release"]=="7.1.7" and h["currency"]=="COCKRO" and h["persistentPvp"] is False'; then ok=1; break; fi
+            sleep 2
+          done
+          test "$ok" = 1
+          systemctl is-active cockro-online.service
+          echo "$new  /opt/cockro-online/online-server.cjs" | sha256sum -c -
+          curl --fail --silent --max-time 15 https://game.guardscan.xyz/online/health
+          trap - ERR
