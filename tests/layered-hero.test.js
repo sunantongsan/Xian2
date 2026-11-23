@@ -33,7 +33,7 @@ test('equipment appearance survives save reload and reaches remote snapshots',()
   for(const item of [null,{slot:'weapon',rarity:0,tier:0},{slot:'weapon',rarity:0,tier:6}]){
    p.s.equip.weapon=item;const saved=JSON.parse(JSON.stringify(p.s));const look=equippedWeaponLook(saved);
    assert.equal(w.snapshot(p).self.weaponLook,look);assert.equal(w.snapshot(other).players.find(q=>q.id==='a').weaponLook,look);
-   assert.equal(look,item?LAYERED_HEROES[hero].weapons[item.tier>=6?1:0]:'none');
+   assert.equal(look,item?LAYERED_HEROES[hero].weapons[0]:'none');
   }
  }
 });

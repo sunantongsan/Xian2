@@ -1,18 +1,14 @@
 import {t,ui} from './i18n.js';
-import {pendingMutation} from './mutation.js';
-export function createProgressionUI(onVisit){
- const notice=document.createElement('button');notice.id='mutationNotice';notice.hidden=true;notice.onclick=onVisit;notice.innerHTML=t('<span class="mutation-sigil">✧</span><span><b>พร้อมกลายพันธุ์</b><small>พบ ดร.ไอสไตร์ • หยุดรับ EXP</small></span><span>›</span>');(document.getElementById('fieldActions')||document.body).appendChild(notice);
+export function createProgressionUI(){
  const overlay=document.createElement('div');overlay.id='levelCelebration';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');overlay.hidden=true;overlay.innerHTML='<span class="level-kicker" hidden>LEVEL UP</span><strong></strong><small hidden></small>';document.body.appendChild(overlay);let timer;
  return {
-  celebrate(level,{mutation=false,name='',pending=false}={}){
+  celebrate(level){
    clearTimeout(timer);overlay.hidden=false;overlay.classList.remove('playing');void overlay.offsetWidth;overlay.classList.add('playing');
-   overlay.querySelector('.level-kicker').textContent=mutation?'MUTATION COMPLETE':'LEVEL UP';
-   overlay.querySelector('strong').textContent=mutation?t('กลายพันธุ์สำเร็จ'):ui`ยินดีด้วยคุณเข้าสู่เลเวล ${level}`;
-   overlay.querySelector('small').textContent=mutation?ui`${name} • คืนแต้มค่าสถานะให้จัดสรรใหม่แล้ว`:pending?t('ถึงเวลากลายพันธุ์ • กลับยานพบ ดร.ไอสไตร์'):t('พลังของคุณเติบโตขึ้นแล้ว');
+   overlay.querySelector('strong').textContent=ui`ยินดีด้วยคุณเข้าสู่เลเวล ${level}`;
+   overlay.querySelector('small').textContent=t('พลังของคุณเติบโตขึ้นแล้ว');
    timer=setTimeout(()=>{overlay.hidden=true;},2400);
   },
-  update(s){const pending=!!pendingMutation(s);notice.hidden=!pending;for(const id of ['characterShortcut','statsShortcut'])document.getElementById(id)?.classList.toggle('mutation-ready',pending);},
-  hide(){notice.hidden=true;overlay.hidden=true;clearTimeout(timer);}
+  hide(){overlay.hidden=true;clearTimeout(timer);}
  };
 }
 // Bounded canvas geometry: no full-screen flash, blur or per-frame particles.

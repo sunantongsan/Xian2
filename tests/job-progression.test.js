@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {completeMutation} from '../web/mutation.js';
+
 import {JOB_PATHS,jobFor} from '../web/job-progression.js';
 import {fresh,validSave,reward,xpNeed,allocateStats} from '../web/core.js';
 import {heroIdentity} from '../web/hero-ui.js';
@@ -15,7 +15,7 @@ test('all four species advance at 20 and 60, including returning high-level char
    ids.add(jobFor(hero,level).id);
   }
  }
- assert.equal(ids.size,18);assert.equal(jobFor('sword-male',60),null);
+ assert.equal(ids.size,6);assert.equal(jobFor('sword-male',60),null);
 });
 test('legacy allocated and unspent points, inventory and balances survive repeated migrations',()=>{
  for(const level of [1,19,20,59,60,120,210]){
@@ -38,8 +38,8 @@ test('legacy character crossing a job boundary earns four new points without los
  assert.equal(s.level,20);assert.equal(s.statPoints,4);assert.equal(s.legacyStatLevels,18);
  assert.equal(jobFor(s.hero,s.level).stage,1);
  const copy=validSave(s);assert.equal(copy.statPoints,4);assert.deepEqual(copy.attributes,s.attributes);
- assert(completeMutation(copy));reward(copy,{id:1,xp:xpNeed(20)+xpNeed(21),gold:0},()=>1);
- assert.equal(validSave(copy).statPoints,192);assert.equal(copy.legacyStatLevels,18);
+ reward(copy,{id:1,xp:xpNeed(20)+xpNeed(21),gold:0},()=>1);
+ assert.equal(validSave(copy).statPoints,12);assert.equal(copy.legacyStatLevels,18);
 });
 test('new players earn four points per level and cannot spend beyond their budget',()=>{
  const s=fresh('sword-cricket');reward(s,{id:1,xp:xpNeed(1)+xpNeed(2),gold:0},()=>1);
