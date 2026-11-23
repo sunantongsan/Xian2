@@ -16,17 +16,25 @@ export const TIERS=[
  {get name(){return t('คริสตัลไซเบอร์');},level:30},{get name(){return t('นีออนโคร');},level:40},{get name(){return t('แกนดาวเพลิง');},level:50},
  ...Array.from({length:16},(_,i)=>({get name(){return t('ควอนตัม Mk.')+(i+6);},level:(i+6)*10}))
 ];
+export const DIVINE_RARITY=4;
 export const RARITY=[
  {get name(){return t('ธรรมดา');},color:'#e9e4d6',mult:1},{get name(){return t('ดีเยี่ยม');},color:'#5aa8ff',mult:1.25},
- {get name(){return t('หายาก');},color:'#4ff08a',mult:1.6},{get name(){return t('ตำนาน');},color:'#ffb440',mult:2.1}
+ {get name(){return t('หายาก');},color:'#4ff08a',mult:1.6},{get name(){return t('ตำนาน');},color:'#ffb440',mult:2.1},
+ {get name(){return t('ระดับเทพ');},color:'#d890ff',mult:6}
 ];
 export const BAG_SIZE=40;
 const NOUN={weapon:{get 'sword-cockro'(){return t('ดาบนักรบ');},get 'demon-scorpion'(){return t('มีดคู่');},get 'sword-dragonfly'(){return t('ธนู');},get 'sword-cricket'(){return t('ค้อน');},get 'sword-mage'(){return t('คทาเวท');},get 'sword-acolyte'(){return t('คทาศักดิ์สิทธิ์');}}};
-export function itemName(it,hero){const insect=INSECT_ARMOR[insectFields(it).insect];const noun=insect?(language.current==='en'?insect.en:insect.name):it.slot==='weapon'?(NOUN.weapon[hero]||t('อาวุธฮีโร่')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.plus?` +${it.plus}`:'')+(it.expiresAt?' · '+t('ใช้ถึง')+' '+new Date(it.expiresAt).toLocaleString(language.current==='en'?'en-GB':'th-TH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'');}
+export function itemName(it,hero){const insect=INSECT_ARMOR[insectFields(it).insect];const noun=insect?(language.current==='en'?insect.en:insect.name):it.slot==='weapon'?(NOUN.weapon[hero]||t('อาวุธฮีโร่')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.rarity===DIVINE_RARITY?' · '+RARITY[DIVINE_RARITY].name:'')+(it.plus?` +${it.plus}`:'')+(it.expiresAt?' · '+t('ใช้ถึง')+' '+new Date(it.expiresAt).toLocaleString(language.current==='en'?'en-GB':'th-TH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'');}
 export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
 export function itemStats(it){
  const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult*(1+Math.max(it.plus||0,it.legacyPlus||0)*.08+(it.forgeBonus||0)/100),o={};
  for(const key of ['atk','def','hp','crit','speed','mp','spell'])if(base[key])o[key]=+(base[key]*k).toFixed(key==='crit'||key==='spell'?3:1);
+ if(it.rarity===DIVINE_RARITY){
+  const step=it.tier+1;
+  if(it.slot==='weapon')o.atk+=70*step;
+  if(it.slot==='ring')o.atk=20*step;
+  if(it.slot==='amulet'){o.hp=160*step;o.def=10*step;}
+ }
  for(const id of GEM_IDS){const n=normalizeGems(it.gems)[id],g=UPGRADE_ITEMS[id];if(n)o[g.stat]=+((o[g.stat]||0)+n*g.amount).toFixed(g.stat==='crit'?3:1);}
  const opt=specialInfo(it.special);if(opt&&!['hpRegen','mpRegen'].includes(opt.stat))o[opt.stat]=(o[opt.stat]||0)+opt.value;
  for(const [key,value] of Object.entries(INSECT_ARMOR[insectFields(it).insect]?.bonus||{}))o[key]=(o[key]||0)+value*(1+it.tier*.4);
@@ -92,14 +100,15 @@ export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
 }
 export function gearShopPrice(slot,tier,term='permanent'){
  const full=slot==='weapon'?1000+500*tier*tier:600+250*tier*tier;
+ if(term==='divine')return 5*full;
  return term==='day'?Math.ceil(full/10):full;
 }
 export function buyShopGear(s,slot,tier=tierForLevel(s.level),term='permanent'){
- if(term!=='permanent' && !(slot==='weapon'&&term==='day'))return false;
+ if(term!=='permanent' && term!=='divine' && !(slot==='weapon'&&term==='day'))return false;
  if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;
  const cost=gearShopPrice(slot,tier,term);
  if(!Number.isSafeInteger(s.stones)||s.stones<cost)return false;
- const item=makeItem(slot,tier,2);
+ const item=makeItem(slot,tier,term==='divine'?DIVINE_RARITY:2);
  if(term==='day')item.expiresAt=Date.now()+24*60*60*1000;
  s.stones-=cost;s.bag.push(item);return true;
 }

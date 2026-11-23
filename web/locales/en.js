@@ -1,5 +1,13 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ระดับเทพ":"Divine",
+"ของเทพ":"Divine gear",
+"อุปกรณ์ถาวรตามขั้นเลเวลปัจจุบัน • ตีบวกตามกติกาเดิม":"Permanent gear for your current level tier. Normal enhancement rules apply.",
+"พลังนักล่า • ATK +35% นาน 30 นาที":"Hunter boost · ATK +35% for 30 minutes",
+"ดูวิดีโอรับพลังนักล่า":"Watch a video for hunter boost",
+"ได้รับพลังนักล่า • ATK +35%":"Hunter boost received · ATK +35%",
+"เหลือเวลา":"Time remaining",
+
 "เข้าสู่บัญชีเพื่อเติม COCKRO":"Sign in to purchase COCKRO",
 "เล่นบนเครื่อง · เซฟแยก":"Play on device · separate save",
 "สถิติบนเครื่อง":"Device statistics",

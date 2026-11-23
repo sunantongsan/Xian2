@@ -106,6 +106,7 @@ let adScreenOpen=false,pendingCelebration=null;
 function celebrateReward(){
  if(!pendingCelebration||adScreenOpen||document.hidden)return;
  const reward=pendingCelebration;pendingCelebration=null;
+ if(reward.item==='hunterBoost'){toast(t('ได้รับพลังนักล่า • ATK +35%'));rewardFanfare();if(onlineView==='shop')refreshOnlineShop();return;}
  if(reward.item==='protectionTicket'){forge();toast(t('ได้รับตั๋วป้องกัน 1 ใบ'));return;}if(reward.item==='dailyCheckin'){checkinMenu();toast(t('รับรางวัลเช็กอินแล้ว • บันทึกบนเซิร์ฟเวอร์'));rewardFanfare();return;}if(reward.item?.startsWith('restore:')){forge();toast(t('คืนคุณสมบัติเดิมแล้ว • ไม่คืนหิน'));gameAudio.success();return;}const item=UPGRADE_ITEMS[reward.item];if(!item)return;
  show(ui`<section class="reward-celebration" aria-labelledby="rewardTitle"><div class="reward-stars" aria-hidden="true">✦ ✧ ✦</div><h2 id="rewardTitle">ยินดีด้วย!</h2><div class="reward-prize"><img src="${item.icon}" alt="${escapeHTML(item.name)}"><b>×1</b></div><h3>${escapeHTML(item.name)}</h3><p>ไอเท็มเข้ากระเป๋าแล้ว</p>${button('claimAdReward',t('รับรางวัล'))}</section>`);
  $('claimAdReward').onclick=()=>{inventoryFilter='material';inventorySelected='material:'+reward.item;onlineInventory();$('inventoryGrid').scrollTop=0;};
@@ -176,12 +177,14 @@ function refreshOnlineShop(){
  if(!s)return;
  const set=(id,text)=>{const el=$(id);if(el&&el.textContent!==text)el.textContent=text;};
  set('shopBalance',`COCKRO ${s.stones.toLocaleString()}`);
+ const huntMinutes=Math.max(0,Math.ceil(((s.hunterBoostUntil||0)-Date.now()-serverTimeOffset)/60000));
+ set('hunterBoostTime',huntMinutes?t('เหลือเวลา')+' '+huntMinutes+t(' นาที'):'');
  set('hpStock',ui`มี ${s.potions} ชิ้น`);
  set('mpStock',ui`มี ${s.mpPotions} ชิ้น`);set('protectionStock',`${s.protectionTickets||0}/${PROTECTION_CAP}`);
  document.querySelectorAll('[data-stock]').forEach(el=>{const text=ui`มี ${s.upgradeItems?.[el.dataset.stock]||0} ชิ้น`;if(el.textContent!==text)el.textContent=text;});
  document.querySelectorAll('[data-pet]').forEach(b=>{const id=b.dataset.pet,owned=s.lootPets?.owned?.includes(id),active=s.lootPets?.active===id;b.dataset.op=owned?'equipPet':'buyPet';b.dataset.id=active?'none':id;b.dataset.price=owned?'0':'20000';b.textContent=owned?(active?t('พักสัตว์'):t('เรียกใช้')):'20,000 COCKRO';});
  document.querySelectorAll('[data-op]').forEach(b=>{const bulk=['buy','buyMP','buyUpgradeItem'].includes(b.dataset.op),qty=bulk?Number($('marketQuantity')?.value||1):1,price=Number(b.dataset.price)*qty;const funds=s.stones;b.disabled=!!purchasePending||(onlineMode&&!net.ready)||funds<price||b.dataset.locked==='true'||b.dataset.op==='buyProtectionTicket'&&(s.protectionTickets||0)>=PROTECTION_CAP;if(bulk)b.textContent=ui`${price.toLocaleString()} ${b.dataset.currency} / ${qty} ชิ้น`;});
- document.querySelectorAll('[data-reward-item]').forEach(b=>{b.disabled=b.dataset.rewardItem==='protectionTicket'&&(s.protectionTickets||0)>=PROTECTION_CAP;b.textContent=ads.state.test?t('ดูโฆษณาทดสอบ • รับ 1 ชิ้น'):t('ดูโฆษณา • รับ 1 ชิ้น');});
+ document.querySelectorAll('[data-reward-item]').forEach(b=>{b.disabled=b.dataset.rewardItem==='protectionTicket'&&(s.protectionTickets||0)>=PROTECTION_CAP;if(b.dataset.rewardItem==='hunterBoost')return;b.textContent=ads.state.test?t('ดูโฆษณาทดสอบ • รับ 1 ชิ้น'):t('ดูโฆษณา • รับ 1 ชิ้น');});
 }
 function onlineMenu(view){if(view==='checkin')return checkinMenu();if(view==='attributes')return statMenu('stats');if(view==='stats')return onlineInventory();onlineView=view;onlinePaint=performance.now();let html='';
  if(view==='activities')html=dailyHTML(true);
