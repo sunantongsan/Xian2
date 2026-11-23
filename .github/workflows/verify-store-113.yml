@@ -8,12 +8,16 @@ permissions:
   contents: read
 jobs:
   android:
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [b1e15de463f49d02636241cc128d0239cad8f150, a544f6369342271d7a9edaf34542acc072026da8]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: b1e15de463f49d02636241cc128d0239cad8f150
+          ref: ${{ matrix.revision }}
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -23,6 +27,9 @@ jobs:
         with:
           gradle-version: '8.13'
           cache-disabled: true
+      - uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: gradle --no-daemon :app:bundleRelease
       - name: Check the release bundle
