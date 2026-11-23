@@ -21,7 +21,7 @@ test('private maps isolate monsters and discard the session on exit while preser
  wa.enter(pa,'forest');wb.enter(pb,'forest');
  const first=wa.mobs.forest[0],other=wb.mobs.forest[0];
  wa.hit(pa,first,first.hp+1,Date.now()/1000);
- assert.equal(other.hp,other.def.hp);assert.equal(pa.s.bountyHeads,1);assert.equal(pb.s.bountyHeads,0);
+ assert.equal(other.hp,other.def.hp);assert.equal(pa.s.kills,1);assert.equal(pb.s.kills,0);
  assert.deepEqual(app.world.snapshot(pa).players,[]);
  const position=[pa.x,pa.y],token=a.welcome.token;
  a.ws.close();await until(()=>!app.world.getActor(pa.id));
@@ -30,7 +30,7 @@ test('private maps isolate monsters and discard the session on exit while preser
  await app.close();app=startServer({port:0,directory,test:true});await once(app.server,'listening');
  assert.equal(app.world.sessions.size,0);
  const resumed=await connect(app,token);t.after(()=>resumed.ws.terminate());
- assert.equal(resumed.welcome.save.bountyHeads,1);
+ assert.equal(resumed.welcome.save.kills,1);
  assert.equal(resumed.state.self.map,'forest');
  assert.deepEqual([resumed.state.self.x,resumed.state.self.y],position);
 });

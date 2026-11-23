@@ -18,7 +18,7 @@ test('all ten-level weapons grow, reject underlevel and malformed purchase, pres
 });
 test('merchant counter opens remotely in town but forest cannot spend currency',()=>{
  const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(MERCHANT_UV[0]>.2&&MERCHANT_UV[0]<.3);
- p.s.stones=10000;p.map='forest';const before=JSON.stringify(p.s);w.command(p,{type:'op',op:'buy'},100);assert.equal(p.opResult.ok,false);assert.equal(JSON.stringify(p.s),before);
+ p.s.gold=12;p.s.stones=10000;p.map='forest';const before=JSON.stringify(p.s);w.command(p,{type:'op',op:'buy'},100);assert.equal(p.opResult.ok,false);assert.equal(JSON.stringify(p.s),before);
  p.map='town';w.command(p,{type:'op',op:'buy'},101);assert.equal(p.opResult.ok,true);assert.equal(p.s.potions,11);
 });
 test('interpolation smooths visual motion without altering combat position and snaps teleports',()=>{

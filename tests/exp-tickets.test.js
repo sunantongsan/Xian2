@@ -9,7 +9,7 @@ test('all tickets charge COCKRO exactly and preserve legacy G',()=>{
 test('ticket boosts actual monster XP only for one hour and replacement requires current expiry',()=>{
  const s=fresh('sword-cockro'),now=Date.now();s.expTickets={x2:2,x5:2,x10:1};
  assert.equal(useExpTicket(s,'x2',0,now),true);assert.equal(s.expBoost.until,now+EXP_DURATION);
- const m={id:0,xp:1,gold:1};reward(s,m,()=>1);assert.equal(s.xp,2);
+ const m={id:0,xp:1,gold:1},ordinary=fresh(s.hero);reward(ordinary,m,()=>1);reward(s,m,()=>1);assert.equal(s.xp,ordinary.xp*2);
  assert.equal(useExpTicket(s,'x5',0,now+1),false);assert.equal(s.expTickets.x5,2);
  const old=s.expBoost.until;assert.equal(useExpTicket(s,'x5',old,now+2),true);assert.equal(useExpTicket(s,'x5',old,now+3),false);
  assert.equal(s.expTickets.x5,1);assert.equal(expMultiplier(validSave(s),now+3),5);assert.equal(expMultiplier(s,now+2+EXP_DURATION),1);

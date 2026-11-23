@@ -6,7 +6,7 @@ import {take} from '../server/commerce.js';
 import {World} from '../server/world.js';
 
 test('rented and permanent weapons charge the advertised prices and preserve their terms on reload',()=>{
- const s=fresh('sword-cockro');s.stones=1100;
+ const s=fresh('sword-cockro');s.stones=1000;s.gold=100;
  const start=Date.now();
  assert(!buyShopGear(s,'ring',0,'day'));
  assert(!buyShopGear(s,'weapon',0,'unknown'));
@@ -22,7 +22,7 @@ test('rented and permanent weapons charge the advertised prices and preserve the
 });
 
 test('expiry removes an upgraded rental from the equipped slot or bag during play and on load',()=>{
- const s=fresh('sword-cockro');s.stones=3000;
+ const s=fresh('sword-cockro');s.stones=3000;s.gold=200;
  for(let i=0;i<2;i++)assert(buyShopGear(s,'weapon',0,'day'));
  const [held,spare]=s.bag;
  assert.equal(equip(s,held.id),null);

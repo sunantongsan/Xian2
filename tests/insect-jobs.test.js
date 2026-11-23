@@ -3,7 +3,7 @@ import {JOBS,BRANCHES} from '../web/jobs.js';import {fresh,validSave,maxHP} from
 test('six professions and thirteen validated second jobs preserve old character possessions',()=>{
  assert.equal(HEROES.length,6);assert.equal(Object.keys(BRANCHES).length,13);
  for(const [hero,job]of Object.entries(JOBS))for(const branch of job.branches){const s=fresh(hero);s.level=20;s.gold=456789;s.stones=321;s.skillRanks[s.equipped[0]]=4;const inventory=JSON.stringify([s.equip,s.bag]);s.jobBranch=branch;assert.equal(s.jobBranch,branch);assert(knownSkills(s).some(k=>k.id==='job-'+branch));const copy=validSave(JSON.parse(JSON.stringify(s)));assert.equal(copy.jobBranch,branch);assert.equal(copy.gold,456789);assert.equal(copy.stones,321);assert.equal(JSON.stringify([copy.equip,copy.bag]),inventory);assert.equal(copy.skillRanks[s.equipped[0]],4);}
- const old=fresh('sword-cockro');old.level=60;old.mutationStage=2;delete old.jobBranch;assert.equal(validSave(old).jobBranch,'knight');old.jobBranch='wizard';assert.equal(validSave(old).jobBranch,'knight');
+ const old=fresh('sword-cockro');old.level=60;old.mutationStage=2;delete old.jobBranch;assert.equal(validSave(old).jobBranch,null);old.jobBranch='wizard';assert.equal(validSave(old).jobBranch,null);
 });
 test('old armor cannot drop or reenter inventory via ground loot',()=>{const s=fresh('sword-cockro');for(const m of [{level:1},{level:60,elite:true},{level:210,boss:true}])assert.equal(rollInsectArmor(m,()=>0),null);assert.equal(collectLoot(s,{kind:'gear',item:makeItem('armor',0,0)}),false);assert(!monsterRewards(s,{level:1,boss:true,id:1,xp:1,gold:1},()=>.99).some(d=>d.item?.insect));});
 

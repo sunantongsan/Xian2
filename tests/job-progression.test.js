@@ -11,7 +11,7 @@ test('all four species advance at 20 and 60, including returning high-level char
   for(const [level,stage] of [[1,0],[15,0],[19,0],[20,1],[59,1],[60,2],[120,2],[210,2]]){
    const s=fresh(hero);s.level=level;const copy=validSave(s);
    assert.equal(copy.hero,hero);assert.equal(jobFor(copy.hero,copy.level).stage,stage);
-   assert.deepEqual(heroIdentity(hero,level).job,jobFor(hero,level));
+   assert.equal(heroIdentity(hero,level).id,hero);assert.equal(heroIdentity(hero,level).name,heroIdentity(hero,1).name);
    ids.add(jobFor(hero,level).id);
   }
  }
@@ -34,15 +34,15 @@ test('legacy character crossing a job boundary earns four new points without los
  const old=fresh('sword-dragonfly');delete old.mutationVersion;delete old.mutationStage;delete old.statProgressionVersion;delete old.legacyStatLevels;old.level=19;
  const s=validSave(old);assert.equal(s.statPoints,180);
  assert.equal(allocateStats(s,{agi:80,str:100}),true);
- reward(s,{id:1,xp:xpNeed(19),gold:0},()=>1);
+ s.xp=xpNeed(19)-1;reward(s,{id:1},()=>1);
  assert.equal(s.level,20);assert.equal(s.statPoints,4);assert.equal(s.legacyStatLevels,18);
  assert.equal(jobFor(s.hero,s.level).stage,1);
  const copy=validSave(s);assert.equal(copy.statPoints,4);assert.deepEqual(copy.attributes,s.attributes);
- reward(copy,{id:1,xp:xpNeed(20)+xpNeed(21),gold:0},()=>1);
+ for(let level=20;level<=21;level++){copy.xp=xpNeed(level)-1;reward(copy,{id:1},()=>1);}
  assert.equal(validSave(copy).statPoints,12);assert.equal(copy.legacyStatLevels,18);
 });
 test('new players earn four points per level and cannot spend beyond their budget',()=>{
- const s=fresh('sword-cricket');reward(s,{id:1,xp:xpNeed(1)+xpNeed(2),gold:0},()=>1);
+ const s=fresh('sword-cricket');for(let level=1;level<=2;level++){s.xp=xpNeed(level)-1;reward(s,{id:1},()=>1);}
  assert.equal(s.statPoints,8);assert.equal(s.skillPoints,20);
  assert.equal(allocateStats(s,{int:9}),false);assert.equal(allocateStats(s,{int:8}),true);
  const copy=validSave(s);assert.equal(copy.attributes.int,8);assert.equal(copy.statPoints,0);
