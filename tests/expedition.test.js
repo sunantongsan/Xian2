@@ -6,11 +6,11 @@ import {World} from '../server/world.js';
 import {fresh} from '../web/core.js';
 import {drawMonsterAttack} from '../web/forest-render.js';
 import {monsterZones,forestMonster} from '../web/forest-species.js';
-test('20 percent more wildlife plus exactly forty additional dispersed bosses',()=>{
+test('20 percent more wildlife plus two extra bosses in every clearing',()=>{
  const all=makePopulation(),bosses=all.filter(e=>e.def.boss);
- assert.equal(all.filter(e=>!e.def.boss).length,Math.ceil(972*1.2));assert.equal(bosses.length,46);
+ assert.equal(all.filter(e=>!e.def.boss).length,Math.ceil(972*1.2));assert.equal(bosses.length,114);
  const extra=bosses.filter(e=>e.spawnId.startsWith('extra-'));
- assert.equal(new Set(extra.map(e=>{const [u,v]=toUV(e,MAPS.forest);return `${Math.floor(u*9)},${Math.floor(v*6)}`;})).size,40);
+ assert.equal(new Set(extra.map(e=>{const [u,v]=toUV(e,MAPS.forest);return `${Math.floor(u*9)},${Math.floor(v*6)}`;})).size,54);
  for(const e of extra){for(const r of REGIONS){const p=toWorld(r.entry,MAPS.forest);assert(Math.hypot(e.x-p.x,e.y-p.y)>700,e.spawnId);}}
 });
 test('town spawn is the painted center and village paths and exits are reachable',()=>{

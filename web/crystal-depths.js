@@ -33,7 +33,7 @@ function inhabitant(index,rank,species,level){
 export const DEPTHS_MONSTERS=DEPTHS_ROOMS.flatMap((room,i)=>{
  const levels=[room.min,room.min+8,room.max];
  const roster=room.species.map((species,rank)=>inhabitant(i,rank,species,levels[rank]));
- if(room.boss!==undefined)roster.push(inhabitant(i,3,room.boss,room.max));
+ roster.push(inhabitant(i,3,room.boss??room.species[2],room.max));
  return roster;
 });
 export function makeDepthsPopulation(toWorld){

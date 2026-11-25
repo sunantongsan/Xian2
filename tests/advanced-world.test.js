@@ -12,7 +12,7 @@ test('all twenty distinct species are spawned on the server, in levels 61-120 on
  assert.equal(new Set(w.mobs.star.filter(m=>!m.def.boss).map(m=>m.def.level)).size,60);
  assert(w.mobs.star.every(m=>m.def.level>=61&&m.def.level<=120&&m.hp>0));
  assert(w.mobs.forest.every(m=>m.def.level<=60));
- assert.equal(w.mobs.star.filter(m=>m.def.boss).length,6);
+ assert.equal(w.mobs.star.filter(m=>m.def.boss).length,6+12*3);
 });
 test('all levels can enter every map gate while invalid gates stay rejected',()=>{
  const w=new World(),s=fresh('sword-cockro'),p=w.join('gate-check',s);

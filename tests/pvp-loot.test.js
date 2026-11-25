@@ -5,7 +5,7 @@ import {fresh,validSave,maxHP,combatStats} from '../web/core.js';
 import {toWorld,MAPS} from '../web/maps.js';
 import {aggressiveMonster,monsterNameColor} from '../web/monster-behavior.js';
 import {monsterRewards,collectLoot} from '../web/ground-loot.js';
-const pair=()=>{const w=new World();w.mobs.forest=[];w.mobs.star=[];const sa=fresh('sword-cockro'),sb=fresh('sword-cockro');sa.name='Attacker';sb.name='Defender';const a=w.join('a',sa),b=w.join('b',sb);b.x=a.x+40;b.y=a.y;return {w,a,b};};
+const pair=()=>{const w=new World({rng:()=>0});w.mobs.forest=[];w.mobs.star=[];const sa=fresh('sword-cockro'),sb=fresh('sword-cockro');sa.name='Attacker';sb.name='Defender';const a=w.join('a',sa),b=w.join('b',sb);b.x=a.x+40;b.y=a.y;return {w,a,b};};
 test('player attack and skill packets cannot affect a character or open a duel',()=>{
  const {w,a,b}=pair(),before=[b.hp,b.mp,b.s.potions,a.mp];
  for(const type of ['attackPlayer','skillPlayer'])w.command(a,{type,target:b.id,slot:0},100);
@@ -17,7 +17,7 @@ test('loot waits on ground, only close living owner can collect once, expires af
  w.hit(a,e,2,100);assert.equal(a.s.gold,0);assert.equal(w.loot.length,3);
  assert.deepEqual(w.loot.filter(d=>d.kind==='cockro').map(d=>d.count),[1]);
  Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,3);
- Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag+1);assert.equal(a.s.gold,83);
+ Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag);assert.equal(a.s.protectionTickets,1);assert.equal(a.s.gold,83);
  w.collectGround(102);assert.equal(a.s.stones,before.g+1);
  e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);
 });

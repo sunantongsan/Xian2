@@ -984,12 +984,15 @@ function drawGroundLoot(){
  if(d.kind==='gear'){if(d.item.slot==='weapon'){file='items/class-weapons.webp';cols=rows=2;const i=({'sword-cockro':0,'demon-scorpion':1,'sword-dragonfly':2,'sword-cricket':3})[d.hero]||0;col=i%2;row=Math.floor(i/2);}else if(['ring','amulet'].includes(d.item.slot)){file='items/equipment-atlas.webp';cols=3;col=d.item.slot==='ring'?1:2;}else{file='items/inventory-atlas.webp';cols=rows=3;const i={helm:0,armor:1,gloves:2,boots:3,wings:4}[d.item.slot]||0;col=i%3;row=Math.floor(i/3);}}
  else if(d.kind==='material')file=UPGRADE_ITEMS[d.itemId].icon;
  if(d.kind==='material'&&d.itemId==='alloy'){file='items/loot-atlas.webp';cols=4;rows=3;col=1;row=2;}if(d.kind==='cockro'||d.kind==='gold'){file='items/cockro-coin.webp';cols=rows=1;col=row=0;}if(d.kind==='gear'&&['weapon','helm','armor','boots','wings'].includes(d.item.slot)){file='items/loot-atlas.webp';cols=4;rows=3;if(d.item.slot==='weapon'){col=({'sword-cockro':0,'demon-scorpion':1,'sword-dragonfly':2,'sword-cricket':3})[d.hero||s.hero]||0;row=0;}else{col={helm:0,armor:1,boots:2,wings:3}[d.item.slot];row=1;}}if(d.kind==='gear'&&suitIcon(d.item)){file=suitIcon(d.item);cols=rows=1;col=row=0;}if(file){const im=images.get(file);if(im)ctx.drawImage(im,col*im.width/cols,row*im.height/rows,im.width/cols,im.height/rows,q.x-size/2,q.y-size*.8,size,size);else loadImage(file).catch(()=>{});}
- else if(d.kind==='fieldGift'){
+ else if(d.kind==='protection'){
+  ctx.fillStyle='#5aa8ff';ctx.beginPath();ctx.moveTo(q.x,q.y-24);ctx.lineTo(q.x+10,q.y-19);ctx.lineTo(q.x+8,q.y-8);ctx.lineTo(q.x,q.y-2);ctx.lineTo(q.x-8,q.y-8);ctx.lineTo(q.x-10,q.y-19);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#e6f2ff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#e6f2ff';ctx.fillRect(q.x-1.5,q.y-19,3,11);ctx.fillRect(q.x-5,q.y-15,10,3);
+ }else if(d.kind==='fieldGift'){
   ctx.fillStyle='#ed617d';ctx.fillRect(q.x-10,q.y-18,20,15);
   ctx.fillStyle='#ff99ae';ctx.fillRect(q.x-12,q.y-22,24,5);
   ctx.fillStyle='#ffe385';ctx.fillRect(q.x-2,q.y-22,4,19);
  }else{ctx.fillStyle='#ffcb59';ctx.beginPath();ctx.ellipse(q.x,q.y-13,10,7,0,0,7);ctx.fill();ctx.fillStyle='#775224';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText(d.kind==='huntGold'?'G':'C',q.x,q.y-9);}
- ctx.font=`${Math.max(7.5,Math.min(10,9*scale))}px GameThai,sans-serif`;ctx.textAlign='center';ctx.strokeStyle='#06101a';ctx.lineWidth=2;const label=d.kind==='fieldGift'?t('กล่องของขวัญ'):d.kind==='huntGold'?d.count+' G':(d.kind==='cockro'||d.kind==='gold')?d.count+' COCKRO':lootName(d,d.hero||s.hero)+' ×'+d.count;ctx.strokeText(label,q.x,q.y+9,115);ctx.fillStyle=d.kind==='gear'?(RARITY[d.item.rarity]?.color||'#e9e4d6'):'#e8dca9';ctx.fillText(label,q.x,q.y+9,115);ctx.restore();
+ ctx.font=`${Math.max(7.5,Math.min(10,9*scale))}px GameThai,sans-serif`;ctx.textAlign='center';ctx.strokeStyle='#06101a';ctx.lineWidth=2;const label=d.kind==='fieldGift'?t('กล่องของขวัญ'):d.kind==='huntGold'?d.count+' G':(d.kind==='cockro'||d.kind==='gold')?d.count+' COCKRO':d.kind==='protection'?t('ใบป้องกัน')+' ×'+d.count:lootName(d,d.hero||s.hero)+' ×'+d.count;ctx.strokeText(label,q.x,q.y+9,115);ctx.fillStyle=d.kind==='gear'?(RARITY[d.item.rarity]?.color||'#e9e4d6'):d.kind==='protection'?'#9fd0ff':'#e8dca9';ctx.fillText(label,q.x,q.y+9,115);ctx.restore();
  }
 }
 

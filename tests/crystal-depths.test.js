@@ -25,8 +25,8 @@ test('level 120 can reach all six chambers and leave through the marked road',()
  Object.assign(p,gate);w.command(p,{type:'move',...gate,seq:1},20);assert.equal(p.map,'depths');
  assert.deepEqual({x:p.x,y:p.y},roadArrival(entrance));
  const mobs=w.mobs.depths;
- assert.equal(mobs.length,135);assert.equal(new Set(mobs.map(m=>m.id)).size,135);
- assert.equal(mobs.filter(e=>e.def.boss).length,3);assert.equal(mobs.filter(e=>e.def.elite).length,24);
+ assert.equal(mobs.length,138);assert.equal(new Set(mobs.map(m=>m.id)).size,138);
+ assert.equal(mobs.filter(e=>e.def.boss).length,6);assert.equal(mobs.filter(e=>e.def.elite).length,24);
  assert(mobs.every(e=>walkable(MAPS.depths,e)&&e.def.aggressive&&Math.hypot(p.x-e.x,p.y-e.y)>230));
  assert.deepEqual([Math.min(...mobs.map(e=>e.def.level)),Math.max(...mobs.map(e=>e.def.level))],[120,240]);
  let from=p;for(const r of DEPTHS_ROOMS){const goal=toWorld(r.center,MAPS.depths);assert(routeTo(MAPS.depths,from,goal).length);from=goal;}
@@ -38,7 +38,7 @@ test('level 120 can reach all six chambers and leave through the marked road',()
  assert.equal(roadDestination('town',p,120),null);
 });
 test('full bounties double, credit once, and boss records survive saving',()=>{
- const w=new World(),s=fresh('sword-cockro');s.level=240;
+ const w=new World({rng:()=>0}),s=fresh('sword-cockro');s.level=240;
  const p=w.join('hero',s);w.enter(p,'depths');
  const boss=w.mobs.depths.find(e=>e.def.level===240&&e.def.boss);
  assert.equal(boss.def.damage,Math.round(monsterStats(240,{boss:true}).damage*1.5));

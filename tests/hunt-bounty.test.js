@@ -38,7 +38,7 @@ test('open inventory refreshes for a kill and for a subsequent coin pickup',asyn
  const {monsterRewards,collectLoot}=await import('../web/ground-loot.js');
  const s=fresh('sword-cockro');
  const before=inventoryKey(s);
- const drops=monsterRewards(s,{id:1060,level:10,boss:true,xp:0},()=>.99);
+ const drops=monsterRewards(s,{id:1060,level:10,boss:true,xp:0},()=>0);
  assert.equal(s.gold,0);assert(collectLoot(s,drops.find(d=>d.kind==='huntGold')));assert.equal(s.gold,83);
  assert.equal(s.stones,0);
  const afterKill=inventoryKey(s);
@@ -72,7 +72,7 @@ test('bounties use both levels before the kill and retain tenths across redempti
 test('event uses world time at death, doubles only G, and ends at the advertised boundary',async()=>{
  const {World}=await import('../server/world.js');
  const {killBountyTenths}=await import('../web/hunt-bounty.js');
- const w=new World({goldEvent:{startMs:20000,endMs:30000,multiplier:2}});
+ const w=new World({goldEvent:{startMs:20000,endMs:30000,multiplier:2},rng:()=>0});
  const s=fresh('sword-cockro'),p=w.join('event-hunter',s);
  s.level=120;w.enter(p,'depths');
  const boss=w.mobs.depths.find(e=>e.def.boss);

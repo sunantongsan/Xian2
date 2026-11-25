@@ -1,7 +1,7 @@
 import {forestMonster} from './forest-species.js';
 import {MONSTERS} from './catalog.js';
 import {MAPS,REGIONS,FOREST_COLS,FOREST_ROWS,toWorld,walkable,traceStep} from './maps.js';
-export const PACK_SIZE=6,PACKS_PER_REGION=27,EXTRA_NORMALS=Math.ceil(6*PACK_SIZE*PACKS_PER_REGION*.20),EXTRA_BOSSES=40,POPULATION=6*(PACK_SIZE*PACKS_PER_REGION+1)+EXTRA_NORMALS+EXTRA_BOSSES;
+export const PACK_SIZE=6,PACKS_PER_REGION=27,EXTRA_NORMALS=Math.ceil(6*PACK_SIZE*PACKS_PER_REGION*.20),EXTRA_BOSSES=108,POPULATION=6*(PACK_SIZE*PACKS_PER_REGION+1)+EXTRA_NORMALS+EXTRA_BOSSES;
 // Nine full-size clearings in each level band, with three hunting packs per clearing.
 // Tile geometry and texture retain their original scale; the world gains actual land.
 export const CAMPS=REGIONS.flatMap(region=>{
@@ -42,12 +42,14 @@ export function makePopulation(){
   const entry=toWorld(region.entry,MAPS.forest),level=region.min+(Math.hypot(position.x-entry.x,position.y-entry.y)<700?n%3:(tile+n)%10);
   units.push(makeUnit(forestMonster(level),position,`extra-${i}`));
  }
- // Forty additional boss instances, one per distinct clearing; retain the original six.
+ // Extra bosses: two per clearing (54 clearings), on top of the original six.
  for(let i=0;i<EXTRA_BOSSES;i++){
-  const region=REGIONS[i%6],tile=Math.floor(i/6),col=Math.floor(region.center[0]*3)*3+tile%3,row=(region.id<3?3:0)+Math.floor(tile/3);
-  let position=toWorld([(col+.76)/FOREST_COLS,(row+.27)/FOREST_ROWS],MAPS.forest);
+  const k=i%54,wave=Math.floor(i/54),region=REGIONS[k%6],tile=Math.floor(k/6),col=Math.floor(region.center[0]*3)*3+tile%3,row=(region.id<3?3:0)+Math.floor(tile/3);
   const entry=toWorld(region.entry,MAPS.forest);
-  if(Math.hypot(position.x-entry.x,position.y-entry.y)<850)position=toWorld([(col+.83)/FOREST_COLS,(row+.08)/FOREST_ROWS],MAPS.forest);
+  const spots=wave===0?[[.76,.27],[.83,.08]]:[[.24,.72],[.18,.9],[.5,.88],[.76,.27]];
+  let position=null;
+  for(const [u,v] of spots){const q=toWorld([(col+u)/FOREST_COLS,(row+v)/FOREST_ROWS],MAPS.forest);if(Math.hypot(q.x-entry.x,q.y-entry.y)<850||(wave&&!walkable(MAPS.forest,q)))continue;position=q;break;}
+  if(!position)position=toWorld([(col+spots.at(-1)[0])/FOREST_COLS,(row+spots.at(-1)[1])/FOREST_ROWS],MAPS.forest);
   units.push(makeUnit(MONSTERS.find(m=>m.boss&&m.region===region.id),position,`extra-boss-${i}`));
  }
  return units;

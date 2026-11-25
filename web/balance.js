@@ -18,6 +18,8 @@ export const PLAYER_GROWTH=Object.freeze({hp:26,attack:5,mp:4,defense:.4});
 export const manaRegen=s=>6.5+Math.min(6,(s.attributes?.int||0)*.02);
 // Ease enemy growth over ten levels after each mutation; no sudden wall on unlock.
 export const monsterMutationGrowth=level=>1+.10*Math.max(0,Math.min(1,(level-20)/10))+.12*Math.max(0,Math.min(1,(level-60)/10));
+// Bosses are long, dangerous fights: about 14 ordinary monsters of HP and 2.6x their hit.
+export const BOSS_HP=14,BOSS_DAMAGE=2.6;
 export function monsterStats(level,{boss=false,elite=false,toughness=1}={}){
  // Anchor the curve to a same-level fighter with ordinary equipment. HP is
  // fixed at spawn so upgrading a weapon or joining a party keeps its benefit.
@@ -25,7 +27,7 @@ export function monsterStats(level,{boss=false,elite=false,toughness=1}={}){
  const referenceAttack = 30 + 10 * levelsGained;
  const hitsAtLevel = 7 + 11 * levelsGained / (levelsGained + 15);
  const hp = referenceAttack * hitsAtLevel;
- return {hp:Math.round(hp*monsterMutationGrowth(level)*toughness*(boss?8:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*.9*monsterMutationGrowth(level)*(boss?2:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
+ return {hp:Math.round(hp*monsterMutationGrowth(level)*toughness*(boss?BOSS_HP:elite?2.6:1)),damage:Math.round((12+level*5+level*level*.09)*.9*monsterMutationGrowth(level)*(boss?BOSS_DAMAGE:elite?1.2:1)),xp:normalXP(level)*(boss?10:elite?3:1),gold:Math.round((10+level*3)*(boss?8:elite?3:1))};
 }
 
 
