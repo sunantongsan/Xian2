@@ -42,7 +42,7 @@ export const MAPS={
 // Historical maps are retained as dungeons, including their original collision geometry.
 MAPS.aurora={...MAPS.town,id:'aurora',get name(){return t('ดันเจียนออโรรา');},pois:[{uv:[.5,.94],get name(){return t('กลับเมืองแห่งทุ่งกุลา');},action:'road',road:'town'},{uv:[.94,.54],get name(){return t('ดันเจียนป่าชีวะแสง');},action:'road',road:'ruins'}]};
 MAPS.ruins={...MAPS.forest,id:'ruins',get name(){return t('ดันเจียนป่าชีวะแสง • Lv.1–60');},pois:[{uv:[1/6,.95],get name(){return t('กลับดันเจียนออโรรา');},action:'road',road:'aurora'}]};
-MAPS.town={...MAPS.town,width:2400,height:1600,get name(){return t('เมืองแห่งทุ่งกุลา');},image:'maps/thung-kula-town.webp',theme:'fantasy',
+MAPS.town={...MAPS.town,width:1800,height:1200,get name(){return t('เมืองแห่งทุ่งกุลา');},image:'maps/thung-kula-town.webp',theme:'fantasy',
  walk:[rect(.012,.012,.988,.988)],
  // Building silhouettes are solid. Irrigation water, paddy fields and bridges are walkable.
  blocked:[rect(.18,.01,.77,.205),[[.04,.17],[.15,.10],[.25,.21],[.23,.30],[.04,.33]],

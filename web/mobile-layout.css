@@ -58,3 +58,6 @@ body:not(.welcome-screen) #modal:has(.forge-panel) {width:min(760px,calc(100vw -
 #modal .forge-panel #adMessage {flex:none;font-size:10px;line-height:14px;margin:0;max-height:28px;overflow:auto;}
 #modal .forge-panel #adMessage:empty {display:none;}
 @media(max-width:500px){#modal .forge-layout{grid-template-columns:minmax(0,1fr) 105px;}#modal .forge-equipment{grid-template-columns:repeat(2,minmax(0,1fr));}#modal .forge-gems{gap:3px;}#modal .forge-gems button{width:34px;height:34px;min-height:34px;}}
+
+/* Keep the playfield entirely below the loaded native banner. */
+#game {position:absolute;left:0;top:var(--field-ad-inset,0px);width:100%;height:calc(100% - var(--field-ad-inset,0px));}

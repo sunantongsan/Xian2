@@ -1,7 +1,16 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {GLTFLoader} from '../web/vendor/GLTFLoader.js';import * as T from '../web/vendor/three.module.js';import {actor,gripError} from '../web/stage-rig.js';
 import {fresh,validSave} from '../web/core.js';import {World} from '../server/world.js';import {MAPS,toWorld} from '../web/maps.js';import {capturePresence} from '../web/solo-world.js';
-test('town migration scales positions once and preserves currency and enhancements',()=>{const w=new World(),s=fresh('sword-cockro');s.stones=123187;s.equip.weapon.plus=9;s.worldState={map:'town',x:300,y:300,hp:100,mp:100};const a=w.makeActor('a',s);assert.equal(a.x,180);capturePresence(a);const restored=validSave(s),b=w.makeActor('b',restored);assert.equal(b.x,180);assert.equal(b.y,180);assert.equal(restored.stones,123187);assert.equal(restored.equip.weapon.plus,9);assert.equal(MAPS.town.width,2400);assert(!MAPS.town.pois.some(p=>p.action==='buff'));});
+test('town migration scales positions once and preserves currency and enhancements',()=>{const w=new World(),s=fresh('sword-cockro');s.stones=123187;s.equip.weapon.plus=9;s.worldState={map:'town',x:300,y:300,hp:100,mp:100};const a=w.makeActor('a',s);assert.equal(a.x,135);capturePresence(a);const restored=validSave(s),b=w.makeActor('b',restored);assert.equal(b.x,135);assert.equal(b.y,135);assert.equal(restored.stones,123187);assert.equal(restored.equip.weapon.plus,9);assert.equal(MAPS.town.width,1800);assert(!MAPS.town.pois.some(p=>p.action==='buff'));});
+test('7.1.1 town coordinates migrate once from the previous plaza',()=>{
+ const w=new World(),s=fresh('sword-cockro');
+ s.worldState={map:'town',townRevision:711,x:180,y:180,hp:75,mp:45};
+ const player=w.makeActor('old-town',validSave(s));
+ assert.deepEqual([player.x,player.y,player.hp,player.mp],[135,135,75,45]);
+ capturePresence(player);
+ const again=w.makeActor('new-town',validSave(player.s));
+ assert.deepEqual([again.x,again.y],[135,135]);
+});
 test('server cycles three accepted attacks and resets combo after a pause',()=>{const w=new World(),p=w.join('a',fresh('sword-cockro'));w.enter(p,'forest');const m=w.mobs.forest[0];Object.assign(p,{x:m.x,y:m.y});m.hp=1e9;for(const [i,now]of [100,100.6,101.2,101.8,104].entries()){w.command(p,{type:'attack',target:m.id},now);assert.equal(p.combo,[0,1,2,0,0][i]);assert.equal(w.events.at(-1).combo,p.combo);}assert.equal(w.snapshot(p).self.combo,0);});
 test('three real clips keep hands on hilt, fit portrait camera and cut down to left',async()=>{
  const base=new URL('../web/models/',import.meta.url),index=JSON.parse(readFileSync(new URL('cockroach.json',base))),buf=Buffer.concat(index.chunks.map(n=>Buffer.from(JSON.parse(readFileSync(new URL(n,base))),'base64')));
