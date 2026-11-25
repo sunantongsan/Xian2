@@ -7,7 +7,7 @@ test('all enhancement tiers require no stones or training, enforce full price an
  for(let p=0;p<12;p++){
   const s=fresh('sword-cockro');s.level=210;s.stones=1000000000;s.protectionTickets=5;const it={plus:p};
   const a=enhance(s,it,true,()=>0);assert.equal(a.success,true);assert.equal(it.plus,p+1);assert.equal(s.stones,1000000000-COSTS[p]);assert.equal(s.protectionTickets,4);
-  if(p>0){it.plus=p;s.stones=1000000000;assert.equal(enhance(s,it,true,()=>.999).success,false);assert.equal(it.plus,p);assert.equal(s.stones,999950000);assert.equal(s.protectionTickets,3);
+  if(p>0){it.plus=p;s.stones=1000000000;assert.equal(enhance(s,it,true,()=>.999).success,false);assert.equal(it.plus,p);assert.equal(s.stones,1000000000-COSTS[p]);assert.equal(s.protectionTickets,3);
    s.stones=1000000000;enhance(s,it,false,()=>.999);assert.equal(s.stones,1000000000-COSTS[p]);assert.equal(it.plus,p);}
   s.level=1;s.stones=1000000000;s.upgradeItems={};assert.equal(enhance(s,{plus:p},false,()=>0).success,true);
  }

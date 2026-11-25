@@ -1434,6 +1434,10 @@ Object.assign(EN,{
  'ซื้อด้วย COCKRO • อ่านแล้วเรียนวิชาทันทีและติดตั้งในช่องว่าง • ไม่ต้องรอเลเวล':'Paid with COCKRO • reading a book teaches the skill at once and fills an empty slot • no level needed',
  'สถิติเหรียญ COCKRO':'COCKRO coin stats',
  'บาท':'THB',
+ 'อื่นๆ':'More',
+ 'กระดาษขาว COCKRO':'COCKRO white paper',
+ 'ผู้ดูแลระบบ':'Administrator',
+ 'จ่ายค่าตี 3% ทุกครั้ง':'Every attempt pays a 3% fee',
  'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วย COCKRO':'No skills yet • buy skill books with COCKRO in the shop'
 });
 

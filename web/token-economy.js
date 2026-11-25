@@ -15,9 +15,12 @@ export const BURN_SHARE=.5;            // of every purchase; the rest returns to
 // Lv.240 29,000). Elites x3, bosses x10. Sized so a new player earns about 20 THB in
 // 5 hours of hunting, i.e. 4 THB an hour; the daily cap stops bots after two hours.
 export const KILL_BASE=5000,COCKRO_PER_MONSTER_LEVEL=100,ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
-export function baseKillCoins({playerLevel=1,level=1,boss=false,elite=false}={}){
+// Pioneer tier (internal, not shown in game): full drops while the game has fewer than
+// 1,000 accounts; every extra zero (1,000 / 10,000 / 100,000 ...) halves drops again.
+export function accountDropMultiplier(accounts=0){const n=Math.max(1,Math.floor(accounts)||1);return n<1000?1:.5**Math.floor(Math.log10(n)-2);}
+export function baseKillCoins({playerLevel=1,level=1,boss=false,elite=false,accounts=0}={}){
  const lv=Math.max(1,Math.floor(level)||1),gap=playerLevel-lv,penalty=gap<10?1:gap<20?.5:.1;
- return Math.floor((KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty);
+ return Math.floor((KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty*accountDropMultiplier(accounts));
 }
 // Old balances were worth 5,000 COCKRO per 30 THB and G traded at 10 per COCKRO.
 export const LEGACY_COIN_FACTOR=6000,LEGACY_G_FACTOR=600;
@@ -28,12 +31,12 @@ export const thaiDay=ms=>Math.floor((ms+7*3600000)/86400000);
 export function freshEconomy(now=Date.now()){
  const part=k=>Math.round(SUPPLY*ALLOCATION[k]);
  return {version:1,farm:part('farm'),presale:part('presale'),presaleSold:0,reserve:part('reserve'),lp:part('lp'),
-  burned:0,recycled:0,recycledPending:0,minted:0,day:thaiDay(now),launchDay:thaiDay(now),pool:0,poolStart:0,dauYesterday:0,players:{}};
+  burned:0,recycled:0,recycledPending:0,minted:0,day:thaiDay(now),launchDay:thaiDay(now),pool:0,poolStart:0,dauYesterday:0,accounts:0,players:{}};
 }
 const whole=v=>Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER?Math.round(v):0;
 export function normalizeEconomyState(v,now=Date.now()){
  const e=freshEconomy(now);if(!v||v.version!==1)return rollDay(e,now,true);
- for(const k of ['farm','presale','presaleSold','reserve','lp','burned','recycled','recycledPending','minted','pool','poolStart','dauYesterday'])e[k]=whole(v[k]);
+ for(const k of ['farm','presale','presaleSold','reserve','lp','burned','recycled','recycledPending','minted','pool','poolStart','dauYesterday','accounts'])e[k]=whole(v[k]);
  e.day=Number.isSafeInteger(v.day)?v.day:thaiDay(now);
  e.launchDay=Number.isSafeInteger(v.launchDay)?v.launchDay:null;
  if(e.launchDay===null){ // 7.4.0 upgrade: pioneer phase starts today; top today's pool up to 1%.
@@ -59,7 +62,7 @@ export function killReward(e,id,{playerLevel=1,level=1,boss=false,elite=false}={
  rollDay(e,now);
  const budget=dailyBudget(e),earned=earnedToday(e,id);
  const rate=earned<budget?1:earned<budget*1.5?.1:0;
- const amount=Math.min(e.pool,Math.floor(baseKillCoins({playerLevel,level,boss,elite})*rate));
+ const amount=Math.min(e.pool,Math.floor(baseKillCoins({playerLevel,level,boss,elite,accounts:e.accounts||0})*rate));
  if(amount<=0)return 0;
  e.pool-=amount;e.players[id]=earned+amount;e.minted+=amount;return amount;
 }

@@ -1,3 +1,4 @@
+import {COSTS} from '../web/chain-economy.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fresh,validSave} from '../web/core.js';
@@ -60,7 +61,7 @@ test('an unprotected failure destroys only the confirmed weapon, protection pres
  s.protectionTickets=1;
  assert(upgradeGear(s,'weapon',()=>.99,true));
  assert.equal(s.equip.weapon,weapon);assert.equal(s.equip.weapon.plus,1);
- assert.equal(s.protectionTickets,0);assert.equal(s.stones,2e8-50000);
+ assert.equal(s.protectionTickets,0);assert.equal(s.stones,2e8-COSTS[1]);
  assert(upgradeGear(s,'weapon',()=>.99,false));
- assert.equal(s.equip.weapon,null);assert.equal(s.stones,2e8-50000-200000);
+ assert.equal(s.equip.weapon,null);assert.equal(s.stones,2e8-2*COSTS[1]);
 });

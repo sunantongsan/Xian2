@@ -1,3 +1,4 @@
+import {COSTS} from '../web/chain-economy.js';
 import {MERCHANT_UV} from '../web/merchant.js';import {MAPS as SHOP_MAPS,toWorld as shopWorld} from '../web/maps.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {fresh,validSave,damage,maxHP,combatStats} from '../web/core.js';
@@ -17,8 +18,8 @@ test('five skill slots keep their order; fifth skill casts online',()=>{let s=fr
 
 
 import {upgradeChance,upgradeMaterial} from '../web/gear.js';
-test('protected failure costs 0.05 baht, consumes ticket and has no cumulative pity',()=>{let s=fresh('sword-cockro');s.level=210;s.stones=1e9;s.protectionTickets=2;s.equip.weapon.plus=3;assert(upgradeGear(s,'weapon',()=>.99,true));assert.equal(s.stones,1e9-50000);assert.equal(s.protectionTickets,1);assert.equal(s.equip.weapon.plus,3);s=validSave(s);assert.equal(upgradeChance(s.equip.weapon),.8);assert(upgradeGear(s,'weapon',()=>0,true));assert.equal(s.equip.weapon.plus,4);assert.equal(s.protectionTickets,0);});
-test('accessories and armor use the same COCKRO schedule without materials',()=>{const s=fresh('sword-cockro');s.level=210;s.stones=1e9;for(const slot of ['ring','amulet']){s.equip[slot]=makeItem(slot,0,1);assert(upgradeGear(s,slot,()=>0));assert.equal(s.equip[slot].plus,1);}assert.equal(s.stones,1e9-200000);assert.equal(upgradeChance({plus:8,upgradeFails:18}),.35);});
+test('protected failure pays the 3% fee, consumes ticket and has no cumulative pity',()=>{let s=fresh('sword-cockro');s.level=210;s.stones=1e9;s.protectionTickets=2;s.equip.weapon.plus=3;assert(upgradeGear(s,'weapon',()=>.99,true));assert.equal(s.stones,1e9-COSTS[3]);assert.equal(s.protectionTickets,1);assert.equal(s.equip.weapon.plus,3);s=validSave(s);assert.equal(upgradeChance(s.equip.weapon),.8);assert(upgradeGear(s,'weapon',()=>0,true));assert.equal(s.equip.weapon.plus,4);assert.equal(s.protectionTickets,0);});
+test('accessories and armor use the same COCKRO schedule without materials',()=>{const s=fresh('sword-cockro');s.level=210;s.stones=1e9;for(const slot of ['ring','amulet']){s.equip[slot]=makeItem(slot,0,1);assert(upgradeGear(s,slot,()=>0));assert.equal(s.equip[slot].plus,1);}assert.equal(s.stones,1e9-2*COSTS[0]);assert.equal(upgradeChance({plus:8,upgradeFails:18}),.35);});
 
 import {buyMerchantStack} from '../web/merchant.js';
 import {merchantHTML} from '../web/shop-view.js';

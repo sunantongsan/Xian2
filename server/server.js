@@ -24,7 +24,13 @@ import {HEROES,PROTOCOL} from './world.js';
 import {fresh,validSave} from '../web/core.js';
 import {normalizeEconomyState,presaleCredit,mint,rollDay,economySummary} from '../web/token-economy.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier,goldEvent}={}){
- mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const economyPath=join(directory,'economy.json');const economy=normalizeEconomyState(existsSync(economyPath)?JSON.parse(readFileSync(economyPath,'utf8')):null);let economySaved=0;const saveEconomy=(force=false)=>{const now=Date.now();if(!force&&now-economySaved<5000)return;economySaved=now;writeFileSync(economyPath+'.tmp',JSON.stringify(economy),{mode:0o600});renameSync(economyPath+'.tmp',economyPath);};saveEconomy(true);const world=new PrivateSessions({maxPlayers,testRewards,goldEvent,economy}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
+ mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const economyPath=join(directory,'economy.json');const economy=normalizeEconomyState(existsSync(economyPath)?JSON.parse(readFileSync(economyPath,'utf8')):null);let economySaved=0;const saveEconomy=(force=false)=>{const now=Date.now();if(!force&&now-economySaved<5000)return;economySaved=now;writeFileSync(economyPath+'.tmp',JSON.stringify(economy),{mode:0o600});renameSync(economyPath+'.tmp',economyPath);};saveEconomy(true);
+ // Owner-only administration: the Google-verified owner email set on the account profile.
+ const OWNER_EMAILS=(process.env.COCKRO_OWNER_EMAILS||'sunan.tongsan@gmail.com').toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);
+ const isOwner=account=>{try{const m=accounts.meta(account);return !!m.uid&&OWNER_EMAILS.includes(String(m.email||'').toLowerCase());}catch{return false;}};
+ const saveFiles=()=>readdirSync(directory).filter(n=>/^[a-f0-9]{64}\.json$/.test(n));
+ const countAccounts=()=>{economy.accounts=saveFiles().length;};countAccounts();
+ const world=new PrivateSessions({maxPlayers,testRewards,goldEvent,economy}),connections=new Set(),limits=new Map(),activeAccounts=new Set();let diskFailure=false;const ssvStatus={verified:0,rejected:0,lastError:null};
  function allow(ip){const now=Date.now();let q=(limits.get(ip)||[]).filter(t=>t>now-60000);if(q.length>=Math.max(30,maxPlayers*2))return false;q.push(now);limits.set(ip,q);return true;}
  const hunts=hunterStatistics(world);
  const persist=p=>{if(p.roamer)return;if(commerce.failed)throw Error('save_unavailable');if(accounts.deletion.isCharacterDeleted(p.id))throw Error('account_deleted');try{if(p.map)capturePresence(p);const path=join(directory,p.id+'.json');writeFileSync(path+'.tmp',JSON.stringify(p.s),{mode:0o600});renameSync(path+'.tmp',path);hunts.record(p.id,p.s);p.dirty=false;p.lastSaved=Date.now();}catch{diskFailure=true;throw Error('save_unavailable');}};
@@ -48,6 +54,24 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
  const billing=createBillingService(directory,billingVerifier,{quote:baht=>{const n=presaleCredit(economy,baht);saveEconomy(true);return n;}});
  const adsEnabled=/^ca-app-pub-\d{16}\/\d{10}$/.test(adUnit)&&!adUnit.includes('3940256099942544');
  const verifySSV=ssvVerifier||createSSVVerifier({unit:adUnit});let verifying=0;
+ function adminRun(admin,d){
+  if(d.action==='list'){
+   const rows=saveFiles().map(file=>{const id=file.slice(0,-5);const live=world.getActor(id);let st=live?.s;if(!st){try{st=JSON.parse(readFileSync(join(directory,file),'utf8'));}catch{return null;}}return {id,name:String(st.name||'').slice(0,32),level:Number(st.level)||1,stones:Number(st.stones)||0,online:!!live,self:id===admin.id};}).filter(Boolean).sort((a,b)=>b.stones-a.stones).slice(0,500);
+   return {rows,accounts:rows.length,economy:economySummary(economy)};
+  }
+  if(d.action==='grant'){
+   if(typeof d.id!=='string'||!/^[a-f0-9]{64}$/.test(d.id)||accounts.deletion.isCharacterDeleted(d.id))throw Error('character_missing');
+   if(!Number.isSafeInteger(d.amount)||d.amount===0||Math.abs(d.amount)>1e13)throw Error('invalid_amount');
+   let target=world.getActor(d.id);
+   if(!target){const path=join(directory,d.id+'.json');if(!existsSync(path))throw Error('character_missing');const st=validSave(JSON.parse(readFileSync(path,'utf8')));if(!st)throw Error('invalid_save');target={id:d.id,s:st};}
+   const before=target.s.stones,after=Math.max(0,Math.min(1e12,before+d.amount)),change=after-before;if(!change)throw Error('no_change');
+   target.s.stones=after;target.dirty=true;persist(target);
+   if(change>0)mint(economy,change);else economy.farm+=-change;saveEconomy(true);
+   writeFileSync(join(directory,'admin-log.jsonl'),JSON.stringify({at:new Date().toISOString(),by:admin.account,character:d.id,amount:change,before,after})+'\n',{flag:'a',mode:0o600});
+   return {granted:{id:d.id,amount:change,before,after}};
+  }
+  throw Error('invalid_action');
+ }
  const server=http.createServer(async(req,res)=>{
  if(req.url?.startsWith('/online/ads/ssv?')){
   res.setHeader('Cache-Control','no-store');
@@ -70,7 +94,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.4.0',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.5.0',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144){if(data.type==='state')data.stalls=data.self.map==='town'?commerce.stalls().filter(it=>Math.hypot(it.x-data.self.x,it.y-data.self.y)<1800).slice(0,64):[];const packet=stateForWire(data,ws.eventCursor||0);ws.send(JSON.stringify(packet));if(packet.type==='state')for(const e of packet.events)ws.eventCursor=Math.max(ws.eventCursor||0,e.id);}else ws.close(1013,'slow_connection');};
@@ -100,8 +124,13 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  // Test ads use the same starting G balance as production.
  const stonesBeforeDelivery=state.stones;accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  if(state.redenominatedMint>0)mint(economy,state.redenominatedMint);delete state.redenominatedMint;if(state.stones>stonesBeforeDelivery)mint(economy,state.stones-stonesBeforeDelivery);saveEconomy(true);
- p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
- send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),release:'7.4.0',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
+ countAccounts();p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
+ send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),admin:isOwner(account),release:'7.5.0',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
+    if(d.type==='admin'){
+     if(!isOwner(p.account)){send(ws,{type:'adminResult',ok:false,message:'forbidden'});return;}
+     try{send(ws,{type:'adminResult',ok:true,...adminRun(p,d)});}catch(e){send(ws,{type:'adminResult',ok:false,message:String(e.message||'error').slice(0,80)});}
+     return;
+    }
     if(d.type==='hunterStats'){
      if(now-(ws.lastHunterStats||0)<400)return;
      ws.lastHunterStats=now;send(ws,{type:'hunterStats',...hunts.view(p)});return;
