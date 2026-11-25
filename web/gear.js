@@ -1,3 +1,4 @@
+import {thb} from './token-economy.js';
 import {COSTS,SUCCESS,enhance} from './chain-economy.js';
 import {INSECT_ARMOR,insectFields,isRetiredArmor} from './insect-armor.js';
 import {t,ui,language} from './i18n.js';
@@ -41,7 +42,8 @@ export function itemStats(it){
  return o;
 }
 export function itemPower(it){const st=itemStats(it);return Math.round((st.atk||0)*4+(st.def||0)*6+(st.hp||0)*.5+(st.crit||0)*900+(st.speed||0)*3+(st.mp||0)*.4+(st.spell||0)*500);}
-export function sellPrice(it){if(it.expiresAt)return 0;return Math.round(40*(1+it.tier)**2*RARITY[it.rarity].mult);}
+// Items cannot change hands; selling back to the merchant returns only a token amount.
+export function sellPrice(it){if(it.expiresAt)return 0;return thb(.01*(1+it.tier));}
 export function gearTotals(s){
  const t={atk:0,def:0,hp:0,crit:0,speed:0,mp:0,spell:0};
  for(const it of Object.values(s.equip||{}))if(it&&!expired(it)&&SLOT_ORDER.includes(it.slot)&&!isRetiredArmor(it))for(const [k,v]of Object.entries(itemStats(it)))t[k]+=v;
@@ -99,15 +101,16 @@ export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
  return !!result;
 }
 export function gearShopPrice(slot,tier,term='permanent'){
- const full=slot==='weapon'?1000+500*tier*tier:600+250*tier*tier;
- if(term==='divine')return 5*full;
+ // Baht: rare weapons 1 + 0.5/tier, jewelry 0.6 + 0.3/tier; divine 100 THB + 25 THB per tier.
+ if(term==='divine')return thb(100+25*tier);
+ const full=slot==='weapon'?thb(1+.5*tier):thb(.6+.3*tier);
  return term==='day'?Math.ceil(full/10):full;
 }
 export function buyShopGear(s,slot,tier=tierForLevel(s.level),term='permanent'){
  if(term!=='permanent' && term!=='divine' && !(slot==='weapon'&&term==='day'))return false;
  if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;
  const cost=gearShopPrice(slot,tier,term);
- const wallet=term==='day'?'gold':'stones';
+ const wallet='stones';
  if(!Number.isSafeInteger(s[wallet])||s[wallet]<cost)return false;
  const item=makeItem(slot,tier,term==='divine'?DIVINE_RARITY:2);
  if(term==='day')item.expiresAt=Date.now()+24*60*60*1000;

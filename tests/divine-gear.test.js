@@ -6,7 +6,7 @@ import {merchantHTML} from '../web/shop-view.js';
 import {issueRewardTicket,applyVerifiedReward} from '../server/rewarded-ads.js';
 
 test('the merchant sells three permanent divine items at the displayed level and price',()=>{
- const s=fresh('sword-cockro');s.level=20;s.stones=100000;
+ const s=fresh('sword-cockro');s.level=20;s.stones=1e12;
  const html=merchantHTML(s,()=>'',x=>x);
  const ordinary=structuredClone(s);
  for(const slot of ['weapon','ring','amulet']){

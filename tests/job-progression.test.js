@@ -25,7 +25,7 @@ test('legacy allocated and unspent points, inventory and balances survive repeat
   let restored=validSave(old);
   for(let i=0;i<5;i++){
    assert.deepEqual(restored.attributes,old.attributes);assert.equal(restored.statPoints,old.statPoints);
-   for(const k of ['hero','level','xp','gold','stones','equip','bag'])assert.deepEqual(restored[k],old[k],k);
+   for(const k of ['hero','level','xp','stones','equip','bag'])assert.deepEqual(restored[k],old[k],k);
    const next=validSave(JSON.parse(JSON.stringify(restored)));assert.deepEqual(next,restored);restored=next;
   }
  }

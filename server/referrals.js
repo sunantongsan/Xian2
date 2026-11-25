@@ -1,3 +1,5 @@
+import {thb} from '../web/token-economy.js';
+const REFERRAL_REWARD=thb(.5);
 import {createHash} from 'node:crypto';
 import {existsSync,mkdirSync,readFileSync,writeFileSync,renameSync} from 'node:fs';
 import {join} from 'node:path';
@@ -14,15 +16,15 @@ export function createReferrals(directory){
   if(!uid)throw Error('google_required');if(typeof input!=='string'||!/^[A-F0-9]{12}$/.test(input.trim().toUpperCase()))throw Error('referral_invalid');
   const d=read(),identity=hash(uid),member=d.members[input.trim().toUpperCase()];
   if(!member)throw Error('referral_invalid');if(member.account===account||member.identity===identity)throw Error('referral_self');if(d.claims[identity])throw Error('referral_used');
-  const id=hash('referral:'+identity);d.claims[identity]=true;d.awards[id]={account:member.account,amount:500,delivered:false};write(d);return {accepted:true,reward:500};
+  const id=hash('referral:'+identity);d.claims[identity]=true;d.awards[id]={account:member.account,amount:REFERRAL_REWARD,delivered:false};write(d);return {accepted:true,reward:REFERRAL_REWARD};
  }
  function deliver(account,character,s,persist,{welcome=false}={}){
   const d=read(),welcomeId=hash('welcome:'+account);
-  if(welcome&&!d.awards[welcomeId])d.awards[welcomeId]={account,amount:500,delivered:false};
+  if(welcome&&!d.awards[welcomeId])d.awards[welcomeId]={account,amount:REFERRAL_REWARD,delivered:false};
   s.accountRewardReceipts??=[];
   for(const [id,a]of Object.entries(d.awards)){
    if(a.account!==account||a.delivered||(a.character&&a.character!==character))continue;
-   if(!s.accountRewardReceipts.includes(id)&&s.stones+a.amount>1e7)continue;
+   if(!s.accountRewardReceipts.includes(id)&&s.stones+a.amount>1e12)continue;
    a.character=character;write(d);
    if(!s.accountRewardReceipts.includes(id)){s.stones+=a.amount;s.accountRewardReceipts.push(id);persist(s);}
    a.delivered=true;write(d);

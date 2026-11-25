@@ -5,18 +5,17 @@ import {monsterRewards,collectLoot,lootName} from '../web/ground-loot.js';
 import {monsterStats,BOSS_HP,BOSS_DAMAGE} from '../web/balance.js';
 import {World} from '../server/world.js';
 
-test('ordinary and elite monsters drop G only, never weapons or coins',()=>{
+test('ordinary and elite monsters drop COCKRO only, never equipment',()=>{
  for(const m of [{id:1000,level:1},{id:1030,level:31,elite:true},{id:2000,level:61}])for(const r of [0,.5,.99]){
-  const drops=monsterRewards(fresh('sword-cockro'),{xp:0,...m},()=>r);
-  assert.deepEqual(drops.map(d=>d.kind),['huntGold']);
+  const s=fresh('sword-cockro');s.level=m.level;const drops=monsterRewards(s,{xp:0,...m},()=>r);
+  assert.deepEqual(drops.map(d=>d.kind),['cockro']);assert(drops[0].count>0);
  }
 });
-test('bosses roll G, COCKRO and protection tickets and never drop equipment',()=>{
- const boss={id:1060,level:10,boss:true,xp:0};
- assert.deepEqual(monsterRewards(fresh('sword-cockro'),boss,()=>0).map(d=>d.kind),['huntGold','cockro','protection']);
- assert.deepEqual(monsterRewards(fresh('sword-cockro'),boss,()=>.99).map(d=>d.kind),['huntGold']);
- const seen=new Set();for(let i=0;i<500;i++)for(const d of monsterRewards(fresh('sword-cockro'),boss))seen.add(d.kind);
- assert.deepEqual([...seen].sort(),['cockro','huntGold','protection']);
+test('bosses drop a 20x COCKRO share and a protection ticket 30% of the time, never equipment',()=>{
+ const boss={id:1060,level:10,boss:true,xp:0},s=fresh('sword-cockro');s.level=10;
+ assert.deepEqual(monsterRewards(s,boss,()=>0).map(d=>d.kind),['cockro','protection']);
+ assert.deepEqual(monsterRewards(s,boss,()=>.99).map(d=>d.kind),['cockro']);
+ let tickets=0;for(let i=0;i<2000;i++)tickets+=monsterRewards(s,boss).some(d=>d.kind==='protection');assert(tickets>450&&tickets<750);
 });
 test('protection tickets are collected up to the cap of five',()=>{
  const s=fresh('sword-cockro');s.protectionTickets=4;

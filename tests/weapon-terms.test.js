@@ -6,7 +6,7 @@ import {take} from '../server/commerce.js';
 import {World} from '../server/world.js';
 
 test('rented and permanent weapons charge the advertised prices and preserve their terms on reload',()=>{
- const s=fresh('sword-cockro');s.stones=1000;s.gold=100;
+ const s=fresh('sword-cockro');s.stones=1100000;s.gold=100;
  const start=Date.now();
  assert(!buyShopGear(s,'ring',0,'day'));
  assert(!buyShopGear(s,'weapon',0,'unknown'));
@@ -14,7 +14,7 @@ test('rented and permanent weapons charge the advertised prices and preserve the
  assert(buyShopGear(s,'weapon',0,'day'));
  const [permanent,rental]=validSave(s).bag;
  assert.equal(s.stones,0);
- assert.equal(gearShopPrice('weapon',0,'day'),100);
+ assert.equal(gearShopPrice('weapon',0,'day'),100000);
  assert.equal(permanent.expiresAt,undefined);
  assert(rental.expiresAt>=start+86400000&&rental.expiresAt<=Date.now()+86400000);
  assert.equal(sellPrice(rental),0);
@@ -22,7 +22,7 @@ test('rented and permanent weapons charge the advertised prices and preserve the
 });
 
 test('expiry removes an upgraded rental from the equipped slot or bag during play and on load',()=>{
- const s=fresh('sword-cockro');s.stones=3000;s.gold=200;
+ const s=fresh('sword-cockro');s.stones=300000;s.gold=200;
  for(let i=0;i<2;i++)assert(buyShopGear(s,'weapon',0,'day'));
  const [held,spare]=s.bag;
  assert.equal(equip(s,held.id),null);
@@ -42,7 +42,7 @@ test('expiry removes an upgraded rental from the equipped slot or bag during pla
 
 test('successful rolls vary, survive restart and preserve existing enhancement power',()=>{
  for(const [roll,bonus] of [[0,1],[.99,5]]){
-  const s=fresh('sword-cockro');s.stones=2000;
+  const s=fresh('sword-cockro');s.stones=2e8;
   assert(upgradeGear(s,'weapon',()=>roll));
   const saved=validSave(s).equip.weapon;
   assert.equal(saved.forgeBonus,bonus);
@@ -53,14 +53,14 @@ test('successful rolls vary, survive restart and preserve existing enhancement p
 });
 
 test('an unprotected failure destroys only the confirmed weapon, protection preserves its exact stats',()=>{
- const s=fresh('sword-cockro');s.stones=2000;s.equip.weapon.plus=1;
+ const s=fresh('sword-cockro');s.stones=2e8;s.equip.weapon.plus=1;
  const w=new World(),p=w.join('forge-actor',s);const weapon=s.equip.weapon;
  w.command(p,{type:'op',op:'upgradeGear',slot:'weapon',expectedPlus:1,itemId:'stale'},1);
- assert.equal(p.opResult.ok,false);assert.equal(s.stones,2000);
+ assert.equal(p.opResult.ok,false);assert.equal(s.stones,2e8);
  s.protectionTickets=1;
  assert(upgradeGear(s,'weapon',()=>.99,true));
  assert.equal(s.equip.weapon,weapon);assert.equal(s.equip.weapon.plus,1);
- assert.equal(s.protectionTickets,0);assert.equal(s.stones,1999);
+ assert.equal(s.protectionTickets,0);assert.equal(s.stones,2e8-50000);
  assert(upgradeGear(s,'weapon',()=>.99,false));
- assert.equal(s.equip.weapon,null);assert.equal(s.stones,1799);
+ assert.equal(s.equip.weapon,null);assert.equal(s.stones,2e8-50000-200000);
 });

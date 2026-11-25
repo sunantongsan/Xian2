@@ -1,7 +1,8 @@
+import {thb} from './token-economy.js';
 // Bottles keep their purchased strength across level-ups. Legacy bottles restore 50%.
 export const POTIONS={
- hpSmall:{type:'hp',restore:80,price:12},hpMedium:{type:'hp',restore:800,price:120},hpLarge:{type:'hp',restore:8000,price:1200},
- mpSmall:{type:'mp',restore:40,price:10},mpMedium:{type:'mp',restore:240,price:60},mpLarge:{type:'mp',restore:1200,price:300}
+ hpSmall:{type:'hp',restore:80,price:thb(.002)},hpMedium:{type:'hp',restore:800,price:thb(.01)},hpLarge:{type:'hp',restore:8000,price:thb(.05)},
+ mpSmall:{type:'mp',restore:40,price:thb(.002)},mpMedium:{type:'mp',restore:240,price:thb(.008)},mpLarge:{type:'mp',restore:1200,price:thb(.03)}
 };
 const totalKey=type=>type==='hp'?'potions':'mpPotions';
 
@@ -42,7 +43,7 @@ export function drinkPotion(s,type,current,max){
 }
 export const MERCHANT_UV=[.235,.48];
 export const MERCHANT_RANGE=150;
-export const MERCHANT_OPS=new Set(['buySkillBook','buyProtectionTicket','buyPet','buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear','exchangeGold']);
+export const MERCHANT_OPS=new Set(['buySkillBook','buyProtectionTicket','buyPet','buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear']);
 
 export function buyMerchantStack(s,op,id,quantity=1,items){
  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>100)return false;
@@ -51,8 +52,8 @@ export function buyMerchantStack(s,op,id,quantity=1,items){
   const type=op==='buy'?'hp':'mp',bottle=id??(type+'Small');
   if(!Object.hasOwn(POTIONS,bottle)||POTIONS[bottle].type!==type)return false;
   const cost=POTIONS[bottle].price*quantity;
-  if(!Number.isFinite(s.gold)||s.gold<cost||!addBottle(s,bottle,quantity))return false;
-  s.gold-=cost;return true;
+  if(!Number.isSafeInteger(s.stones)||s.stones<cost||!addBottle(s,bottle,quantity))return false;
+  s.stones-=cost;return true;
  }
  else if(op==='buyUpgradeItem'&&Object.hasOwn(items,id)){currency=items[id].currency||'stones';key=id;price=items[id].price;inventory=s.upgradeItems;}
  else return false;

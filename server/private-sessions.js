@@ -1,11 +1,11 @@
 import {World} from './world.js';
 
 export class PrivateSessions {
- constructor({maxPlayers,testRewards,goldEvent}){
+ constructor({maxPlayers,testRewards,goldEvent,economy=null}){
   this.players=new Map();
   this.sessions=new Map();
   this.maxPlayers=maxPlayers;
-  this.options={maxPlayers,testRewards,goldEvent,onlineCount:()=>this.players.size};
+  this.options={maxPlayers,testRewards,goldEvent,economy,onlineCount:()=>this.players.size};
   const template=new World(this.options);
   this.maps=template.maps;
   this.mobs=template.mobs;

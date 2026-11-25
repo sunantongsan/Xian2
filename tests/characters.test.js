@@ -13,10 +13,10 @@ async function close(c,app){c.ws.close();for(let n=0;n<100&&app.world.players.si
 test('one cockroach per account, extra slots and other species rejected; progress persists',async t=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-one-'));const app=startServer({port:0,directory,test:true,testRewards:true});await once(app.server,'listening');t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true});});const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
  const invalid=await client(url,{create:true,name:'Tester',hero:'sword-cricket'});assert.equal(invalid.data.type,'error');invalid.ws.terminate();
- const main=await client(url,{create:true,name:'Tester',hero:'sword-cockro'});t.after(()=>main.ws.terminate());assert.equal(main.data.character,'main');assert.equal(main.data.save.stones,500);await close(main,app);
+ const main=await client(url,{create:true,name:'Tester',hero:'sword-cockro'});t.after(()=>main.ws.terminate());assert.equal(main.data.character,'main');assert.equal(main.data.save.stones,500000);await close(main,app);
  const token=main.data.token,path=join(directory,main.data.id+'.json'),old=JSON.parse(readFileSync(path));Object.assign(old,{level:37,gold:123456,stones:41234});writeFileSync(path,JSON.stringify(old));
  const extra=await client(url,{token,newCharacter:true,name:'Extra',hero:'sword-cockro'});assert.equal(extra.data.message,'character_limit');extra.ws.terminate();
  const bad=await client(url,{token,character:'../main'});assert.equal(bad.data.message,'character_missing');bad.ws.terminate();
  const roster=await client(url,{token,preview:true});assert.equal(roster.data.characters.length,1);assert.equal(roster.data.characters[0].level,37);roster.ws.terminate();
- const restored=await client(url,{token});t.after(()=>restored.ws.terminate());assert.equal(restored.data.save.level,37);assert.equal(restored.data.save.gold,123456);assert.equal(restored.data.save.stones,41234);await close(restored,app);
+ const restored=await client(url,{token});t.after(()=>restored.ws.terminate());assert.equal(restored.data.save.level,37);assert.equal(restored.data.save.gold,0);assert.equal(restored.data.save.stones,41234);await close(restored,app);
 });

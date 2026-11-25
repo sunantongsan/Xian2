@@ -1,9 +1,10 @@
+import {thb} from './token-economy.js';
 import {t,ui} from './i18n.js';
 export const EXP_DURATION=3600000;
 export const EXP_TICKETS=Object.freeze({
- x2:{get name(){return t('ตั๋ว EXP ×2');},multiplier:2,price:50000},
- x5:{get name(){return t('ตั๋ว EXP ×5');},multiplier:5,price:150000},
- x10:{get name(){return t('ตั๋ว EXP ×10');},multiplier:10,price:350000}
+ x2:{get name(){return t('ตั๋ว EXP ×2');},multiplier:2,price:thb(2)},
+ x5:{get name(){return t('ตั๋ว EXP ×5');},multiplier:5,price:thb(5)},
+ x10:{get name(){return t('ตั๋ว EXP ×10');},multiplier:10,price:thb(10)}
 });
 export function normalizeExpTickets(s,v=s,now=Date.now()){
  s.expTickets=Object.fromEntries(Object.keys(EXP_TICKETS).map(id=>[id,Number.isSafeInteger(v.expTickets?.[id])?Math.max(0,Math.min(99999,v.expTickets[id])):0]));

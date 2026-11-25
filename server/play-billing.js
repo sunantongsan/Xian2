@@ -21,7 +21,8 @@ export function createPlayVerifier({credentialsPath=process.env.GOOGLE_PLAY_CRED
  const r=await fetcher(url,{method:consume?'POST':'GET',headers:{Authorization:'Bearer '+await access()},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error(r.status>=500?'verification_unavailable':'purchase_not_verified');return consume?null:r.json();}
  return {enabled,verify:(id,token)=>request(id,token),consume:(id,token)=>request(id,token,true)};
 }
-export function createBillingService(directory,verifier=createPlayVerifier()){
+// quote(thb) reserves presale coins for one pack; the amount is fixed in the receipt record.
+export function createBillingService(directory,verifier=createPlayVerifier(),{quote=baht=>baht*1_000_000}={}){
  const dir=join(directory,'play-receipts');const locks=new Set();
  const write=(path,data)=>{writeFileSync(path+'.tmp',JSON.stringify(data),{mode:0o600});renameSync(path+'.tmp',path);};
  const records=()=>existsSync(dir)?readdirSync(dir).filter(f=>/^[a-f0-9]{64}\.json$/.test(f)).map(f=>({reference:f.slice(0,-5),...JSON.parse(readFileSync(join(dir,f),'utf8'))})):[];
@@ -48,18 +49,18 @@ export function createBillingService(directory,verifier=createPlayVerifier()){
  const target=profile===p.id?p:resolveRecipient?.(profile);
  if(!target||target.account!==owner||target.id!==profile)throw Error('wrong_account');p=target;
  const destination={reference:hash,character:p.id,characterName:p.s.name||''};
- if(record?.credited){if(!record.consumed){await verifier.consume(productId,token);record.consumed=true;write(path,record);}return {gold:product.gold,duplicate:true,...destination};}
+ if(record?.credited){if(!record.consumed){await verifier.consume(productId,token);record.consumed=true;write(path,record);}return {gold:record.gold,duplicate:true,...destination};}
  verified??=await verifier.verify(productId,token);validatePlayPurchase(verified,{owner:p.account,character:p.id});
  if(verified.consumptionState===1&&!record)throw Error('already_consumed');
- if(!record){record={owner:p.account,character:p.id,characterName:p.s.name||null,product:productId,gold:product.gold,credited:false,notify:true,created:Date.now(),orderId:typeof verified.orderId==='string'?verified.orderId.slice(0,128):null,purchasedAt:Number.isFinite(Number(verified.purchaseTimeMillis))?Number(verified.purchaseTimeMillis):null,test:verified.purchaseType===0};write(path,record);}
+ if(!record){record={owner:p.account,character:p.id,characterName:p.s.name||null,product:productId,gold:quote(product.thb),credited:false,notify:true,created:Date.now(),orderId:typeof verified.orderId==='string'?verified.orderId.slice(0,128):null,purchasedAt:Number.isFinite(Number(verified.purchaseTimeMillis))?Number(verified.purchaseTimeMillis):null,test:verified.purchaseType===0};write(path,record);}
  // Receipt marker and balance commit together; retry after a process crash cannot credit twice.
  const already=p.s.playReceipts?.includes(hash);if(!already){
- if(p.s.stones+product.gold>1e7)throw Error('wallet_full');
- const next=structuredClone(p.s);next.stones+=product.gold;next.playReceipts=[...(next.playReceipts||[]),hash];persist({id:p.id,s:next});p.s=next;p.dirty=false;
+ if(p.s.stones+record.gold>1e12)throw Error('wallet_full');
+ const next=structuredClone(p.s);next.stones+=record.gold;next.playReceipts=[...(next.playReceipts||[]),hash];persist({id:p.id,s:next});p.s=next;p.dirty=false;
  }
  record.credited=true;write(path,record);
- try{await verifier.consume(productId,token);record.consumed=true;write(path,record);}catch{return {gold:product.gold,duplicate:!!already,consumePending:true,...destination};}
- return {gold:product.gold,duplicate:!!already,...destination};
+ try{await verifier.consume(productId,token);record.consumed=true;write(path,record);}catch{return {gold:record.gold,duplicate:!!already,consumePending:true,...destination};}
+ return {gold:record.gold,duplicate:!!already,...destination};
  }finally{locks.delete(hash);}
  }};
 }

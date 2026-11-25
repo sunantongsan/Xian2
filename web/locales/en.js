@@ -1431,8 +1431,10 @@ Object.assign(EN,{
  'หนังสือสกิล':'Skill books',
  'หนังสือสกิลดาบ':'Sword skill books',
  'เรียนแล้ว':'Learned',
- 'ซื้อด้วยเหรียญ G • อ่านแล้วเรียนวิชาทันทีและติดตั้งในช่องว่าง • ไม่ต้องรอเลเวล':'Paid with G • reading a book teaches the skill at once and fills an empty slot • no level needed',
- 'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วยเหรียญ G':'No skills yet • buy skill books with G in the shop'
+ 'ซื้อด้วย COCKRO • อ่านแล้วเรียนวิชาทันทีและติดตั้งในช่องว่าง • ไม่ต้องรอเลเวล':'Paid with COCKRO • reading a book teaches the skill at once and fills an empty slot • no level needed',
+ 'สถิติเหรียญ COCKRO':'COCKRO coin stats',
+ 'บาท':'THB',
+ 'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วย COCKRO':'No skills yet • buy skill books with COCKRO in the shop'
 });
 
 

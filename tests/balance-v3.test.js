@@ -22,7 +22,7 @@ test('v2 saves preserve XP-bar percentage once, all old points and upgraded item
     old.equip.weapon.plus=9;old.equip.weapon.gems={};
     const next=validSave(old);assert.equal(next.balanceVersion,3);
     assert(Math.abs(next.xp/levelXP(level)-old.xp/previousLevelXP(level))<=1/levelXP(level));
-    for(const k of ['hero','level','gold','stones','attributes','statPoints','equip','bag'])assert.deepEqual(next[k],old[k],k);
+    for(const k of ['hero','level','stones','attributes','statPoints','equip','bag'])assert.deepEqual(next[k],old[k],k);
     for(let i=0;i<3;i++)assert.deepEqual(validSave(JSON.parse(JSON.stringify(next))),next);
    }
   }

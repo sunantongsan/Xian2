@@ -5,11 +5,11 @@ import {enhance,COSTS,SUCCESS,PRACTICE,trainingPoints,creditOnlineMinute,onlineR
 import {issueTestTicket,completeTestTicket} from '../server/test-rewards.js';
 test('all enhancement tiers require no stones or training, enforce full price and protected loss',()=>{
  for(let p=0;p<12;p++){
-  const s=fresh('sword-cockro');s.level=210;s.stones=100000;s.protectionTickets=5;const it={plus:p};
-  const a=enhance(s,it,true,()=>0);assert.equal(a.success,true);assert.equal(it.plus,p+1);assert.equal(s.stones,100000-COSTS[p]);assert.equal(s.protectionTickets,4);
-  if(p>0){it.plus=p;s.stones=100000;assert.equal(enhance(s,it,true,()=>.999).success,false);assert.equal(it.plus,p);assert.equal(s.stones,99999);assert.equal(s.protectionTickets,3);
-   s.stones=100000;enhance(s,it,false,()=>.999);assert.equal(s.stones,100000-COSTS[p]);assert.equal(it.plus,p);}
-  s.level=1;s.stones=100000;s.upgradeItems={};assert.equal(enhance(s,{plus:p},false,()=>0).success,true);
+  const s=fresh('sword-cockro');s.level=210;s.stones=1000000000;s.protectionTickets=5;const it={plus:p};
+  const a=enhance(s,it,true,()=>0);assert.equal(a.success,true);assert.equal(it.plus,p+1);assert.equal(s.stones,1000000000-COSTS[p]);assert.equal(s.protectionTickets,4);
+  if(p>0){it.plus=p;s.stones=1000000000;assert.equal(enhance(s,it,true,()=>.999).success,false);assert.equal(it.plus,p);assert.equal(s.stones,999950000);assert.equal(s.protectionTickets,3);
+   s.stones=1000000000;enhance(s,it,false,()=>.999);assert.equal(s.stones,1000000000-COSTS[p]);assert.equal(it.plus,p);}
+  s.level=1;s.stones=1000000000;s.upgradeItems={};assert.equal(enhance(s,{plus:p},false,()=>0).success,true);
  }
  assert.equal(trainingPoints({level:100}),495);assert.equal(SUCCESS[11],15);assert.equal(PRACTICE[11],1000);
 });

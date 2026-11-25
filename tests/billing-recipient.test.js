@@ -14,11 +14,11 @@ function fixture(t,receipt={}){
 test('verified profile gets coins even while another character is playing; survives restart and restore',async t=>{
  const f=fixture(t),api=createBillingService(f.directory,f.verifier);
  const result=await api.redeem(f.p,{...f.input,recipient:f.p.id},f.persist,f.resolve);
- assert.equal(result.character,f.target.id);assert.equal(f.p.s.stones,0);assert.equal(f.target.s.stones,5000);assert.equal(f.consumed(),1);
+ assert.equal(result.character,f.target.id);assert.equal(f.p.s.stones,0);assert.equal(f.target.s.stones,30000000);assert.equal(f.consumed(),1);
  f.target.s=validSave(JSON.parse(readFileSync(join(f.directory,f.target.id+'.json'))));
- const restarted=createBillingService(f.directory,f.verifier);assert((await restarted.redeem(f.p,f.input,f.persist,f.resolve)).duplicate);assert.equal(f.target.s.stones,5000);
+ const restarted=createBillingService(f.directory,f.verifier);assert((await restarted.redeem(f.p,f.input,f.persist,f.resolve)).duplicate);assert.equal(f.target.s.stones,30000000);
  assert.equal(restarted.notifications(f.p.account,f.p.id).length,0);
- const notices=restarted.notifications(f.p.account,f.target.id);assert.equal(notices.length,1);assert.equal(notices[0].gold,5000);
+ const notices=restarted.notifications(f.p.account,f.target.id);assert.equal(notices.length,1);assert.equal(notices[0].gold,30000000);
  assert.throws(()=>restarted.acknowledge(f.p.account,f.p.id,notices[0].reference),/wrong_account/);
  restarted.acknowledge(f.p.account,f.target.id,notices[0].reference);assert.equal(restarted.notifications(f.p.account,f.target.id).length,0);
 });
@@ -30,5 +30,5 @@ test('foreign owner, absent recipient and pending purchases never credit or cons
 test('destination save failure can retry without duplicate grants or lost notification',async t=>{
  const f=fixture(t),api=createBillingService(f.directory,f.verifier);
  await assert.rejects(api.redeem(f.p,f.input,()=>{throw Error('disk');},f.resolve));assert.equal(f.target.s.stones,0);assert.equal(f.consumed(),0);
- await api.redeem(f.p,f.input,f.persist,f.resolve);assert.equal(f.target.s.stones,5000);assert.equal(api.notifications(f.p.account,f.target.id).length,1);
+ await api.redeem(f.p,f.input,f.persist,f.resolve);assert.equal(f.target.s.stones,30000000);assert.equal(api.notifications(f.p.account,f.target.id).length,1);
 });

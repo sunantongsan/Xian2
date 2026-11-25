@@ -13,7 +13,7 @@ test('retired special rerolls reject without spending currency',()=>{const s=fre
 
 test('regen combines three slots, fires every 2s under repeated damage and never resurrects',()=>{const s=fresh('sword-cockro');for(const slot of ['weapon','ring','amulet']){s.equip[slot]=makeItem(slot,0,0);s.equip[slot].special='hp25';}const max=maxHP(s),p={s,hp:1,mp:0};applyRegen(p,1,max,100);assert.equal(p.hp,1);p.hp=2;applyRegen(p,1,max,100);assert.equal(p.hp,2+max*.04);p.hp=0;applyRegen(p,8,max,100);assert.equal(p.hp,0);p.hp=max;applyRegen(p,2,max,100);assert.equal(p.hp,max);});
 test('retired G exchange never spends COCKRO',()=>{const s=fresh('sword-cockro');s.stones=3;s.gold=123;for(const n of [-1,0,.5,NaN,Infinity,1001,2])assert(!exchangeGold(s,n));assert.equal(s.stones,3);assert.equal(s.gold,123);});
-test('shop equipment affects stats after equip and is level matched',()=>{const s=fresh('sword-cockro');s.stones=1000;assert(buyShopGear(s,'ring'));assert.equal(s.bag.at(-1).rarity,2);assert(itemStats(s.bag.at(-1)).crit>0);assert(!buyShopGear(s,'armor'));});
+test('shop equipment affects stats after equip and is level matched',()=>{const s=fresh('sword-cockro');s.stones=1e9;assert(buyShopGear(s,'ring'));assert.equal(s.bag.at(-1).rarity,2);assert(itemStats(s.bag.at(-1)).crit>0);assert(!buyShopGear(s,'armor'));});
 test('daily tasks reset at Thai midnight and cannot claim twice after reload',async()=>{const {countActivity,claimActivity}=await import('../web/daily-activities.js');let s=fresh('sword-cockro');const now=Date.parse('2026-10-30T16:59:00Z');for(let i=0;i<100;i++)countActivity(s,'hunt',now);assert(claimActivity(s,'hunt',now));s=validSave(JSON.parse(JSON.stringify(s)));assert(!claimActivity(s,'hunt',now));assert(!claimActivity(s,'hunt',now+120000));});
 
 

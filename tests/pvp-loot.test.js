@@ -13,13 +13,13 @@ test('player attack and skill packets cannot affect a character or open a duel',
  assert.equal(w.events.length,0);
 });
 test('loot waits on ground, only close living owner can collect once, expires after eight seconds',()=>{
- const {w,a,b}=pair();w.enter(a,'forest');const e={id:'loot-boss',x:a.x+200,y:a.y,hp:1,def:{id:1060,boss:true,level:10,gold:100,xp:1},homeX:a.x+200,homeY:a.y};const before={g:a.s.stones,alloy:a.s.upgradeItems.alloy,bag:a.s.bag.length};w.hit(a,e,2,100);assert.equal(a.s.stones,before.g);assert.equal(a.s.upgradeItems.alloy,before.alloy);assert.equal(a.s.bag.length,before.bag);assert.equal(a.s.gold,0);assert.equal(w.loot.length,3);
- w.hit(a,e,2,100);assert.equal(a.s.gold,0);assert.equal(w.loot.length,3);
- assert.deepEqual(w.loot.filter(d=>d.kind==='cockro').map(d=>d.count),[1]);
- Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,3);
- Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag);assert.equal(a.s.protectionTickets,1);assert.equal(a.s.gold,83);
- w.collectGround(102);assert.equal(a.s.stones,before.g+1);
- e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+1);
+ const {w,a,b}=pair();w.enter(a,'forest');const e={id:'loot-boss',x:a.x+200,y:a.y,hp:1,def:{id:1060,boss:true,level:10,gold:100,xp:1},homeX:a.x+200,homeY:a.y};const before={g:a.s.stones,alloy:a.s.upgradeItems.alloy,bag:a.s.bag.length};w.hit(a,e,2,100);assert.equal(a.s.stones,before.g);assert.equal(a.s.upgradeItems.alloy,before.alloy);assert.equal(a.s.bag.length,before.bag);assert.equal(a.s.gold,0);assert.equal(w.loot.length,2);
+ w.hit(a,e,2,100);assert.equal(a.s.gold,0);assert.equal(w.loot.length,2);
+ const coins=w.loot.find(d=>d.kind==='cockro').count;assert(coins>0);
+ Object.assign(b,{map:'forest',x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,2);
+ Object.assign(a,{x:e.x,y:e.y});w.collectGround(101);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+coins);assert.deepEqual(a.s.upgradeItems,{});assert.equal(a.s.bag.length,before.bag);assert.equal(a.s.protectionTickets,1);assert.equal(a.s.gold,0);
+ w.collectGround(102);assert.equal(a.s.stones,before.g+coins);
+ e.hp=1;e.x+=500;w.hit(a,e,2,103);w.collectGround(111);assert.equal(w.loot.length,0);assert.equal(a.s.stones,before.g+coins);
 });
 test('full inventory leaves equipment on ground instead of silently selling it',()=>{
  const s=fresh('sword-cockro');s.bag=Array.from({length:40},()=>s.equip.weapon);const gold=s.gold;assert.equal(collectLoot(s,{kind:'gear',item:s.equip.weapon,count:1}),false);assert.equal(s.gold,gold);

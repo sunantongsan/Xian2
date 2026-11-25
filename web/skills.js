@@ -1,3 +1,4 @@
+import {thb} from './token-economy.js';
 import {t,ui} from './i18n.js';
 import {mutationStage} from './mutation.js';
 import {language} from './i18n.js';
@@ -6,26 +7,26 @@ export const FORMS={wave:{get name(){return t('คลื่นพลัง');},r
 export const ELEMENTS={wind:{get name(){return t('ลม');},color:'#a6f3dd',get desc(){return t('ผลักศัตรูออก 45 หน่วย');}},fire:{get name(){return t('ไฟ');},color:'#ff9a50',get desc(){return t('เผาไหม้ 3 วินาที รวม 45% พลังโจมตี');}},ice:{get name(){return t('น้ำแข็ง');},color:'#81ddff',get desc(){return t('ลดความเร็ว 35% นาน 3 วินาที');}},lightning:{get name(){return t('สายฟ้า');},color:'#d8b4ff',get desc(){return t('เพิ่มความเสียหายทันที 20%');}},poison:{get name(){return t('พิษ');},color:'#a8dc64',get desc(){return t('พิษ 6 วินาที รวม 60% พลังโจมตี');}}};
 export const MODS={none:{get name(){return t('ไม่มี');},get desc(){return t('ไม่เพิ่มค่าพลังงาน');}},pierce:{get name(){return t('ทะลวง');},get desc(){return t('กระสุนพลังงานทะลุได้สูงสุด 3 เป้าหมาย / รูปแบบอื่นเพิ่มแรง 15%');}},drain:{get name(){return t('ดูดเลือด');},get desc(){return t('ฟื้น 8% ของความเสียหายจริง สูงสุด 8% เลือดต่อการร่าย');}},wide:{get name(){return t('ขยาย');},get desc(){return t('เพิ่มระยะและพื้นที่ 25%');}},force:{get name(){return t('อัดพลัง');},get desc(){return t('เพิ่มความแรง 25%');}},quick:{get name(){return t('ฉับไว');},get desc(){return t('ลดคูลดาวน์ 20% แต่ลดแรง 15%');}},lasting:{get name(){return t('ยืดผล');},get desc(){return t('เพิ่มเวลาผลธาตุ 50%');}}};
 export function compileSkill(r){if(!r||!FORMS[r.form]||!ELEMENTS[r.element])return null;const mods=[...new Set(r.mods||[])].filter(m=>m!=='none'&&MODS[m]);const f={...FORMS[r.form],...(r.combat||{})};return {...r,mods,range:f.range*(mods.includes('wide')?1.25:1),radius:f.radius*(mods.includes('wide')?1.25:1),power:f.power*(mods.includes('force')?1.25:1)*(mods.includes('quick')?.85:1)*(mods.includes('pierce')&&r.form!=='bolt'?1.15:1),mp:f.mp+mods.length*4,cd:Math.max(1.5,f.cd*.8)*(mods.includes('quick')?.8:1),color:ELEMENTS[r.element].color};}
-// 7.2.0: skills are no longer learned by level. Every skill is a sword-art book bought with G
+// Skills are sword-art books bought with COCKRO (priced in baht, 2 to 30 THB)
 // in the shop; buying a book teaches it for good. Price follows power and spectacle.
 const book=(id,th,en,price,form,element,mods,combat,fx,life=.85)=>({id,get name(){return language.current==='en'?en:th;},th,en,price,level:1,form,element,mods,combat,fx,life,book:true});
 export const SKILL_BOOKS=Object.freeze([
- book('b1','ดาบวายุกรีดฟ้า','Sky-Splitting Gale',2000,'wave','wind',[],{range:420,radius:70,mp:12,cd:4,power:1.9},'gale'),
- book('b2','ดาบเพลิงหมุนวน','Blazing Whirl',6000,'circle','fire',[],{range:190,radius:190,mp:16,cd:5.5,power:2.3},'whirl'),
- book('b3','เขี้ยวอสรพิษมรกต','Emerald Serpent Fang',15000,'wave','poison',['wide'],{range:400,radius:80,mp:18,cd:6,power:2.8},'serpent'),
- book('b4','ดาบสายฟ้าพริบตา','Lightning Flash Step',30000,'dash','lightning',[],{range:300,radius:70,mp:24,cd:7,power:3.4},'flash'),
- book('b5','พันดาบหิมะคราม','Thousand Frost Blades',60000,'field','ice',[],{range:420,radius:170,mp:30,cd:9,power:3.0},'frost',1.1),
- book('b6','วงดาบจันทราเงิน','Silver Moon Blade Ring',120000,'circle','lightning',[],{range:230,radius:230,mp:34,cd:9,power:4.2},'moon',1),
- book('b7','ดาบมังกรเพลิงสวรรค์','Heavenly Dragon Blade',250000,'bolt','fire',['pierce'],{range:560,radius:0,mp:40,cd:10,power:5.5},'dragon',1),
- book('b8','หมื่นดาบเทพพิพากษา','Divine Judgment of Ten Thousand Swords',500000,'field','lightning',['wide'],{range:400,radius:190,mp:56,cd:16,power:7.5},'judgment',1.5)
+ book('b1','ดาบวายุกรีดฟ้า','Sky-Splitting Gale',thb(2),'wave','wind',[],{range:420,radius:70,mp:12,cd:4,power:1.9},'gale'),
+ book('b2','ดาบเพลิงหมุนวน','Blazing Whirl',thb(3),'circle','fire',[],{range:190,radius:190,mp:16,cd:5.5,power:2.3},'whirl'),
+ book('b3','เขี้ยวอสรพิษมรกต','Emerald Serpent Fang',thb(5),'wave','poison',['wide'],{range:400,radius:80,mp:18,cd:6,power:2.8},'serpent'),
+ book('b4','ดาบสายฟ้าพริบตา','Lightning Flash Step',thb(8),'dash','lightning',[],{range:300,radius:70,mp:24,cd:7,power:3.4},'flash'),
+ book('b5','พันดาบหิมะคราม','Thousand Frost Blades',thb(12),'field','ice',[],{range:420,radius:170,mp:30,cd:9,power:3.0},'frost',1.1),
+ book('b6','วงดาบจันทราเงิน','Silver Moon Blade Ring',thb(17),'circle','lightning',[],{range:230,radius:230,mp:34,cd:9,power:4.2},'moon',1),
+ book('b7','ดาบมังกรเพลิงสวรรค์','Heavenly Dragon Blade',thb(23),'bolt','fire',['pierce'],{range:560,radius:0,mp:40,cd:10,power:5.5},'dragon',1),
+ book('b8','หมื่นดาบเทพพิพากษา','Divine Judgment of Ten Thousand Swords',thb(30),'field','lightning',['wide'],{range:400,radius:190,mp:56,cd:16,power:7.5},'judgment',1.5)
 ]);
 export const SKILL_BOOK_BY_ID=new Map(SKILL_BOOKS.map(b=>[b.id,b]));
 export const isSkillBook=id=>SKILL_BOOK_BY_ID.has(id);
 export function ownsSkillBook(s,id){return Array.isArray(s.skillBooks)&&s.skillBooks.includes(id);}
-// Buy with G (whole units, remainder tenths untouched). The book is read at once and its skill learned.
+// Buy with COCKRO. The book is read at once and its skill learned.
 export function buySkillBook(s,id){
- const b=SKILL_BOOK_BY_ID.get(id);if(!b||ownsSkillBook(s,id)||!Number.isSafeInteger(s.gold)||s.gold<b.price)return false;
- s.gold-=b.price;s.skillBooks=[...s.skillBooks,id];
+ const b=SKILL_BOOK_BY_ID.get(id);if(!b||ownsSkillBook(s,id)||!Number.isSafeInteger(s.stones)||s.stones<b.price)return false;
+ s.stones-=b.price;s.skillBooks=[...s.skillBooks,id];
  const slot=[0,1,2,3,4].find(i=>!s.equipped[i]);if(slot!==undefined)s.equipped[slot]=id;
  return true;
 }
