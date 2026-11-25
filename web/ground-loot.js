@@ -1,17 +1,17 @@
 import {COIN_CAP,PROTECTION_CAP} from './chain-economy.js';
 import {t,ui} from './i18n.js';
-import {thb,KILLS_PER_BUDGET} from './token-economy.js';
+import {baseKillCoins} from './token-economy.js';
 import {reward} from './core.js';
 import {itemName,BAG_SIZE} from './gear.js';
 import {UPGRADE_ITEMS} from './upgrade-items.js';
 import {POTIONS,addBottle} from './merchant.js';
 export const LOOT_SECONDS=8,LOOT_RADIUS=65;
 // XP and kill credit are immediate; all tangible rewards wait on the ground.
-// One currency: monsters drop COCKRO from the player's daily budget (see token-economy.js).
-// Bosses also have a 30% chance of a protection ticket. No equipment drops.
+// One currency: monsters drop 5,000 + 100 COCKRO per monster level, bosses x10, capped by the
+// player's daily budget (see token-economy.js). Bosses also have a 30% chance of a protection ticket. No equipment drops.
 export const BOSS_PROTECTION_CHANCE=.3;
 // Fallback for device (offline) worlds that have no shared economy: a launch-sized budget.
-export function localKillReward(s,m){const unit=thb(.85)/KILLS_PER_BUDGET,weight=m.boss?20:m.elite?3:1,gap=(s.level||1)-(m.level||1);return Math.floor(unit*weight*(gap<10?1:gap<20?.5:.1));}
+export function localKillReward(s,m){return baseKillCoins({playerLevel:s.level||1,level:m.level||1,boss:!!m.boss,elite:!!m.elite});}
 export function monsterRewards(s,m,rng=Math.random,coins=localKillReward){
  const amount=typeof coins==='function'?coins(s,m):coins;
  reward(s,m,rng);

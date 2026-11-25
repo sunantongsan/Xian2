@@ -11,7 +11,7 @@ test('ordinary and elite monsters drop COCKRO only, never equipment',()=>{
   assert.deepEqual(drops.map(d=>d.kind),['cockro']);assert(drops[0].count>0);
  }
 });
-test('bosses drop a 20x COCKRO share and a protection ticket 30% of the time, never equipment',()=>{
+test('bosses drop a 10x COCKRO share and a protection ticket 30% of the time, never equipment',()=>{
  const boss={id:1060,level:10,boss:true,xp:0},s=fresh('sword-cockro');s.level=10;
  assert.deepEqual(monsterRewards(s,boss,()=>0).map(d=>d.kind),['cockro','protection']);
  assert.deepEqual(monsterRewards(s,boss,()=>.99).map(d=>d.kind),['cockro']);

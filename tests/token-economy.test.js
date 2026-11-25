@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fresh,validSave} from '../web/core.js';
 import {World} from '../server/world.js';
-import {freshEconomy,normalizeEconomyState,rollDay,dailyBudget,killReward,spend,grant,refund,presaleCredit,presaleRate,redenominate,thb,SUPPLY,MIN_DAU} from '../web/token-economy.js';
+import {freshEconomy,normalizeEconomyState,rollDay,dailyBudget,releaseRate,baseKillCoins,thaiDay,PLAYER_DAILY_CAP,killReward,spend,grant,refund,presaleCredit,presaleRate,redenominate,thb,SUPPLY,MIN_DAU} from '../web/token-economy.js';
 import {SKILL_BOOKS} from '../web/skills.js';
 import {gearShopPrice} from '../web/gear.js';
 import {PROTECTION_PRICE,COSTS} from '../web/chain-economy.js';
@@ -16,15 +16,24 @@ test('allocation adds up to the 100B supply and prices are set in baht',()=>{
  assert.equal(thb(1),1_000_000);assert.equal(SKILL_BOOKS[0].price,thb(2));assert.equal(SKILL_BOOKS.at(-1).price,thb(30));
  assert.equal(PROTECTION_PRICE,thb(1));assert.equal(PET_PRICE,thb(20));assert.equal(gearShopPrice('weapon',0,'divine'),thb(100));assert(gearShopPrice('weapon',20,'divine')>=thb(600));assert.equal(COSTS[0],thb(.1));
 });
-test('each Thai day releases 0.1% of the farm and splits it over at least 100 players',()=>{
- const e=normalizeEconomyState(null,t0);assert.equal(e.poolStart,Math.floor(SUPPLY*.85*.001));assert.equal(dailyBudget(e),Math.floor(e.poolStart/MIN_DAU));
- for(let i=0;i<250;i++)e.players['p'+i]=0;assert.equal(dailyBudget(e),Math.floor(e.poolStart/250));
- const farm=e.farm;rollDay(e,t0+DAY);assert(e.farm<farm+e.poolStart);assert.equal(e.dauYesterday,250);assert.equal(dailyBudget(e),Math.floor(e.poolStart/250));
+test('pioneer days release 1% of the farm, later 0.1%; budget is min(8 THB, pool / players)',()=>{
+ const e=normalizeEconomyState(null,t0);assert.equal(e.poolStart,Math.floor(SUPPLY*.85*.01));assert.equal(releaseRate(e),.01);
+ assert.equal(dailyBudget(e),PLAYER_DAILY_CAP);for(let i=0;i<250;i++)e.players['p'+i]=0;assert.equal(dailyBudget(e),Math.min(PLAYER_DAILY_CAP,Math.floor(e.poolStart/250)));
+ rollDay(e,t0+DAY);assert.equal(e.dauYesterday,250);
+ rollDay(e,t0+30*DAY);assert.equal(releaseRate(e),.001);const farm=e.farm;e.pool=0;rollDay(e,t0+31*DAY);assert.equal(e.poolStart,Math.floor(farm*.001)+0);
+ const old=normalizeEconomyState({...freshEconomy(t0-5*DAY),launchDay:undefined,day:thaiDay(t0),poolStart:85_000_000,pool:85_000_000},t0);assert.equal(old.launchDay,thaiDay(t0));assert(old.poolStart>=Math.floor(old.farm*.01));
 });
-test('kills pay full until the daily budget, 10% to 150%, then nothing; bosses weigh 20',()=>{
+test('5,000 + 100 per monster level, x3 elite, x10 boss: about 20 THB in 5 hours',()=>{
+ assert.equal(baseKillCoins({level:1}),5100);assert.equal(baseKillCoins({level:60,playerLevel:60}),11000);assert.equal(baseKillCoins({level:240,playerLevel:240}),29000);
+ assert.equal(baseKillCoins({level:60,playerLevel:60,boss:true}),110000);assert.equal(baseKillCoins({level:60,playerLevel:60,elite:true}),33000);
+ assert.equal(baseKillCoins({level:10,playerLevel:40}),Math.floor(6000*.1));
+ let coins=0;for(let k=0;k<2000;k++){const lv=1+Math.floor(k/60);coins+=baseKillCoins({level:lv,playerLevel:lv,boss:k%40===39});}assert(coins>16e6&&coins<26e6,String(coins));
+});
+
+test('kills pay full until the daily budget, 10% to 150%, then nothing; bosses weigh 10',()=>{
  const e=normalizeEconomyState(null,t0),budget=dailyBudget(e);
  const normal=killReward(e,'a',{playerLevel:10,level:10},t0),boss=killReward(e,'b',{playerLevel:10,level:10,boss:true},t0);
- assert(normal>0);assert(Math.abs(boss-normal*20)<=20);
+ assert(normal>0);assert.equal(boss,normal*10);
  let paid=normal;while(paid<budget)paid+=killReward(e,'a',{playerLevel:10,level:10},t0);
  const slow=killReward(e,'a',{playerLevel:10,level:10},t0);assert(slow>0&&slow<=Math.ceil(normal*.1));
  while(e.players.a<budget*1.5){const n=killReward(e,'a',{playerLevel:10,level:10},t0);if(!n)break;}
