@@ -39,8 +39,6 @@ export const EN = {
 "เหลือเวลา":"Time remaining",
 
 "เข้าสู่บัญชีเพื่อเติม COCKRO":"Sign in to purchase COCKRO",
-"เล่นตัวละครในเครื่อง":"Play device character",
-"เล่นตัวละครในบัญชี":"Play account character",
 "สถิติบนเครื่อง":"Device statistics",
 "นักล่า":"Hunter",
 "20 แต้มต่อ 1 COCKRO":"20 bounty points per COCKRO",
