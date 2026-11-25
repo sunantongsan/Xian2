@@ -15,9 +15,9 @@ export const BURN_SHARE=.5;            // of every purchase; the rest returns to
 // Lv.240 29,000). Elites x3, bosses x10. Sized so a new player earns about 20 THB in
 // 5 hours of hunting, i.e. 4 THB an hour; the daily cap stops bots after two hours.
 export const KILL_BASE=5000,COCKRO_PER_MONSTER_LEVEL=100,ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
-// Pioneer tier (internal, not shown in game): full drops while the game has fewer than
-// 1,000 accounts; every extra zero (1,000 / 10,000 / 100,000 ...) halves drops again.
-export function accountDropMultiplier(accounts=0){const n=Math.max(1,Math.floor(accounts)||1);return n<1000?1:.5**Math.floor(Math.log10(n)-2);}
+// Pioneer tier (internal, not shown in game): full drops for the first 100 accounts;
+// 101-1,000 accounts 50%, 1,001-10,000 25%, and half again for every extra zero.
+export function accountDropMultiplier(accounts=0){const n=Math.max(1,Math.floor(accounts)||1);return n<=100?1:.5**Math.ceil(Math.log10(n)-2);}
 export function baseKillCoins({playerLevel=1,level=1,boss=false,elite=false,accounts=0}={}){
  const lv=Math.max(1,Math.floor(level)||1),gap=playerLevel-lv,penalty=gap<10?1:gap<20?.5:.1;
  return Math.floor((KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty*accountDropMultiplier(accounts));

@@ -11,10 +11,9 @@ import {PROTOCOL} from '../server/world.js';
 import {accountDropMultiplier,baseKillCoins} from '../web/token-economy.js';
 function client(url,hello){return new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:'http://localhost:8080'}),messages=[];ws.on('error',reject);ws.on('open',()=>ws.send(JSON.stringify(hello)));ws.on('message',raw=>{const m=JSON.parse(raw);messages.push(m);if(m.type==='welcome')resolve({ws,messages,welcome:m});if(m.type==='error')reject(Error('server '+m.message));});});}
 async function until(fn){for(let i=0;i<80;i++){const v=fn();if(v)return v;await new Promise(ok=>setTimeout(ok,50));}throw Error('timed out');}
-test('drops halve for every extra zero of accounts from 1,000 on',()=>{
- assert.equal(accountDropMultiplier(1),1);assert.equal(accountDropMultiplier(999),1);assert.equal(accountDropMultiplier(1000),.5);
- assert.equal(accountDropMultiplier(9999),.5);assert.equal(accountDropMultiplier(10000),.25);assert.equal(accountDropMultiplier(100000),.125);
- assert.equal(baseKillCoins({level:1,accounts:50}),5100);assert.equal(baseKillCoins({level:1,accounts:5000}),2550);
+test('first 100 accounts get full drops, then half for each extra zero',()=>{
+ for(const [n,m] of [[1,1],[100,1],[101,.5],[1000,.5],[1001,.25],[10000,.25],[10001,.125],[100000,.125],[100001,.0625]])assert.equal(accountDropMultiplier(n),m,String(n));
+ assert.equal(baseKillCoins({level:1,accounts:100}),5100);assert.equal(baseKillCoins({level:1,accounts:500}),2550);assert.equal(baseKillCoins({level:1,accounts:5000}),1275);
 });
 test('only the verified owner account sees and uses the admin panel; grants are booked and logged',async t=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-admin-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');
