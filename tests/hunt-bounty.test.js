@@ -66,7 +66,7 @@ test('bounties use both levels before the kill and retain tenths across redempti
  assert(exchangeBounty(s,1,{coins:1,rate:10,revision:0}));
  assert.equal(bountyBalance(validSave(s)),4.5);
  s=fresh('sword-cockro');s.level=39;s.xp=xpNeed(39)-1;
- collectLoot(s,monsterRewards(s,{id:1060,level:40,boss:true})[0]);assert.equal(s.level,40);assert.equal(bountyBalance(s),488);
+ collectLoot(s,monsterRewards(s,{id:1060,level:40,boss:true},()=>0)[0]);assert.equal(s.level,40);assert.equal(bountyBalance(s),488);
 });
 
 test('event uses world time at death, doubles only G, and ends at the advertised boundary',async()=>{
