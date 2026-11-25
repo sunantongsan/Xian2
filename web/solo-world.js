@@ -23,12 +23,13 @@ import {fresh,inCone,maxHP,damage,reward,combatStats,buyPotion,buyMPPotion,upgra
 import {knownSkills,compileSkill,skillTargets,buySkillBook} from './skills.js';
 import {MERCHANT_UV,MERCHANT_RANGE,MERCHANT_OPS,buyMerchantStack,drinkPotion} from './merchant.js';
 import {expireRentals,rollDrop,addToBag,equip,unequip,sell,upgradeGear,buyShopGear} from './gear.js';
+import {TOWN_REVISION} from './world-save.js';
 import {MAPS,REGIONS,toWorld,traceStep,walkable} from './maps.js';
 import {makePopulation} from './alien-population.js';
 import {parseTiled} from './tilemap.js';
 import {STAR_ZONES,starMonster,STAR_HOME_RADIUS,STAR_REVISION} from './star-data.js';
 export function capturePresence(p){
- p.s.worldState={townRevision:711,mapRevision:p.map==='star'?STAR_REVISION:0,map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};
+ p.s.worldState={townRevision:TOWN_REVISION,mapRevision:p.map==='star'?STAR_REVISION:0,map:p.map,x:p.x,y:p.y,hp:p.hp,mp:p.mp,cd:{...p.cd},offlineSince:p.offlineSince||0};
 }
 function castHealing(world,p,k,now){
  const max=maxHP(p.s);if(p.hp<=0||p.hp>=max||now<p.actionUntil||now<(p.cd[k.id]||0)||p.mp<k.mp)return false;
@@ -56,7 +57,16 @@ export class World {
  account(s,before,now){if(!this.economy||!Number.isSafeInteger(before))return;const delta=s.stones-before;if(delta<0)spend(this.economy,-delta);else if(delta>0)mint(this.economy,delta);}
  getActor(id){return this.players.get(id)||this.roamers.get(id);}
  actors(){return [...this.players.values(),...this.roamers.values()];}
- makeActor(id,s){normalizeFashion(s);const p={id,s,name:s.name||'กรุณาตั้งชื่อ',map:'town',...toWorld(MAPS.town.spawn,MAPS.town),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',walkDX:.707,walkDY:.707,walkDistance:0,animTime:0,cd:{},moveAt:Date.now()/1000,actionUntil:0,seq:0};let w=s.worldState;if(w?.map==='town'&&w.townRevision!==711){w={...w,x:w.x*.6,y:w.y*.6,townRevision:711};s.worldState=w;}if(w?.map==='star'&&w.mapRevision!==STAR_REVISION){w={...w,...this.maps.star.spawn,mapRevision:STAR_REVISION};s.worldState=w;}if(w&&(w.map!=='depths'||s.level>=DEPTHS_MIN_LEVEL)&&this.maps[w.map]&&walkable(this.maps[w.map],w)){Object.assign(p,{map:w.map,x:w.x,y:w.y,hp:Math.min(maxHP(s),w.hp),mp:Math.min(combatStats(s).mp,w.mp),cd:{...w.cd},offlineSince:w.offlineSince||0});}return p;}
+ makeActor(id,s){normalizeFashion(s);const p={id,s,name:s.name||'กรุณาตั้งชื่อ',map:'town',...toWorld(MAPS.town.spawn,MAPS.town),hp:maxHP(s),mp:combatStats(s).mp,face:1,anim:'idle',walkDX:.707,walkDY:.707,walkDistance:0,animTime:0,cd:{},moveAt:Date.now()/1000,actionUntil:0,seq:0};
+  let w=s.worldState;
+  if(w?.map==='town'&&w.townRevision!==TOWN_REVISION){
+   const scale=MAPS.town.width/(w.townRevision===711?2400:4000);
+   w=s.worldState={...w,x:w.x*scale,y:w.y*scale,townRevision:TOWN_REVISION};
+  }
+  if(w?.map==='star'&&(w.mapRevision!==STAR_REVISION||!walkable(this.maps.star,w))){
+   w=s.worldState={...w,...this.maps.star.spawn,mapRevision:STAR_REVISION};
+  }
+  if(w&&(w.map!=='depths'||s.level>=DEPTHS_MIN_LEVEL)&&this.maps[w.map]&&walkable(this.maps[w.map],w)){Object.assign(p,{map:w.map,x:w.x,y:w.y,hp:Math.min(maxHP(s),w.hp),mp:Math.min(combatStats(s).mp,w.mp),cd:{...w.cd},offlineSince:w.offlineSince||0});}return p;}
  join(id,s){if(this.players.has(id))throw Error('already_online');if(this.players.size>=this.maxPlayers)throw Error('room_full');const p=this.makeActor(id,s);p.s=s;p.name=s.name||p.name;Object.assign(p,{offline:false,seq:0,moveAt:Date.now()/1000,entered:true});this.players.set(id,p);return p;}
  disconnect(p){if(this.players.get(p.id)!==p)return;this.players.delete(p.id);p.offline=true;p.offlineSince=Date.now();p.anim='idle';capturePresence(p);p.dirty=true;}
  spawnLoot(p,e,now){const level=p.s.level;const coins=this.economy?(s,m)=>killReward(this.economy,p.id,{playerLevel:s.level,level:m.level,boss:!!m.boss,elite:!!m.elite},now*1000):localKillReward;const rewards=monsterRewards(p.s,e.def,this.rng,coins);rewards.forEach((item,i)=>this.loot.push({...item,id:`loot-${++this.lootSequence}`,owner:p.id,hero:p.s.hero,map:p.map,x:e.x+Math.cos(i*Math.PI*2/rewards.length)*40,y:e.y+Math.sin(i*Math.PI*2/rewards.length)*40,created:now,expires:now+LOOT_SECONDS}));
@@ -76,7 +86,7 @@ export class World {
    if(!finite(d.x,d.y,d.seq)||d.seq<=p.seq||p.hp<=0)return;p.seq=d.seq;const elapsed=Math.min(.3,Math.max(0,now-p.moveAt));p.moveAt=now;const speed=((s.hero.startsWith('sword')?165:160)+combatStats(s).speed)*movementMultiplier(s,now*1000);const n=dist(p,d),allowed=speed*elapsed;const ratio=n?Math.min(1,allowed/n):0;const next=traceStep(this.maps[p.map],p,{x:p.x+(d.x-p.x)*ratio,y:p.y+(d.y-p.y)*ratio});const dx=next.x-p.x,dy=next.y-p.y;p.walkDistance+=Math.hypot(dx,dy);p.anim=Math.hypot(dx,dy)>.1?'walk':'idle';if(now<p.actionUntil)p.anim=p.actionKind;Object.assign(p,next);if(Math.hypot(dx,dy)>.1)p.dirty=true;if(Math.hypot(dx,dy)>.1){p.face=dx-dy>=0?1:-1;p.walkDX=dx;p.walkDY=dy;p.back=dx+dy<0;}const destination=roadDestination(p.map,p,s.level,this.maps.star);if(destination&&now>(p.cd.road||0)){const arrival=roadArrival(destination,this.maps.star);Object.assign(p,arrival,{map:destination.map,entered:true});p.cd.road=now+2;}return;
   }
   if(d.type==='enter'){if(p.hp<=0)return;if(now<(p.cd.enter||0))return;p.cd.enter=now+1;if(this.enter(p,d.map,d.gate))p.entered=true;return;}
-  if(d.type==='revive'){if(p.hp<=0){this.enter(p,p.map==='star'?'star':'town',0);p.entered=true;}return;}
+  if(d.type==='revive'){if(p.hp<=0){this.enter(p,p.map==='star'?'star':'town',0);p.entered=true;p.dirty=true;}return;}
   if(d.type==='op'){const coinsBefore=s.stones;p.opResult={ok:false,message:'คำขอถี่เกินไป กรุณาลองใหม่'};if(now<(p.cd.op||0))return;p.cd.op=now+.1;p.opResult={ok:false,message:'ทำรายการไม่ได้ กรุณาตรวจเงิน วัสดุ และพื้นที่กระเป๋า'};const atHome=this.home(p);if(MERCHANT_OPS.has(d.op)&&!atHome){p.opResult.message='กรุณาคุยกับหุ่นพ่อค้า MERC-01 ในยาน';return;}switch(d.op){case 'exchangeBounty':{
    p.opResult.message='ปิดการแลกเหรียญแล้ว • เกมใช้ COCKRO สกุลเดียว';
    break;

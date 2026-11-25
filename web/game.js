@@ -167,7 +167,7 @@ function applyOnlineState(d){
  loadLayeredHero(s.hero,mutationVisualLevel(s)).catch(()=>{});
  if(s.level>oldLevel)celebrateProgress();
  if(s.kills>oldKills)beep(700,.1);
-  if(p.dead&&!$('onlineRevive')){show(ui`<h2>พลังงานหมด</h2>${button('onlineRevive',t('เกิดที่หมู่บ้าน'))}`);$('onlineRevive').onclick=()=>{net.send({type:'revive'});goHome();};}
+  if(p.dead&&(!modal.open||!$('onlineRevive'))){show(ui`<h2>พลังงานหมด</h2>${button('onlineRevive',t(d.self.map==='star'?'กลับเมืองโอเอซิส':'เกิดที่หมู่บ้าน'))}`);$('onlineRevive').onclick=goHome;}
  if(onlineView==='shop'&&modal.open)refreshOnlineShop();
  if(onlineView==='stats'&&modal.open&&lastInventoryKey!==inventoryKey(s))onlineInventory();
  if(onlineView&&!forgePending&&(onlineView!=='forge'||oldForge!==JSON.stringify([s.equip,s.upgradeItems,s.stones,s.stones]))&&onlineView!=='shop'&&onlineView!=='stats'&&onlineView!=='character'&&onlineView!=='gifts'&&modal.open&&performance.now()-onlinePaint>1000){const focus=document.activeElement;if(!focus||focus.tagName!=='SELECT')onlineView==='wardrobe'?updateWardrobe():onlineMenu(onlineView);}hud();
@@ -531,7 +531,11 @@ function starLabel(){if(atHome())return t('เมืองโอเอซิส 
 const HOME_RADIUS=STAR_HOME_RADIUS;
 function homeGate(){return star?.pois.find(q=>q.action==='warp'&&q.zone===0)?.world;}
 function atHome(){const h=isStar()&&homeGate();return !!h&&Math.hypot(p.x-h.x,p.y-h.y)<HOME_RADIUS;}
-function goHome(){autoHunt.reset();return isStar()?travelStar(0,true):travel(0,true);}
+function goHome(){
+ autoHunt.reset();
+ if(onlineMode&&p?.dead)return net.send({type:'revive'});
+ return isStar()?travelStar(0,true):travel(0,true);
+}
 async function travelStar(gate=0,home=false){
  if(travelBusy||!s||!p)return false;
  const Z=STAR_ZONES[gate];if(!Z)return false;

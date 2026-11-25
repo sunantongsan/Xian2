@@ -96,22 +96,22 @@ for(let i=0;i<N*N;i++)if(zoneOf[i]>=0&&(terrain[i]===T.CHASM||terrain[i]===T.BRI
 {const [hc,hr]=hubs[0];
  for(let dy=-13;dy<=13;dy++)for(let dx=-16;dx<=16;dx++){
   const i=idx(hc+dx,hr+dy);if(zoneOf[i]<0)continue;
-  prop[i]=-1;keep[i]=1;terrain[i]=Math.abs(dx)<=12&&Math.abs(dy)<=11?T.PLAZA:terrainId(0,0);
+  prop[i]=-1;keep[i]=1;terrain[i]=Math.abs(dx)<=9&&Math.abs(dy)<=8?T.PLAZA:terrainId(0,0);
   if(Math.abs(dy)<=2){terrain[i]=T.ROAD;roads[i]=1;}
  }
  // Low sandstone boundary keeps the exits readable without obscuring the plaza.
- for(let dy=-11;dy<=11;dy++)for(let dx=-12;dx<=12;dx++){
-  if(Math.abs(dx)!==12&&Math.abs(dy)!==11)continue;
-  if(Math.abs(dx)===12&&Math.abs(dy)<=2)continue;
+ for(let dy=-8;dy<=8;dy++)for(let dx=-9;dx<=9;dx++){
+  if(Math.abs(dx)!==9&&Math.abs(dy)!==8)continue;
+  if(Math.abs(dx)===9&&Math.abs(dy)<=2)continue;
   prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('town-wall');
  }
- for(const [dx,dy] of [[-8,-6],[-8,6],[-3,-7],[3,-7],[8,-6],[8,6],[-3,7],[3,7]]){
+ for(const [dx,dy] of [[-6,-4],[-6,4],[-2,-5],[2,-5],[6,-4],[6,4],[-2,6],[2,6]]){
   for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++)prop[idx(hc+dx+x,hr+dy+y)]=PROPS.indexOf('foundation');
   prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('desert-house');
  }
  // Small ornamental pool, never across the east-west main street.
- for(let dy=-1;dy<=1;dy++)for(let dx=-2;dx<=2;dx++)terrain[idx(hc+dx,hr+5+dy)]=terrainId(0,2);
- for(const [dx,dy] of [[-10,-3],[-10,3],[10,-3],[10,3],[-5,5],[5,5]])prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('palm');
+ for(let dx=-2;dx<=2;dx++)terrain[idx(hc+dx,hr+4)]=terrainId(0,2);
+ for(const [dx,dy] of [[-8,-3],[-8,3],[8,-3],[8,3],[-4,5],[4,5]])prop[idx(hc+dx,hr+dy)]=PROPS.indexOf('palm');
 }
 
 // 9. Keep only what the start can reach; unreachable pockets become rock props so nothing is visible-but-stuck.
@@ -126,7 +126,12 @@ reach=flood();
 const spawns=[];let nextId=1;
 const zoneStats=[];
 for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
- const cand=[];for(let i=0;i<N*N;i++)if(zoneOf[i]===z&&reach[i]&&terrain[i]!==T.PLAZA&&!roads[i])cand.push(i);
+ const cand=[];
+ for(let i=0;i<N*N;i++){
+  // Keep the original town footprint out of the seeded camp pool so shrinking the walls does not move existing hunts.
+  if(Math.abs(i%N-hubs[0][0])<=12&&Math.abs(Math.floor(i/N)-hubs[0][1])<=11)continue;
+  if(zoneOf[i]===z&&reach[i]&&terrain[i]!==T.PLAZA&&!roads[i])cand.push(i);
+ }
  const [hc,hr]=hubs[z];const camps=[];
  for(let tries=0;tries<10000&&camps.length<36;tries++){const i=cand[Math.floor(rnd()*cand.length)],c=i%N,r=Math.floor(i/N);if(Math.hypot(c-hc,r-hr)<(z===0?30:9))continue;if(camps.some(([x,y])=>Math.hypot(x-c,y-r)<6.5))continue;
   let open=0;for(const [dx,dy]of N8)if(walk(idx(c+dx,r+dy))&&reach[idx(c+dx,r+dy)])open++;if(open<7)continue;camps.push([c,r]);}
@@ -140,7 +145,7 @@ for(let z=0;z<12;z++){const Z=STAR_ZONES[z],boss=bossZone(z);
 // Keep the legacy warp identifier for saves/protocol; these are walking landmarks.
 const pois=hubs.map(([c,r],z)=>({name:z===0?'เมืองโอเอซิส • จุดกลับเมือง 2':'เส้นทาง • '+STAR_ZONES[z].name,type:'warp',c,r,zone:z}));
 {const [hc,hr]=hubs[0];
- const svc=[['พ่อค้าโอเอซิส','shop',-5,0],['ช่างตีเหล็กโอเอซิส','forge',0,-4],['ลานฝึกโอเอซิส','skills',5,-3],['ไปเมืองทุ่งกุลา','town',15,0],['ไปล่ามอนสเตอร์ 61–120','hunt',-15,0]];
+ const svc=[['พ่อค้าโอเอซิส','shop',-4,0],['ช่างตีเหล็กโอเอซิส','forge',0,-3],['ลานฝึกโอเอซิส','skills',4,-2],['ไปเมืองทุ่งกุลา','town',12,0],['ไปล่ามอนสเตอร์ 61–120','hunt',-12,0]];
  for(const [name,type,dx,dy]of svc)pois.push({name,type,c:hc+dx,r:hr+dy,zone:0});
 }
 

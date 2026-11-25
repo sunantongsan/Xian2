@@ -4,7 +4,7 @@ import {t,ui} from './i18n.js';
 import {advancedMonster} from './advanced-monsters.js';
 
 export const STAR_REVISION=20261116;
-export const STAR_HOME_RADIUS=600;
+export const STAR_HOME_RADIUS=450;
 export const STAR_TILE=48;          // world units per tile edge (same projection as actors)
 export const STAR_SIZE=384;         // tiles per side
 
