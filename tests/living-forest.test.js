@@ -30,6 +30,6 @@ test('20 unique locked telegraphs resolve into exactly the same authoritative da
  assert.equal(signatures.size,20);
 });
 test('dash skill broadcasts pre-move origin and damage extent; arrows broadcast the actual target',()=>{
- const w=new World(),s=fresh('sword-cockro');s.level=50;s.equipped=['s4'];const p=w.join('p',s);w.enter(p,'forest');const origin=toWorld([.5,.5],MAPS.forest);Object.assign(p,origin,{mp:999});const e=w.mobs.forest[0];Object.assign(e,{x:p.x+70,y:p.y,hp:99999});w.mobs.forest=[e];w.command(p,{type:'skill',slot:0,target:e.id},100);const event=w.events.find(e=>e.kind==='skill');assert(event);assert.equal(event.x,origin.x);assert.equal(event.y,origin.y);assert(Math.hypot(p.x-origin.x,p.y-origin.y)>70);assert.deepEqual(event.aim,{x:p.x,y:p.y});
+ const w=new World(),s=fresh('sword-cockro');s.level=50;s.skillBooks=['b4'];s.equipped=['b4'];const p=w.join('p',s);w.enter(p,'forest');const origin=toWorld([.5,.5],MAPS.forest);Object.assign(p,origin,{mp:999});const e=w.mobs.forest[0];Object.assign(e,{x:p.x+70,y:p.y,hp:99999});w.mobs.forest=[e];w.command(p,{type:'skill',slot:0,target:e.id},100);const event=w.events.find(e=>e.kind==='skill');assert(event);assert.equal(event.x,origin.x);assert.equal(event.y,origin.y);assert(Math.hypot(p.x-origin.x,p.y-origin.y)>70);assert.deepEqual(event.aim,{x:p.x,y:p.y});
  s.hero='sword-dragonfly';Object.assign(e,{x:p.x+200,y:p.y});w.command(p,{type:'attack',target:e.id},102);const arrow=w.events.find(e=>e.kind==='attack');assert.deepEqual(arrow.aim,{x:e.x,y:e.y});
 });

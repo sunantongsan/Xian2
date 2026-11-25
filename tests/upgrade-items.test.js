@@ -13,7 +13,7 @@ test('migration removes old materials and sockets but preserves paid enhancement
 
 test('server rejects old materials and gems even from legacy clients',()=>{const w=new World(),p=w.join('items',fresh('sword-cockro'));const before=JSON.stringify(p.s);for(const op of ['buyUpgradeItem','socketGem','rerollSpecial']){w.command(p,{type:'op',op,id:'crystal',slot:'weapon'});assert.equal(p.opResult.ok,false);}assert.equal(JSON.stringify(p.s),before);});
 
-test('fourth and fifth slots migrate without changing original three; fifth skill casts online',()=>{let s=fresh('sword-cockro');s.level=60;s.equipped=['s1','s2','s3'];s=validSave(s);assert.deepEqual(s.equipped,['s1','s2','s3','s4','s5']);assert.deepEqual(validSave(s).equipped,s.equipped);const w=new World(),p=w.join('five',s);w.enter(p,'forest');const mp=p.mp;w.command(p,{type:'skill',slot:4},100);assert(p.mp<mp);assert(p.cd.s5>100);const after=p.mp;w.command(p,{type:'skill',slot:5},110);assert.equal(p.mp,after);});
+test('five skill slots keep their order; fifth skill casts online',()=>{let s=fresh('sword-cockro');s.level=60;s.skillBooks=['b1','b2','b3','b4','b5'];s.equipped=['b1','b2','b3',null,'b5'];s=validSave(s);assert.deepEqual(s.equipped,['b1','b2','b3',null,'b5']);assert.deepEqual(validSave(s).equipped,s.equipped);const w=new World(),p=w.join('five',s);w.enter(p,'forest');const mp=p.mp;w.command(p,{type:'skill',slot:4},100);assert(p.mp<mp);assert(p.cd.b5>100);const after=p.mp;w.command(p,{type:'skill',slot:5},110);assert.equal(p.mp,after);});
 
 
 import {upgradeChance,upgradeMaterial} from '../web/gear.js';

@@ -1,11 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fresh,validSave} from '../web/core.js';
-import {SCHOOL,compileSkill,craft,skillTargets,knownSkills} from '../web/skills.js';
-test('school skills: ten each, unique IDs and valid compilations',()=>{assert.equal(new Set(SCHOOL.map(r=>r.id)).size,20);for(const sect of ['sword','demon'])assert.equal(SCHOOL.filter(r=>r.sect===sect).length,10);for(const r of SCHOOL){const k=compileSkill(r);assert(k.mp>0&&k.cd>0&&k.power>0);}});
-test('level gates, exact costs and failed transactions',()=>{const s=fresh('sword-male');s.stones=100000;s.materials={ink:3,fire:9,core:4};const r={name:'ทดลอง',form:'wave',element:'fire',mods:['drain']};const before=JSON.stringify(s);assert(craft(s,r));assert.equal(JSON.stringify(s),before);s.level=60;assert.equal(craft(s,r),null);assert.equal(s.stones,97000);assert.equal(s.materials.fire,6);assert(craft(s,{...r,mods:['drain','wide']}));s.level=120;assert.equal(craft(s,{...r,mods:['drain','wide']}),null);assert.equal(s.materials.core,2);assert.equal(s.stones,85000);assert(craft(s,{...r,mods:['wide','wide']}));});
-test('save keeps recipes, materials and empty skill slots; rejects foreign equipped skills',()=>{const s=fresh('demon-female');s.level=120;s.stones=100000;s.materials={ink:1,ice:3,core:2};assert.equal(craft(s,{name:'บัวน้ำแข็ง',form:'field',element:'ice',mods:['wide','drain']}),null);s.equipped=[null,'custom0','d1'];const v=validSave(JSON.parse(JSON.stringify(s)));assert.deepEqual(v.equipped,[...s.equipped,'d2','d3']);assert.equal(v.recipes[0].name,'บัวน้ำแข็ง');assert.equal(knownSkills(v).length,11);s.equipped=['s1'];assert.deepEqual(validSave(s).equipped,['d1',null,null,'d2','d3']);});
-test('geometry distinguishes single target, piercing line and area',()=>{const es=[{x:100,y:0,hp:10},{x:200,y:0,hp:10},{x:0,y:100,hp:10},{x:-100,y:0,hp:10}];const o={x:0,y:0},aim={x:300,y:0};const k=form=>compileSkill({form,element:'fire',mods:[]});assert.equal(skillTargets(k('bolt'),o,aim,es).length,1);assert.equal(skillTargets({...k('bolt'),mods:['pierce']},o,aim,es).length,2);assert.equal(skillTargets(k('wave'),o,aim,es).length,2);assert.equal(skillTargets(k('circle'),o,aim,es).length,3);assert.equal(skillTargets(k('field'),o,{x:200,y:0},es).length,2);});
-
-
-
+import {SKILL_BOOKS,compileSkill,knownSkills,buySkillBook,skillTargets} from '../web/skills.js';
+import {World} from '../server/world.js';
+import {drawSwordSkill,skillBookIcon,SWORD_FX} from '../web/sword-skills-fx.js';
+test('eight new sword books, unique ids and names, price rises with power',()=>{
+ assert.equal(SKILL_BOOKS.length,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.id)).size,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.th)).size,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.fx)).size,8);
+ for(let i=1;i<8;i++){assert(SKILL_BOOKS[i].price>SKILL_BOOKS[i-1].price);}
+ for(const b of SKILL_BOOKS){const k=compileSkill(b);assert(k&&k.power>0&&k.mp>0&&k.cd>0,b.id);assert.equal(b.level,1);assert(SWORD_FX[b.fx]);assert(skillBookIcon(b.id).startsWith('data:image/svg+xml'));}
+ assert(compileSkill(SKILL_BOOKS[7]).power>compileSkill(SKILL_BOOKS[0]).power);
+});
+test('a new hero knows no skills; old level skills are gone after loading',()=>{
+ const s=fresh('sword-cockro');assert.deepEqual(knownSkills(s),[]);assert.deepEqual(s.equipped,[null,null,null,null,null]);
+ const old=fresh('sword-cockro');old.level=80;old.equipped=['s1','s2','s3',null,null];old.skillRanks={s1:5};old.recipes=[{id:'custom0',form:'wave',element:'fire',mods:[],level:60}];
+ const v=validSave(JSON.parse(JSON.stringify(old)));assert.deepEqual(knownSkills(v),[]);assert.deepEqual(v.equipped,[null,null,null,null,null]);assert.deepEqual(v.skillRanks,{});assert.equal(v.skillPoints,79*10);
+});
+test('buying a book costs G, teaches the skill at any level, auto-equips and cannot repeat',()=>{
+ const s=fresh('sword-cockro');s.gold=SKILL_BOOKS[7].price;
+ assert(buySkillBook(s,'b8'));assert.equal(s.gold,0);assert.deepEqual(s.skillBooks,['b8']);assert.equal(s.equipped[0],'b8');assert.equal(s.level,1);
+ assert.equal(buySkillBook(s,'b8'),false);assert.equal(buySkillBook(s,'b1'),false);assert.equal(buySkillBook(s,'nope'),false);
+ s.gold=5000;s.stones=999999;assert.equal(buySkillBook(s,'b2'),false);assert.equal(s.gold,5000);assert.equal(s.stones,999999);
+ const v=validSave(JSON.parse(JSON.stringify(s)));assert.deepEqual(v.skillBooks,['b8']);assert.equal(v.equipped[0],'b8');
+});
+test('server sells books only at home and the bought skill casts with its sword effect id',()=>{
+ const w=new World(),s=fresh('sword-cockro');s.gold=10000;const p=w.join('reader',s);
+ w.enter(p,'forest');w.command(p,{type:'op',op:'buySkillBook',id:'b1'},1);assert.deepEqual(s.skillBooks,[]);
+ w.enter(p,'town');w.command(p,{type:'op',op:'buySkillBook',id:'b1'},2);assert.deepEqual(s.skillBooks,['b1']);assert.equal(s.gold,8000);
+ w.enter(p,'forest');p.mp=999;const e=w.mobs.forest[0];Object.assign(e,{x:p.x+60,y:p.y,hp:99999});w.mobs.forest=[e];
+ w.command(p,{type:'skill',slot:0,target:e.id},10);const ev=w.events.find(x=>x.kind==='skill');assert.equal(ev.skillId,'b1');assert(e.hp<99999);
+});
+test('every sword effect draws finite geometry across its whole life',()=>{
+ const calls=[];const ctx=new Proxy({},{get:(o,k)=>k in o?o[k]:(k==='createLinearGradient'||k==='createRadialGradient')?()=>({addColorStop(){}}):(...a)=>{for(const v of a)if(typeof v==='number'&&!Number.isFinite(v))throw Error('non-finite '+String(k));calls.push(k);},set:(o,k,v)=>{o[k]=v;return true;}});
+ for(const b of SKILL_BOOKS)for(const quality of ['auto','low'])for(let f=0;f<=10;f++){const max=b.life,e={skillId:b.id,form:b.form,x:100,y:200,aim:{x:400,y:260},radius:b.combat.radius||40,max,life:max*(1-f/10)+1e-6};assert(drawSwordSkill(ctx,e,(x,y)=>({x:x-y,y:(x+y)/2}),1,quality));}
+ assert(calls.length>1000);
+});
+test('skill targets follow form footprints',()=>{
+ const enemies=[{x:100,y:0,hp:1},{x:0,y:300,hp:1}];
+ const wave=compileSkill(SKILL_BOOKS[0]);assert.equal(skillTargets(wave,{x:0,y:0},{x:300,y:0},enemies).length,1);
+ const circle=compileSkill(SKILL_BOOKS[1]);assert.equal(skillTargets(circle,{x:0,y:0},{x:0,y:0},enemies).length,1);
+});

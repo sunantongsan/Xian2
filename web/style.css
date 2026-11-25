@@ -702,3 +702,6 @@ html.chat-typing #controls{visibility:hidden}
 #modal .character-armory .sheet-side>*{flex-shrink:0}
 #modal .character-armory .derived span{background:none;border:0;box-shadow:none}
 #modal .character-armory #dollCanvas{object-fit:fill}
+.skill-card .skill-book-icon{float:left;margin:0 8px 4px 0;border-radius:6px}
+.market-card.skill-book{background:linear-gradient(135deg,#2a2a46aa,#0c1925cc)}
+.market-card.skill-book .market-icon img{width:40px;height:40px}

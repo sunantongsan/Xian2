@@ -42,7 +42,7 @@ export function drinkPotion(s,type,current,max){
 }
 export const MERCHANT_UV=[.235,.48];
 export const MERCHANT_RANGE=150;
-export const MERCHANT_OPS=new Set(['buyProtectionTicket','buyPet','buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear','exchangeGold']);
+export const MERCHANT_OPS=new Set(['buySkillBook','buyProtectionTicket','buyPet','buyExpTicket','buy','buyMP','buyUpgradeItem','buyShopGear','exchangeGold']);
 
 export function buyMerchantStack(s,op,id,quantity=1,items){
  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>100)return false;

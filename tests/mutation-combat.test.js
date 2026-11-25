@@ -15,15 +15,14 @@ test('mutation boundaries boost base combat, retain equipment and never stack on
  }
  assert.equal(mutationGrowth('sword-male',210),1);
 });
-test('job skills evolve at 20/60 without replacing IDs, ranks or custom recipes',()=>{
+test('skill books grow stronger at 20/60 without replacing IDs or ranks',()=>{
  for(const hero of Object.keys(JOB_PATHS)){
-  const s=fresh(hero);s.level=19;const old=knownSkills(s).slice(0,6);s.skillRanks[old[0].id]=7;s.equipped=[old[0].id,old[1].id,old[2].id,null,null];
+  const s=fresh(hero);s.level=19;s.skillBooks=['b1','b2','b3','b4','b5','b6'];const old=knownSkills(s).slice(0,6);s.skillRanks[old[0].id]=7;s.equipped=[old[0].id,old[1].id,old[2].id,null,null];
   for(const level of [20,60]){
-   s.level=level;s.mutationStage=level===20?1:2;const list=knownSkills(s).slice(0,6);assert.deepEqual(list.map(r=>r.id),old.map(r=>r.id));assert.notEqual(list[0].name,old[0].name);
+   s.level=level;s.mutationStage=level===20?1:2;const list=knownSkills(s).slice(0,6);assert.deepEqual(list.map(r=>r.id),old.map(r=>r.id));
    list.forEach((r,i)=>{const a=compileSkill(old[i]),b=compileSkill(r);assert(b.power>a.power);assert.equal(b.mp,a.mp);assert.equal(b.cd,a.cd);});
    const restored=validSave(s);assert.equal(restored.skillRanks[old[0].id],7);assert.deepEqual(restored.equipped,s.equipped);
   }
-  s.recipes=[{id:'custom0',name:'Custom',level:60,form:'wave',element:'fire',mods:[]}];assert.deepEqual(knownSkills(s).at(-1),s.recipes[0]);
  }
 });
 test('monster curve remains smooth at mutations and retains XP and rank scaling',()=>{

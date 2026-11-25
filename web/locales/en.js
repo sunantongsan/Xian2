@@ -1427,7 +1427,12 @@ Object.assign(EN,{
  'ฟื้น HP ตัวเอง 22% × พลังเวท • ไม่ทำความเสียหาย':'Restore your HP by 22% × spell power • No damage',
  'เกราะแมลงหาได้จากมอนสเตอร์และบอส':'Find insect armor from monsters and bosses',
  'หยุดรับ EXP • รอเปลี่ยนอาชีพ':'EXP paused • Promotion available',
- 'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached'
+ 'ขั้นสูงของอาชีพแล้ว':'Final profession mastery reached',
+ 'หนังสือสกิล':'Skill books',
+ 'หนังสือสกิลดาบ':'Sword skill books',
+ 'เรียนแล้ว':'Learned',
+ 'ซื้อด้วยเหรียญ G • อ่านแล้วเรียนวิชาทันทีและติดตั้งในช่องว่าง • ไม่ต้องรอเลเวล':'Paid with G • reading a book teaches the skill at once and fills an empty slot • no level needed',
+ 'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วยเหรียญ G':'No skills yet • buy skill books with G in the shop'
 });
 
 
