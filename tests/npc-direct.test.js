@@ -6,7 +6,7 @@ test('tapping an NPC opens its own window directly, buffs sit inside it',()=>{
  const npc=src.slice(src.indexOf('function npcMenu(kind)'),src.indexOf('let buffReturn'));
  assert.ok(npc.includes('n.open()'));assert.ok(!npc.includes('npc-choice'));
  assert.ok(src.includes('function shopHTML(){return withBuffChip('));
- assert.ok(src.includes('<h2>โรงตีอุปกรณ์</h2>${buffChip()}'));
+ assert.ok(src.includes('<h2>โรงตีอุปกรณ์</h2><div class="forge-top">${buffChip()}'));
  assert.ok(src.includes("closest?.('[data-open-buffs]')"));
  assert.ok(!src.includes('inventoryVault'));
 });

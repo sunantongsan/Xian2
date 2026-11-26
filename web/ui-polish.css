@@ -78,3 +78,22 @@ body:not(.welcome-screen) #modal :is(.market-card button,.boost-watch,[data-forg
 /* Field banner: a fixed top-right spot so the ad never jumps, and a styled strip above the game instead of a black gap */
 #hud .sector-card{position:fixed!important;z-index:2;top:calc(env(safe-area-inset-top,0px) + 6px)!important;right:calc(env(safe-area-inset-right,0px) + 8px)!important;margin:0!important}
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--field-ad-inset,0px);background:linear-gradient(180deg,#121b2b,#0b1220);box-shadow:inset 0 -1px 0 rgba(243,200,108,.18);pointer-events:none;z-index:0}
+/* Forge: every step's fee in plain sight */
+#modal .forge-costs{margin-top:10px;text-align:left}
+#modal .forge-costs small{display:block;margin-bottom:6px}
+#modal .forge-cost-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+#modal .forge-workbench{overflow-y:auto!important;justify-content:flex-start!important}
+#modal .forge-costs{width:100%;padding:0 6px}
+#modal .forge-cost-grid span{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 1px;border-radius:8px;background:rgba(255,255,255,.05);font-size:9px;color:#d9dfe8;line-height:1.2}
+#modal .forge-cost-grid b{font-size:11.5px;color:#f6e2b4}
+#modal .forge-cost-grid i{font-style:normal;font-size:9.5px;color:#9eabbd}
+#modal .forge-cost-grid span.done{opacity:.4}
+#modal .forge-cost-grid span.next{background:rgba(243,200,108,.2);box-shadow:inset 0 0 0 1.5px rgba(243,200,108,.7)}
+.forge-confirm .forge-confirm-cost{font-size:15px}.forge-confirm .forge-confirm-cost b{color:#f3c86c}
+#modal .forge-top{display:flex;align-items:center;gap:10px;flex:none}
+#modal .forge-top .npc-buff-chip{margin:0!important;flex:none}
+#modal .forge-top .forge-costs{margin:0;flex:1;min-width:0;padding:0}
+#modal .forge-top .forge-costs small{margin-bottom:3px;font-size:10px}
+body:not(.welcome-screen) #modal:has(.forge-panel){overflow-y:auto!important}
+#modal .forge-panel .forge-layout{flex:1 1 auto;min-height:150px}
+#modal #forgeShop .forge-shop-price{display:block;font-size:10px;color:inherit!important;opacity:.75}
