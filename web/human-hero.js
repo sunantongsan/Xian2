@@ -1,5 +1,4 @@
 import {drawInsectSprite} from './insect-sprites.js';
-import {drawFashion} from './fashion-render.js';
 import {HUMAN_JOINTS} from './human-joints.js';
 export const HUMAN_HEROES=['sword-cockro','demon-scorpion','sword-dragonfly','sword-cricket','sword-mage','sword-acolyte'];
 export const HUMAN_DIRECTIONS=['S','SW','W','NW','N','NE','E','SE'];
@@ -27,12 +26,5 @@ export function drawHumanHero(ctx,images,hero,actor,x,y,size){
  const j=HUMAN_JOINTS[f.clip]?.[HUMAN_DIRECTIONS[f.direction]]?.[f.frame];if(!j)return false;
  const drawSize=size*j.ortho/1.6,unit=drawSize/128;
  ctx.drawImage(im,f.frame*128,f.direction*128,128,128,x-j.root[0]*unit,y-j.root[1]*unit,drawSize,drawSize);
- // Existing wardrobe items follow projected rig joints instead of old insect coordinates.
- if(actor.appearance?.hat||actor.appearance?.outfit){
-  const convert=p=>[(p[0]-j.root[0])*unit*314/size,(p[1]-j.root[1])*unit*314/size];
-  const h=convert(j.head),l=convert(j.lShldrBend),r=convert(j.rShldrBend),hip=convert(j.hip),cx=(l[0]+r[0])/2,cy=(l[1]+r[1])/2,angle=-Math.atan2(hip[0]-cx,hip[1]-cy);
-  const anchors={head:[h[0]+Math.sin(angle)*12,h[1]-Math.cos(angle)*12],body:[cx,cy,Math.max(36,Math.hypot(l[0]-r[0],l[1]-r[1])*1.2),Math.max(24,Math.hypot(hip[0]-cx,hip[1]-cy)+10)],angle,back:f.direction>=3&&f.direction<=5};
-  drawFashion(ctx,images,hero,{...actor,face:1,humanAnchors:anchors},x,y,size,f.frame);
- }
  return {...f,sheet:'human-rig'};
 }

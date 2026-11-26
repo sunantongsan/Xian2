@@ -8,8 +8,6 @@ if output.exists(): shutil.rmtree(output)
 (output/'patches').mkdir(parents=True)
 files={p.relative_to(root/'web').as_posix():p for p in (root/'web').rglob('*') if p.is_file() and p.suffix in {'.html','.js','.css','.json','.webp','.ttf','.txt','.ogg','.mp3','.wav','.svg'} and p.name not in {'patch.json','test.html','test-game.js'}}
 assert not list((root/'web').rglob('*.png')), 'PNG is unsupported by the installed Android patch extractor; use WebP'
-for asset in ['cowboy.webp','wuxia.webp','knight-open.webp']:
- assert 'fashion/'+asset in files, 'Missing wardrobe atlas: '+asset
 manifest={'game':'cockro','engine':88,'version':version,'files':{n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in sorted(files.items())}}
 archive=output/'patches/bundle.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
