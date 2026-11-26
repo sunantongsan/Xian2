@@ -710,3 +710,28 @@ html.chat-typing #controls{visibility:hidden}
 .admin-row{display:grid;grid-template-columns:1fr 1fr;gap:4px;align-items:center}
 .admin-row b,.admin-row p,.admin-row input{grid-column:1/-1;margin:0}
 .admin-row input{padding:6px;border-radius:5px}
+.npc-choice{text-align:center}
+.npc-choice h2{margin:0 0 2px}
+.npc-choice>p{margin:0 0 12px;color:#bcd0da}
+.npc-option{position:relative;display:flex;align-items:center;gap:14px;width:100%;margin:0 0 12px;padding:14px 16px;border-radius:16px;text-align:left;cursor:pointer}
+.npc-option .npc-icon{font-size:34px;line-height:1;flex:none;filter:drop-shadow(0 2px 4px #0008)}
+.npc-option b{display:block;font-size:18px}
+.npc-option small{display:block;font-size:12px;opacity:.85;margin-top:2px}
+.npc-job{background:linear-gradient(135deg,#27465a,#13232f);border:1px solid #6fa3c0;color:#eaf6ff}
+.npc-buff{overflow:hidden;color:#fff8de;border:2px solid #ffd36b;background:linear-gradient(120deg,#7a3b00,#c27a12,#ffcf4a,#c27a12,#7a3b00);background-size:300% 100%;animation:npcShine 3s linear infinite,npcPulse 1.6s ease-in-out infinite;text-shadow:0 1px 3px #4a2300}
+.npc-buff .npc-icon{animation:npcZap 1s ease-in-out infinite}
+.npc-badge{position:absolute;top:-1px;right:10px;padding:2px 9px;border-radius:0 0 9px 9px;background:#e8344a;color:#fff;font:700 11px sans-serif;font-style:normal}
+.npc-badge:not(.new){background:#1f9b57}
+@keyframes npcShine{to{background-position:-300% 0}}
+@keyframes npcPulse{50%{box-shadow:0 0 22px #ffcf4acc}}
+@keyframes npcZap{50%{transform:scale(1.18) rotate(-8deg)}}
+#boostTimers{position:fixed;z-index:30;left:calc(env(safe-area-inset-left) + 8px);top:46vh;display:flex;flex-direction:column;gap:5px;pointer-events:none}
+.boost-timer{display:flex;align-items:center;gap:6px;min-width:150px;padding:4px 10px 4px 6px;border-radius:999px;background:#08141ecc;border:1px solid #ffd36b88;color:#fff3cf;font-size:12px;box-shadow:0 2px 6px #0007}
+.boost-timer span{font-size:15px}
+.boost-timer b{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.boost-timer time{font:700 13px ui-monospace,monospace;color:#ffd36b}
+.boost-timer.ending{border-color:#ff6b6b;animation:timerBlink 1s steps(2) infinite}
+.boost-timer.ending time{color:#ff8f8f}
+@keyframes timerBlink{50%{opacity:.55}}
+.npc-buff small{color:#fff6dc!important;opacity:1;text-shadow:0 1px 2px #5a2a00}
+.npc-job small{color:#bcd6e6!important}
