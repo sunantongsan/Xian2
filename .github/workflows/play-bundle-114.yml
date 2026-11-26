@@ -1,0 +1,47 @@
+name: Build COCKRO MAN Play bundle 114
+on:
+  push:
+    branches: [release/cockro-store-114-20261126]
+    paths: ['.github/workflows/play-bundle-114.yml']
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            app
+            web
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+      - name: Build and verify the production app
+        run: |
+          set -eu
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          gradle --no-daemon :app:validateProductionAds :app:bundleRelease
+          python3 - <<'PY'
+          import json, zipfile
+          with zipfile.ZipFile('app/build/outputs/bundle/release/app-release.aab') as z:
+              assert z.testzip() is None
+              assert json.loads(z.read('base/assets/release.json'))['version']=='7.6.3'
+              assert any(b'fieldBanner' in z.read(i) for i in z.namelist() if i.endswith('.dex'))
+              assert b'fieldBanner' in z.read('base/assets/field-banner.js')
+          PY
+          sha256sum app/build/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cockro-man-114-production-bundle
+          path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 1
+          compression-level: 0
