@@ -2,7 +2,6 @@
 import {t} from './i18n.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.abs(Math.round(n)).toLocaleString();
-const baht=n=>(Math.abs(n)/1e6).toLocaleString(undefined,{maximumFractionDigits:3});
 const queue=[];let open=false;
 // A separate <dialog> on top of everything; it never pauses or replaces the game window.
 export function rewardPopup({icon='🎁',title,detail='',sound}={}){queue.push({icon,title,detail,sound});next();}
@@ -18,7 +17,7 @@ document.addEventListener('visibilitychange',next);
 export function confirmPurchase({name,price,currency='COCKRO',balance,sound}={}){
  return new Promise(resolve=>{
   const d=document.createElement('dialog');d.className='purchase-confirm';const after=Number.isFinite(balance)?balance-price:null;
-  d.innerHTML=`<h3>${t('ยืนยันการซื้อ')}</h3><p class="purchase-name">${esc(name)}</p><p class="purchase-price"><img src="items/cockro-coin.webp" alt=""> ${fmt(price)} ${esc(currency)}<small>≈ ${baht(price)} ${t('บาท')}</small></p>${after!==null?`<p class="purchase-after">${t('คงเหลือหลังซื้อ')} ${fmt(Math.max(0,after))}</p>`:''}<div><button data-ok>${t('ยืนยันซื้อ')}</button><button data-no>${t('ยกเลิก')}</button></div>`;
+  d.innerHTML=`<h3>${t('ยืนยันการซื้อ')}</h3><p class="purchase-name">${esc(name)}</p><p class="purchase-price"><img src="items/cockro-coin.webp" alt=""> ${fmt(price)} ${esc(currency)}</p>${after!==null?`<p class="purchase-after">${t('คงเหลือหลังซื้อ')} ${fmt(Math.max(0,after))}</p>`:''}<div><button data-ok>${t('ยืนยันซื้อ')}</button><button data-no>${t('ยกเลิก')}</button></div>`;
   document.body?.append?.(d);try{d.showModal();}catch{d.setAttribute?.('open','');}sound?.();
   const end=v=>{try{d.close();}catch{}d.remove?.();resolve(v);};
   d.querySelector('[data-ok]').onclick=()=>end(true);d.querySelector('[data-no]').onclick=()=>end(false);d.addEventListener?.('cancel',e=>{e.preventDefault();end(false);});
