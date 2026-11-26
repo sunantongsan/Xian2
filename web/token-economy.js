@@ -32,7 +32,7 @@ export const thaiDay=ms=>Math.floor((ms+7*3600000)/86400000);
 export function freshEconomy(now=Date.now()){
  const part=k=>Math.round(SUPPLY*ALLOCATION[k]);
  return {version:1,farm:part('farm'),presale:part('presale'),presaleSold:0,reserve:part('reserve'),lp:part('lp'),
-  burned:0,recycled:0,recycledPending:0,minted:0,day:thaiDay(now),launchDay:thaiDay(now),pool:0,poolStart:0,dauYesterday:0,accounts:0,players:{}};
+  burned:0,recycled:0,recycledPending:0,minted:0,priceVersion:2,day:thaiDay(now),launchDay:thaiDay(now),pool:0,poolStart:0,dauYesterday:0,accounts:0,players:{}};
 }
 const whole=v=>Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER?Math.round(v):0;
 export function normalizeEconomyState(v,now=Date.now()){
@@ -44,6 +44,9 @@ export function normalizeEconomyState(v,now=Date.now()){
   e.launchDay=thaiDay(now);if(e.day===e.launchDay){const extra=Math.max(0,Math.floor(e.farm*PIONEER_RELEASE)-e.poolStart);e.farm-=extra;e.pool+=extra;e.poolStart+=extra;}
  }
  e.players={};for(const [id,n] of Object.entries(v.players||{}))if(/^[\w-]{1,80}$/.test(id))e.players[id]=whole(n);
+ // 7.8.7: today's per-player totals were counted at the old 0.000001 THB scale, which hid all
+ // drops after the reprice; start everyone's daily budget fresh once.
+ if(v.priceVersion!==2)e.players={};
  return rollDay(e,now);
 }
 // Start of a Thai day: unspent pool goes back to the farm, a new slice is released.

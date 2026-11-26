@@ -65,3 +65,8 @@ test('server world pays kills from the shared pool and books every purchase',()=
  w.enter(p,'town');s.stones=SKILL_BOOKS[0].price;w.command(p,{type:'op',op:'buySkillBook',id:'b1'},t0/1000+1);assert(p.opResult.ok);assert.equal(e.burned,SKILL_BOOKS[0].price/2);
  const snap=w.snapshot(p,t0/1000+2);assert.equal(snap.economy.earned,drop.count);assert.equal(snap.economy.burned,e.burned);
 });
+test('daily totals counted before the reprice are cleared once so drops resume',()=>{
+ const old={...normalizeEconomyState(null,t0),players:{a:5_000_000}};delete old.priceVersion;
+ const e=normalizeEconomyState(old,t0);assert.deepEqual(e.players,{});assert.equal(e.priceVersion,2);assert(killReward(e,'a',{playerLevel:10,level:10},t0)>0);
+ e.players.a=123;const again=normalizeEconomyState(JSON.parse(JSON.stringify(e)),t0);assert.equal(again.players.a,123);
+});
