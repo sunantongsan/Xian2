@@ -30,16 +30,14 @@ test('500 + 10 per monster level, x3 elite, x10 boss: about 20 THB in 5 hours',(
  let coins=0;for(let k=0;k<2000;k++){const lv=1+Math.floor(k/60);coins+=baseKillCoins({level:lv,playerLevel:lv,boss:k%40===39});}assert(coins>thb(16)&&coins<thb(26),String(coins));
 });
 
-test('kills pay full until the daily budget, 10% to 150%, then nothing; bosses weigh 10',()=>{
+test('kills always pay full with no per-player cap; only the shared pool limits drops; bosses weigh 10',()=>{
  const e=normalizeEconomyState(null,t0),budget=dailyBudget(e);
  const normal=killReward(e,'a',{playerLevel:10,level:10},t0),boss=killReward(e,'b',{playerLevel:10,level:10,boss:true},t0);
  assert(normal>0);assert.equal(boss,normal*10);
- let paid=normal;while(paid<budget)paid+=killReward(e,'a',{playerLevel:10,level:10},t0);
- const slow=killReward(e,'a',{playerLevel:10,level:10},t0);assert(slow>0&&slow<=Math.ceil(normal*.1));
- while(e.players.a<budget*1.5){const n=killReward(e,'a',{playerLevel:10,level:10},t0);if(!n)break;}
- assert.equal(killReward(e,'a',{playerLevel:10,level:10},t0),0);
+ e.players.a=budget*5;assert.equal(killReward(e,'a',{playerLevel:10,level:10},t0),normal);
  assert(killReward(e,'c',{playerLevel:40,level:10},t0)<normal);
-});
+ e.pool=0;assert.equal(killReward(e,'a',{playerLevel:10,level:10},t0),0);
+})
 test('every purchase burns half and returns half to tomorrow; expired drops come back',()=>{
  const e=normalizeEconomyState(null,t0);assert.deepEqual(spend(e,1001),{burned:500,recycled:501});assert.equal(e.burned,500);
  refund(e,99);const pool=e.recycledPending;rollDay(e,t0+DAY);assert(e.poolStart>=pool);assert.equal(e.recycledPending,0);

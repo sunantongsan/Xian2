@@ -60,13 +60,12 @@ export const activePlayers=e=>Math.max(MIN_DAU,e.dauYesterday,Object.keys(e.play
 export const dailyBudget=e=>Math.min(PLAYER_DAILY_CAP,Math.floor(e.poolStart/activePlayers(e)));
 export const releaseRate=(e,day=e.day)=>day-(e.launchDay??day)<PIONEER_DAYS?PIONEER_RELEASE:DAILY_RELEASE;
 export function earnedToday(e,id){return e.players[id]||0;}
-// COCKRO for one kill, reserved from today's pool. Full rate until the budget is used,
-// 10% up to 150% of it, then nothing; farther-below-level monsters pay less.
+// COCKRO for one kill, reserved from today's pool. 7.8.8: no per-player daily cap; only the
+// shared daily pool limits drops. Farther-below-level monsters still pay less.
 export function killReward(e,id,{playerLevel=1,level=1,boss=false,elite=false}={},now=Date.now()){
  rollDay(e,now);
- const budget=dailyBudget(e),earned=earnedToday(e,id);
- const rate=earned<budget?1:earned<budget*1.5?.1:0;
- const amount=Math.min(e.pool,Math.floor(baseKillCoins({playerLevel,level,boss,elite,accounts:e.accounts||0})*rate));
+ const earned=earnedToday(e,id);
+ const amount=Math.min(e.pool,baseKillCoins({playerLevel,level,boss,elite,accounts:e.accounts||0}));
  if(amount<=0)return 0;
  e.pool-=amount;e.players[id]=earned+amount;e.minted+=amount;return amount;
 }
