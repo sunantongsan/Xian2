@@ -28,9 +28,9 @@ test('101st distinct account halves check-in for an already connected player and
  const next=await signup('Second');assert.equal(next.checkinDivisor,2);
  const p=app.world.getActor(hundred.id),state=app.world.snapshot(p);
  assert.equal(state.economy.checkinDivisor,2);
- assert.match(checkinPanelHTML(p.s,Date.now(),false,state.economy.checkinDivisor),/30,000 COCKRO/);
+ assert.match(checkinPanelHTML(p.s,Date.now(),false,state.economy.checkinDivisor),/300 COCKRO/);
  const before=p.s.stones;app.world.command(p,{type:'op',op:'dailyCheckin',checkinDivisor:2});
- assert.equal(p.s.stones-before,10000);
+ assert.equal(p.s.stones-before,100);
  for(const ws of sockets)ws.close();await app.close();app=await start();
  const health=await fetch('http://127.0.0.1:'+app.server.address().port+'/online/health');
  assert.equal((await health.json()).checkinDivisor,2);

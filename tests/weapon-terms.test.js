@@ -7,7 +7,7 @@ import {take} from '../server/commerce.js';
 import {World} from '../server/world.js';
 
 test('rented and permanent weapons charge the advertised prices and preserve their terms on reload',()=>{
- const s=fresh('sword-cockro');s.stones=1100000;s.gold=100;
+ const s=fresh('sword-cockro');s.stones=110000;s.gold=100;
  const start=Date.now();
  assert(!buyShopGear(s,'ring',0,'day'));
  assert(!buyShopGear(s,'weapon',0,'unknown'));
@@ -15,7 +15,7 @@ test('rented and permanent weapons charge the advertised prices and preserve the
  assert(buyShopGear(s,'weapon',0,'day'));
  const [permanent,rental]=validSave(s).bag;
  assert.equal(s.stones,0);
- assert.equal(gearShopPrice('weapon',0,'day'),100000);
+ assert.equal(gearShopPrice('weapon',0,'day'),10000);
  assert.equal(permanent.expiresAt,undefined);
  assert(rental.expiresAt>=start+86400000&&rental.expiresAt<=Date.now()+86400000);
  assert.equal(sellPrice(rental),0);

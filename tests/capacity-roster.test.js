@@ -39,7 +39,7 @@ test('ordinary progress batches disk writes but purchases persist and reply imme
  a.ws.on('message',raw=>{const d=JSON.parse(raw);if(d.type==='state')seen=d;if(d.type==='opResult')ack=d;});
  a.ws.send(JSON.stringify({type:'op',op:'buy'}));await until(()=>ack);
  assert.equal(seen.self.save.potions,before+1);
- const disk=JSON.parse(readFileSync(path,'utf8'));assert.equal(disk.potions,before+1);assert.equal(disk.stones,98000);assert.equal(disk.gold,0);
+ const disk=JSON.parse(readFileSync(path,'utf8'));assert.equal(disk.potions,before+1);assert.equal(disk.stones,99800);assert.equal(disk.gold,0);
 });
 
 

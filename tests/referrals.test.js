@@ -109,7 +109,7 @@ test('registration over the game socket credits the inviter wallet and charges s
 
 test('promotion amounts and repeat enrolment with a new game ID',t=>{
  const {r}=setup(t);
- assert.deepEqual([INVITER,INVITED,WELCOME],[20000000,5000000,1000000]);
+ assert.deepEqual([INVITER,INVITED,WELCOME],[200000,50000,10000]);
  r.createCode('alice','uid-a','ALICE');
  r.register('bob','uid-b','ALICE',full,'stable-b');
  r.remove('bob');

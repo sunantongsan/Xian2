@@ -43,7 +43,7 @@ export function itemStats(it){
 }
 export function itemPower(it){const st=itemStats(it);return Math.round((st.atk||0)*4+(st.def||0)*6+(st.hp||0)*.5+(st.crit||0)*900+(st.speed||0)*3+(st.mp||0)*.4+(st.spell||0)*500);}
 // Items cannot change hands; selling back to the merchant returns only a token amount.
-export function sellPrice(it){if(it.expiresAt)return 0;return thb(.01*(1+it.tier));}
+export function sellPrice(it){if(it.expiresAt)return 0;return 100*(1+it.tier);}
 export function gearTotals(s){
  const t={atk:0,def:0,hp:0,crit:0,speed:0,mp:0,spell:0};
  const items=Object.values(s.equip||{}).filter(it=>it&&!expired(it)&&SLOT_ORDER.includes(it.slot)&&!isRetiredArmor(it));

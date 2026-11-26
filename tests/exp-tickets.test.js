@@ -19,7 +19,7 @@ test('malformed inventory/boost rejected and old balances retained',()=>{
 });
 test('server enforces shop map, balance, owned tickets and dead-player restrictions',()=>{
  const w=new World(),p=w.join('ticket-player',fresh('sword-cockro')),now=Date.now()/1000;p.s.stones=3000000;p.map='forest';w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},now);assert.equal(p.opResult.ok,false);
- p.map='town';w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},now+1);assert.equal(p.opResult.ok,true);assert.equal(p.s.stones,1000000);
+ p.map='town';w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},now+1);assert.equal(p.opResult.ok,true);assert.equal(p.s.stones,2800000);
  p.hp=0;w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+2);assert.equal(p.opResult.ok,false);assert.equal(p.s.expTickets.x2,1);
  p.hp=1;w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+3);assert.equal(p.opResult.ok,true);w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+4);assert.equal(p.opResult.ok,false);
 });

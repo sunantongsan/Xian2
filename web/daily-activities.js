@@ -1,7 +1,6 @@
-import {thb} from './token-economy.js';
 import {t,ui} from './i18n.js';
 export const dayKey=(now=Date.now())=>new Date(now+7*3600000).toISOString().slice(0,10);
-export const DAILY_TASKS=[{id:'hunt',get name(){return t('ล่ามอนสเตอร์ 100 ตัว');},target:100,g:thb(.05),alloy:3},{id:'boss',get name(){return t('ปราบบอส 3 ตัว');},target:3,g:thb(.1),alloy:5},{id:'upgrade',get name(){return t('ตีบวกสำเร็จ 1 ครั้ง');},target:1,g:thb(.03),alloy:2}];
+export const DAILY_TASKS=[{id:'hunt',get name(){return t('ล่ามอนสเตอร์ 100 ตัว');},target:100,g:500,alloy:3},{id:'boss',get name(){return t('ปราบบอส 3 ตัว');},target:3,g:1000,alloy:5},{id:'upgrade',get name(){return t('ตีบวกสำเร็จ 1 ครั้ง');},target:1,g:300,alloy:2}];
 export function dailyState(s,now=Date.now()){const day=dayKey(now);if(s.dailyActivities?.day!==day)s.dailyActivities={day,hunt:0,boss:0,upgrade:0,claimed:[]};return s.dailyActivities;}
 export function countActivity(s,id,now=Date.now()){const d=dailyState(s,now);if(DAILY_TASKS.some(t=>t.id===id))d[id]=Math.min(100000,(d[id]||0)+1);}
 export function claimActivity(s,id,now=Date.now()){const t=DAILY_TASKS.find(t=>t.id===id),d=dailyState(s,now);if(!t||d.claimed.includes(id)||(d[id]||0)<t.target)return false;s.stones+=t.g;s.upgradeItems.alloy=Math.min(99999,(s.upgradeItems.alloy||0)+t.alloy);d.claimed.push(id);return true;}

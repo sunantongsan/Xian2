@@ -1,8 +1,9 @@
 // Reward pop-ups, purchase confirmation and coin in/out effects (7.6.1).
+import {toTHB} from './token-economy.js';
 import {t} from './i18n.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.abs(Math.round(n)).toLocaleString();
-const baht=n=>(Math.abs(n)/1e6).toLocaleString(undefined,{maximumFractionDigits:3});
+const baht=n=>toTHB(Math.abs(n)).toLocaleString(undefined,{maximumFractionDigits:3});
 const queue=[];let open=false;
 // A separate <dialog> on top of everything; it never pauses or replaces the game window.
 export function rewardPopup({icon='🎁',title,detail='',sound}={}){queue.push({icon,title,detail,sound});next();}
