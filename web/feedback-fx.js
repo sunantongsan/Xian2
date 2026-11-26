@@ -23,6 +23,16 @@ export function confirmPurchase({name,price,currency='COCKRO',balance,sound}={})
   d.querySelector('[data-ok]').onclick=()=>end(true);d.querySelector('[data-no]').onclick=()=>end(false);d.addEventListener?.('cancel',e=>{e.preventDefault();end(false);});
  });
 }
+// Shown instead of the purchase confirmation when the wallet is short.
+export function notEnoughCoins({price,balance,sound}={}){
+ return new Promise(resolve=>{
+  const d=document.createElement('dialog');d.className='purchase-confirm purchase-short';
+  d.innerHTML=`<h3>${t('COCKRO ไม่พอ')}</h3><p class="purchase-price"><img src="items/cockro-coin.webp" alt=""> ${fmt(price)} COCKRO</p><p class="purchase-after">${t('ยอดของคุณ')} ${fmt(Math.max(0,balance||0))} • ${t('ขาดอีก')} ${fmt(Math.max(0,price-(balance||0)))}</p><div><button data-ok>${t('รับทราบ')}</button></div>`;
+  document.body?.append?.(d);try{d.showModal();}catch{d.setAttribute?.('open','');}sound?.();
+  const end=()=>{try{d.close();}catch{}d.remove?.();resolve(false);};
+  d.querySelector('[data-ok]').onclick=end;d.addEventListener?.('cancel',e=>{e.preventDefault();end();});
+ });
+}
 // Floating "+/- coins" near the wallet with a few coins flying in or out.
 let lastSound=0;
 export function coinFlyout(delta,{anchor,sound}={}){

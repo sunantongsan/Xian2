@@ -1444,8 +1444,17 @@ Object.assign(EN,{
  'กระดาษขาว COCKRO':'COCKRO white paper',
  'ผู้ดูแลระบบ':'Administrator',
  'จ่ายค่าตี 3% ทุกครั้ง':'Every attempt pays a 3% fee',
- 'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วย COCKRO':'No skills yet • buy skill books with COCKRO in the shop'
+ 'ยังไม่มีวิชา • ไปที่ร้านค้า แท็บ “หนังสือสกิล” เพื่อซื้อด้วย COCKRO':'No skills yet • buy skill books with COCKRO in the shop',
+"🎉 ยินดีด้วย! ตีบวกสำเร็จ":"🎉 Congratulations! Enhancement succeeded",
+"💔 เสียใจด้วย ตีบวกไม่สำเร็จ":"💔 Sorry, the enhancement failed",
+"อุปกรณ์ของคุณแข็งแกร่งขึ้นเป็น":"Your gear is now",
+"อย่าเพิ่งท้อ ครั้งหน้าต้องสำเร็จแน่!":"Don't give up — next time you'll make it!",
+"โอกาสสำเร็จแต่ละขั้น • ตีบวกฟรี ใบป้องกันเพิ่มโอกาส 5%":"Success rate per step • enhancing is free, a protection ticket adds 5%",
+"โอกาสสำเร็จ":"Success rate",
+"หากตีบวกพลาด อาวุธชิ้นนี้จะแตก":"Failure destroys this weapon",
+"ใบป้องกันใช้ 1 ใบทุกครั้ง อาวุธคงอยู่หากล้มเหลว":"Uses 1 protection ticket per attempt; the weapon survives a failure",
+"หากล้มเหลว อุปกรณ์ไม่แตกและระดับไม่ลด":"On failure the item is not destroyed and keeps its level",
+"COCKRO ไม่พอ":"Not enough COCKRO",
+"ขาดอีก":"Short by",
+"ยอดของคุณ":"Your balance",
 });
-
-
-

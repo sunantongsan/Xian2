@@ -1,10 +1,7 @@
 import {thb} from './token-economy.js';
 // COCKRO test economy: balances remain server-owned, no blockchain transfers.
-// Enhancement value per level in COCKRO (+1 = 500,000, +2 = 800,000, +60% per level);
-// every attempt pays a 3% fee of that value, win or lose.
-export const ENHANCE_VALUE=Array.from({length:12},(_,i)=>Math.round(500_000*1.6**i));
-export const ENHANCE_FEE=.03;
-export const COSTS=ENHANCE_VALUE.map(v=>Math.round(v*ENHANCE_FEE));
+// 7.8.5: enhancing is free; players pay only for protection tickets (100,000 COCKRO each).
+export const COSTS=Object.freeze(Array(12).fill(0));
 export const SUCCESS=[100,90,85,80,75,65,55,45,35,25,20,15];
 export const PRACTICE=[5,10,20,40,80,120,200,300,450,600,800,1000];
 export const COIN_CAP=1e12;

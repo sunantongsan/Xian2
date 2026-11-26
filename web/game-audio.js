@@ -28,5 +28,21 @@ export class GameAudio {
  failure(){this.effect('upgrade-failure',{volume:.4,rate:1,gap:1200});}
  levelUp(){this.effect('level-up',{volume:.58,rate:1,gap:1200});}
  success(){this.effect('ui-confirm',{volume:.32,gap:400});}
+ // Short synthesized tunes for enhancement results: a bright fanfare or a sad "wah wah".
+ jingle(kind){if(!this.enabled||this.suspended||document.hidden)return;try{
+  const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;const ctx=this.ctx??=new C();ctx.resume?.();
+  const out=ctx.createGain();out.gain.value=.22;out.connect(ctx.destination);const t0=ctx.currentTime+.03;
+  const note=(f,at,len,type='triangle',vib=0)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+at);
+   if(vib){const l=ctx.createOscillator(),lg=ctx.createGain();l.frequency.value=6;lg.gain.value=vib;l.connect(lg);lg.connect(o.frequency);l.start(t0+at);l.stop(t0+at+len);}
+   g.gain.setValueAtTime(0,t0+at);g.gain.linearRampToValueAtTime(1,t0+at+.02);g.gain.setValueAtTime(1,t0+at+len*.6);g.gain.exponentialRampToValueAtTime(.001,t0+at+len);
+   o.connect(g);g.connect(out);o.start(t0+at);o.stop(t0+at+len+.05);};
+  if(kind==='win'){ // C major fanfare: arpeggio then a held chord with sparkle
+   [[523.25,0],[659.25,.11],[783.99,.22],[1046.5,.33]].forEach(([f,at])=>note(f,at,.18,'square'));
+   [523.25,659.25,783.99,1046.5].forEach(f=>note(f,.48,1.1,'triangle'));[1567.98,2093].forEach((f,i)=>note(f,.6+i*.12,.25,'sine'));
+  }else{ // descending trombone "wah wah wah wahhh"
+   const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;out.disconnect();out.connect(lp);lp.connect(ctx.destination);
+   [[392,0,.32],[369.99,.36,.32],[349.23,.72,.32],[329.63,1.08,1.1]].forEach(([f,at,len],i)=>note(f,at,len,'sawtooth',i===3?7:0));
+  }
+ }catch{}}
 }
 

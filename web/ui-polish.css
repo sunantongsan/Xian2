@@ -97,3 +97,8 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--field-a
 body:not(.welcome-screen) #modal:has(.forge-panel){overflow-y:auto!important}
 #modal .forge-panel .forge-layout{flex:1 1 auto;min-height:150px}
 #modal #forgeShop .forge-shop-price{display:block;font-size:10px;color:inherit!important;opacity:.75}
+#modal .forge-result-cheer{font-size:14px;margin:4px 0 10px;color:#ffe3a1}
+#modal .forge-result-failure .forge-result-cheer{color:#b9c6d8}
+#modal .forge-result-success h2{animation:forgeWinPulse 1.2s ease-out 2}
+@keyframes forgeWinPulse{0%{transform:scale(.9);opacity:.4}40%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+.purchase-short h3{color:#ff9f8f}

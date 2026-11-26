@@ -14,7 +14,7 @@ const DAY=86400000,t0=Date.parse('2026-12-01T05:00:00Z');
 test('allocation adds up to the 100B supply and prices are set in baht',()=>{
  const e=freshEconomy(t0);assert.equal(e.farm+e.presale+e.reserve+e.lp,SUPPLY);
  assert.equal(thb(1),100_000);assert.equal(SKILL_BOOKS[0].price,thb(2));assert.equal(SKILL_BOOKS.at(-1).price,thb(30));
- assert.equal(PROTECTION_PRICE,thb(1));assert.equal(PET_PRICE,20_000);assert.equal(gearShopPrice('weapon',0,'divine'),thb(100));assert(gearShopPrice('weapon',20,'divine')>=thb(600));assert.equal(COSTS[0],15_000);assert.equal(COSTS[1],24_000);
+ assert.equal(PROTECTION_PRICE,thb(1));assert.equal(PET_PRICE,20_000);assert.equal(gearShopPrice('weapon',0,'divine'),thb(100));assert(gearShopPrice('weapon',20,'divine')>=thb(600));assert.ok(COSTS.every(c=>c===0));
 });
 test('pioneer days release 1% of the farm, later 0.1%; budget is min(8 THB, pool / players)',()=>{
  const e=normalizeEconomyState(null,t0);assert.equal(e.poolStart,Math.floor(SUPPLY*.85*.01));assert.equal(releaseRate(e),.01);

@@ -39,7 +39,7 @@ test('shop snapshots update values without recreating modal or losing scroll',()
  const saved=document.querySelectorAll;document.querySelectorAll=selector=>selector==='[data-stock]'?[stock]:selector==='[data-op]'?[buy]:[];
  const content=element('modalContent');content.innerHTML='unchanged shop';element('modal').scrollTop=250;
  try{probe.refreshOnlineShop();assert.equal(stock.textContent,'มี 2 ชิ้น');assert.equal(buy.disabled,false);
- v.s.stones=0;v.s.upgradeItems.ruby=4;probe.refreshOnlineShop();assert.equal(stock.textContent,'มี 4 ชิ้น');assert.equal(buy.disabled,true);
+ v.s.stones=0;v.s.upgradeItems.ruby=4;probe.refreshOnlineShop();assert.equal(stock.textContent,'มี 4 ชิ้น');assert.equal(buy.disabled,false); // short wallets get a message on tap
  assert.equal(content.innerHTML,'unchanged shop');assert.equal(element('modal').scrollTop,250);
  }finally{document.querySelectorAll=saved;}
 });
