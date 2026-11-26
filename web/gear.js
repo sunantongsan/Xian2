@@ -46,7 +46,10 @@ export function itemPower(it){const st=itemStats(it);return Math.round((st.atk||
 export function sellPrice(it){if(it.expiresAt)return 0;return thb(.01*(1+it.tier));}
 export function gearTotals(s){
  const t={atk:0,def:0,hp:0,crit:0,speed:0,mp:0,spell:0};
- for(const it of Object.values(s.equip||{}))if(it&&!expired(it)&&SLOT_ORDER.includes(it.slot)&&!isRetiredArmor(it))for(const [k,v]of Object.entries(itemStats(it)))t[k]+=v;
+ const items=Object.values(s.equip||{}).filter(it=>it&&!expired(it)&&SLOT_ORDER.includes(it.slot)&&!isRetiredArmor(it));
+ // Ad trial: a divine weapon of the hero's own tier replaces a weaker equipped weapon.
+ if(s.divineTrialUntil>Date.now()){const trial={slot:'weapon',tier:tierForLevel(s.level),rarity:DIVINE_RARITY,plus:0},own=items.find(it=>it.slot==='weapon');if(!own||itemStats(trial).atk>itemStats(own).atk){const i=items.indexOf(own);if(i>=0)items.splice(i,1);items.push(trial);}}
+ for(const it of items)for(const [k,v]of Object.entries(itemStats(it)))t[k]+=v;
  return t;
 }
 let uid=0;

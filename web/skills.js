@@ -38,7 +38,8 @@ export function normalizeSkills(s,v={}){
 }
 export function knownSkills(s){
  const stage=mutationStage(s)||0,bonus=stage===2?1.2:stage===1?1.1:1;
- return SKILL_BOOKS.filter(b=>ownsSkillBook(s,b.id)).map(b=>({...b,name:b.name,combat:{...b.combat,power:b.combat.power*bonus}}));
+ const trial=s.skillTrialUntil>Date.now();
+ return SKILL_BOOKS.filter(b=>trial||ownsSkillBook(s,b.id)).map(b=>({...b,name:b.name,combat:{...b.combat,power:b.combat.power*bonus}}));
 }
 export function skillTargets(skill,origin,aim,enemies){const dx=aim.x-origin.x,dy=aim.y-origin.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;const live=enemies.filter(e=>e.hp>0);if(skill.form==='circle')return live.filter(e=>Math.hypot(e.x-origin.x,e.y-origin.y)<=skill.radius);if(skill.form==='field')return live.filter(e=>Math.hypot(e.x-aim.x,e.y-aim.y)<=skill.radius);const line=live.filter(e=>{const x=e.x-origin.x,y=e.y-origin.y,along=x*ux+y*uy;return along>=0&&along<=skill.range&&Math.abs(x*uy-y*ux)<=(skill.radius||40)}).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y));return skill.form==='bolt'?line.slice(0,skill.mods.includes('pierce')?3:1):line;}
 

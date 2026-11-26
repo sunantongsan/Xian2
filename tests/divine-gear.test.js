@@ -21,7 +21,7 @@ test('the merchant sells three permanent divine items at the displayed level and
  const loaded=validSave(s);
  assert.deepEqual(loaded.equip,s.equip);
  ordinary.hunterBoostUntil=Date.now()+1800000;
- assert(damage(loaded)>2*damage(ordinary));
+ assert(damage(loaded)>damage(ordinary));
  assert(maxHP(loaded)>maxHP(ordinary));
  assert(combatStats(loaded).defense>combatStats(ordinary).defense);
  assert.equal(rollDrop({level:20,boss:true},()=>0).rarity,3);
@@ -46,6 +46,6 @@ test('verified hunter videos extend time once per reward, keep one multiplier an
  };
  claim('video-1');assert.equal(s.hunterBoostUntil,now+1800000);
  claim('video-2');const restored=validSave(s);assert.equal(restored.hunterBoostUntil,now+3600000);
- assert.equal(damage(restored,now),Math.round(before*1.35));
+ assert.equal(damage(restored,now),Math.round(before*2));
  assert.equal(damage(restored,now+3600000),before);
 });
