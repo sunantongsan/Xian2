@@ -1,3 +1,4 @@
+import {emailAddress,verifiedIdentity} from './verified-login.js';
 import {accountLanguage, identityLanguage, languagePreference} from './language.js';
 import {createReferrals} from './referrals.js';
 // Supabase owns identity; this server owns game saves and account-to-character links.
@@ -27,7 +28,7 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  async function manageUnlocked(token,d){const account=resolve(token);if(d.action==='logout'){write('session',token,{account,revoked:true});return {loggedOut:true};}if(d.action==='status')return {hasPassword:!!meta(account).password,google:!!meta(account).uid,canReset:!!meta(account).uid&&Date.now()-(read('session',token)?.reauthAt||0)<300000,canDelete:!!meta(account).uid&&Date.now()-(read('session',token)?.deleteReauthAt||0)<300000,accountId:account.slice(0,12),email:meta(account).email||null,displayName:meta(account).displayName||null,...accountLanguage(meta(account),d.deviceLocale)};
  if(d.action==='language'){return setLanguage(account,d.language);}
  if(d.action==='referralStatus')return referrals.status(account,meta(account).uid);
- if(d.action==='createReferralCode'){if(!characterRoster(directory,account).length)throw Error('character_required');return referrals.createCode(account,meta(account).uid,d.code);}
+ if(d.action==='createReferralCode'){if(!meta(account).googleSubject)throw Error('email_unverified');if(!characterRoster(directory,account).length)throw Error('character_required');return referrals.createCode(account,meta(account).uid,d.code);}
  if(d.action==='redeemReferral')throw Error('referral_registration_only');
  if(d.action==='deleteAccount'){if(meta(account).uid){const proof=read('session',token)?.deleteReauthAt;if(!proof||Date.now()-proof>300000)throw Error('reauth_required');}else await verifyPassword(account,d.password);if(!['ลบบัญชี COCKRO','DELETE COCKRO'].includes(d.confirmText))throw Error('confirmation_mismatch');return deletion.request(account,meta(account).uid);}
  if(d.action==='rename'){const state=readCharacter(directory,account,d.character);if(!state)throw Error('character_missing');if(state.name)throw Error('already_named');const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;const p=join(directory,characterId(account,d.character)+'.json');writeFileSync(p+'.tmp',JSON.stringify(state),{mode:0o600});renameSync(p+'.tmp',p);return {characters:characterRoster(directory,account)};}
@@ -35,16 +36,52 @@ export function createAccounts(directory,{fetcher=fetch,adminKey=process.env.SUP
  if(d.action==='delete')throw Error('single_character_required');
 
  throw Error('invalid_request');}
- async function authStart(token,purpose){let account=null;if(token){try{account=resolve(token);}catch(e){if(e.message!=='login_required')throw e;}}if(['resetPassword','deleteAccount','verifyAccount'].includes(purpose)&&(!account||!meta(account).uid))throw Error('google_required');for(const [id,f]of flows)if(f.until<Date.now())flows.delete(id);if(flows.size>=100)throw Error('auth_busy');const flow=randomBytes(32).toString('hex'),verifier=randomBytes(48).toString('base64url');flows.set(flow,{account,purpose,verifier,until:Date.now()+300000});const u=new URL(AUTH_URL+'/auth/v1/authorize');u.search=new URLSearchParams({provider:'google',redirect_to:AUTH_REDIRECT,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'s256',prompt:'select_account'}).toString();return {flow,url:u.href};}
+ async function authStart(token,purpose,emailInput){
+  let account=null;
+  if(token){try{account=resolve(token);}catch(e){if(e.message!=='login_required')throw e;}}
+  if(['resetPassword','deleteAccount','verifyAccount'].includes(purpose)&&(!account||!meta(account).uid))throw Error('google_required');
+  const now=Date.now();
+  for(const [id,f] of flows)if(f.until<now)flows.delete(id);
+  if(flows.size>=100)throw Error('auth_busy');
+  const emailLogin=purpose==='emailLogin';
+  const email=emailLogin?emailAddress(emailInput):null;
+  if(emailLogin&&!email)throw Error('invalid_email');
+  if(emailLogin&&[...flows.values()].some(f=>f.email===email&&now-f.started<60000))throw Error('email_rate_limit');
+  const flow=randomBytes(32).toString('hex'),verifier=randomBytes(48).toString('base64url');
+  const challenge=createHash('sha256').update(verifier).digest('base64url');
+  const until=now+(emailLogin?900000:300000);
+  flows.set(flow,{account,purpose,email,verifier,started:now,until});
+  if(emailLogin){
+   try{
+    const endpoint=new URL(AUTH_URL+'/auth/v1/otp');
+    endpoint.searchParams.set('redirect_to',AUTH_REDIRECT);
+    const response=await fetcher(endpoint.href,{method:'POST',headers:{apikey:AUTH_KEY,'Content-Type':'application/json'},
+     body:JSON.stringify({email,create_user:false,code_challenge:challenge,code_challenge_method:'s256'}),
+     signal:AbortSignal.timeout(15000)});
+    if(!response.ok){
+     const err=await response.json().catch(()=>({}));
+     if(response.status===429)throw Error('email_rate_limit');
+     if(err.error_code!=='otp_disabled'&&err.code!=='otp_disabled'&&err.error_code!=='user_not_found'&&err.code!=='user_not_found')throw Error('email_unavailable');
+    }
+    return {flow,until};
+   }catch(error){if(error.message!=='email_rate_limit')flows.delete(flow);throw error;}
+  }
+  const url=new URL(AUTH_URL+'/auth/v1/authorize');
+  url.search=new URLSearchParams({provider:'google',redirect_to:AUTH_REDIRECT,code_challenge:challenge,code_challenge_method:'s256',prompt:'select_account'}).toString();
+  return {flow,url:url.href};
+ }
  async function authFinish(flow,code){const f=flows.get(flow);if(!f||f.until<Date.now()||typeof code!=='string'||code.length>2048)throw Error('auth_expired');flows.delete(flow);
  const response=await fetcher(AUTH_URL+'/auth/v1/token?grant_type=pkce',{method:'POST',headers:{apikey:AUTH_KEY,'Content-Type':'application/json'},body:JSON.stringify({auth_code:code,code_verifier:f.verifier}),signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('auth_failed');const session=await response.json();
  const check=await fetcher(AUTH_URL+'/auth/v1/user',{headers:{apikey:AUTH_KEY,Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(15000)});if(!check.ok)throw Error('auth_failed');const user=await check.json();if(typeof user.id!=='string'||!user.identities?.some(i=>i.provider==='google'))throw Error('auth_failed');
+ const identity=await verifiedIdentity(user,session,f.email,fetcher);
  if(deletion.identityPending(user.id))throw Error('deletion_pending');
  if(['resetPassword','deleteAccount','verifyAccount'].includes(f.purpose)&&meta(f.account).uid!==user.id)throw Error('wrong_google_account');
  if(f.account&&deletion.isDeleted(f.account))throw Error('account_deleted');
  const existing=read('google',user.id);let account=existing?.account;
+ if(f.email&&(!account||meta(account).uid!==user.id||deletion.isDeleted(account)))throw Error('google_registration_required');
+ if(f.email&&meta(account).googleSubject&&meta(account).googleSubject!==identity.googleSubject)throw Error('auth_failed');
  if(!account){account=f.account||hash(randomBytes(32));const profile=meta(account);if(profile.uid&&profile.uid!==user.id)throw Error('account_linked');write('profile',account,{...profile,uid:user.id});write('google',user.id,{account});}
- write('profile',account,{...meta(account),email:typeof user.email==='string'?user.email.slice(0,320):null,displayName:typeof user.user_metadata?.full_name==='string'?user.user_metadata.full_name.slice(0,120):null,...identityLanguage(user)});
+ write('profile',account,{...meta(account),...identity,displayName:typeof user.user_metadata?.full_name==='string'?user.user_metadata.full_name.slice(0,120):null,...identityLanguage(user)});
  // A known Google account is loaded, never overwritten by an unrelated guest save.
  const token=randomBytes(32).toString('hex');write('session',token,{account,persistent:true,createdAt:Date.now(),reauthAt:f.purpose==='resetPassword'?Date.now():0,deleteReauthAt:f.purpose==='deleteAccount'?Date.now():0});return {token,google:true,accountIdentityReady:f.purpose==='verifyAccount',accountId:account.slice(0,12),...accountLanguage(meta(account)),accountDeletionReady:f.purpose==='deleteAccount',passwordReset:f.purpose==='resetPassword',characters:characterRoster(directory,account),loadedExisting:!!existing&&f.account!==account};}
  async function manage(token,d){const account=resolve(token);if(busy.has(account))throw Error('account_busy');busy.add(account);try{return await manageUnlocked(token,d);}finally{busy.delete(account);}}

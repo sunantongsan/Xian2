@@ -77,7 +77,7 @@ test('registration over the game socket credits the inviter wallet and charges s
  const tokens=['a','b'].map(c=>c.repeat(64)),ids=tokens.map(t=>hash(t));
  const auth=join(dir,'accounts');mkdirSync(auth);
  for(let i=0;i<2;i++){
-  writeFileSync(join(auth,'profile-'+hash(ids[i])+'.json'),JSON.stringify({uid:'google-'+i}));
+  writeFileSync(join(auth,'profile-'+hash(ids[i])+'.json'),JSON.stringify({uid:'google-'+i,googleSubject:'subject-'+i}));
   writeFileSync(join(auth,'session-'+hash(tokens[i])+'.json'),JSON.stringify({account:ids[i],persistent:true}));
  }
  const app=startServer({port:0,directory:dir,test:true});
@@ -105,4 +105,15 @@ test('registration over the game socket credits the inviter wallet and charges s
   assert.equal(economy.referralIssued,WELCOME+INVITED+INVITER);
   assert.equal(economy.minted,economy.referralIssued);
  }finally{const closed=once(online.ws,'close');online.ws.close();await closed;}
+});
+
+test('promotion amounts and repeat enrolment with a new game ID',t=>{
+ const {r}=setup(t);
+ assert.deepEqual([INVITER,INVITED,WELCOME],[20000000,5000000,1000000]);
+ r.createCode('alice','uid-a','ALICE');
+ r.register('bob','uid-b','ALICE',full,'stable-b');
+ r.remove('bob');
+ r.register('replacement','different-uid','ALICE',full,'stable-b');
+ assert.equal(r.status('alice','uid-a').pending,INVITER);
+ assert.equal(r.issued(),INVITER+INVITED);
 });

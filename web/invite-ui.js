@@ -24,6 +24,7 @@ export function clearInvite(){
 }
 export function inviteError(reason){
  const messages={
+  email_unverified:['กรุณาเข้าสู่ระบบ Google อีกครั้งเพื่อยืนยันอีเมล','Sign in with Google again to verify your email.'],
   referral_invalid:['ไม่พบรหัสแนะนำนี้ กรุณาตรวจรหัส','Unknown invite code. Check the code.'],
   referral_self:['ใช้รหัสของตัวเองไม่ได้','You cannot use your own code.'],
   referral_taken:['มีผู้ใช้รหัสนี้แล้ว','This code is already taken.'],

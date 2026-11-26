@@ -34,9 +34,10 @@ export function createReferrals(directory){
  // Called at the first character registration, after identity and name validation.
  // Persist both entitlements together. The cumulative total lets the economy recover
  // a crash between saving this ledger and reserving the matching supply.
- function register(account,uid,input,available){
+ function register(account,uid,input,available,googleSubject){
   const ledger=read(),identity=hash(uid||'guest:'+account),welcomeId=hash('welcome:'+account);
-  if(ledger.claims[identity]||ledger.awards[welcomeId])return null;
+  const googleKey=googleSubject?hash('google:'+googleSubject):null;
+  if(ledger.claims[identity]||(googleKey&&ledger.claims[googleKey])||ledger.awards[welcomeId])return null;
   let inviter=null;
   if(input!==undefined && input!==''){
    if(!uid)throw Error('google_required');
@@ -49,6 +50,7 @@ export function createReferrals(directory){
   if(total>available)throw Error('reward_budget_unavailable');
   const award=(owner,amount)=>({account:owner,amount,reserved:true,delivered:false});
   ledger.claims[identity]=true;
+  if(googleKey)ledger.claims[googleKey]=true;
   ledger.awards[welcomeId]=award(account,inviter?INVITED:WELCOME);
   if(inviter)ledger.awards[hash('referral:'+identity)]=award(inviter.account,INVITER);
   ledger.issued=total;
