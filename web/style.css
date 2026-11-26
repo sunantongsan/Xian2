@@ -206,7 +206,7 @@ body.welcome-screen #modal:has(.hero-grid){max-width:900px;width:86vw}
 #hud .right{min-width:0;padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:flex-start;gap:8px;position:relative}
 #zoneName{display:none!important}
 #hud #money{font-size:10px;padding:5px 8px;border-radius:8px;background:#081725c9;white-space:nowrap;line-height:22px}
-#hud #quickMenuToggle{width:38px;height:36px;min-height:36px;min-width:38px;margin:0;padding:0;border:1px solid #b6965288;border-radius:10px;background:linear-gradient(#213e51,#0b1c2d);font-size:23px;color:#ffe4a0;pointer-events:auto}
+#hud #menuBtn{width:38px;height:36px;min-height:36px;min-width:38px;margin:0;padding:0;border:1px solid #b6965288;border-radius:10px;background:linear-gradient(#213e51,#0b1c2d);font-size:23px;color:#ffe4a0;pointer-events:auto}
 #quickMenuTray{position:absolute;right:0;top:44px;padding:8px;border:1px solid #9abac333;background:#071827eb;border-radius:12px;opacity:0;visibility:hidden;transform:translateX(18px);transition:transform .18s ease,opacity .18s ease,visibility .18s;pointer-events:none}
 #quickMenuTray.open{opacity:1;visibility:visible;transform:translateX(0);pointer-events:auto}
 #hud .quick-menu{display:grid;grid-template-columns:repeat(3,42px);gap:6px}
@@ -431,7 +431,7 @@ body #modal:has(#chatPanel){position:fixed;inset:auto;left:50%;top:calc(var(--vi
 
 
 /* Compact bridge HUD: the tray opens above its trigger, outside combat controls. */
-#hud #quickMenuToggle{position:fixed;right:max(10px,env(safe-area-inset-right));top:145px;width:34px;height:32px;min-width:34px;min-height:32px;font-size:20px}
+#hud #menuBtn{position:fixed;right:max(10px,env(safe-area-inset-right));top:145px;width:34px;height:32px;min-width:34px;min-height:32px;font-size:20px}
 #quickMenuTray{position:fixed;right:max(10px,env(safe-area-inset-right));top:auto;bottom:calc(100dvh - 139px);width:auto;padding:5px;max-height:120px;transform:translateY(9px);overflow:auto;border-radius:10px;background:linear-gradient(145deg,#193649f5,#071523f5)}
 #quickMenuTray.open{transform:translateY(0)}
 #hud .quick-menu{display:grid;grid-template-columns:repeat(4,34px);gap:4px}
@@ -450,7 +450,7 @@ body #modal:has(#chatPanel){position:fixed;inset:auto;left:50%;top:calc(var(--vi
 body.welcome-screen #chatDock{display:none}
 html.chat-typing #chatDock{bottom:calc(100dvh - var(--visible-height,100dvh) - var(--visible-top,0px) + 5px);width:min(520px,calc(100vw - 24px))}
 html.chat-typing #controls{visibility:hidden}
-@media(max-width:600px) and (orientation:portrait){#chatDock{width:calc(100vw - 28px);bottom:190px}#hud .panel.right{max-width:calc(100vw - 130px);flex-wrap:wrap}#hud #quickMenuToggle{top:170px}#quickMenuTray{bottom:calc(100dvh - 164px)}}
+@media(max-width:600px) and (orientation:portrait){#chatDock{width:calc(100vw - 28px);bottom:190px}#hud .panel.right{max-width:calc(100vw - 130px);flex-wrap:wrap}#hud #menuBtn{top:170px}#quickMenuTray{bottom:calc(100dvh - 164px)}}
 .vault-lock{max-width:340px;margin:16px auto;padding:20px;border:1px solid #64899b;border-radius:16px;background:linear-gradient(145deg,#203f52,#0a1b2c);text-align:center}
 .vault-lock input{box-sizing:border-box;width:100%;letter-spacing:5px;text-align:center;margin:8px 0}
 
@@ -487,7 +487,7 @@ html.chat-typing #controls{visibility:hidden}
   grid-column:1;grid-row:2;display:flex;flex-flow:column;align-items:flex-start;
   gap:3px;width:40px;max-width:none;align-self:start;position:relative;
 }
-#hud #quickMenuToggle {order:-1;position:static;width:40px;height:32px;margin:0}
+#hud #menuBtn {order:-1;position:static;width:40px;height:32px;margin:0}
 #hud .shortcut-stack {display:grid;gap:3px;max-height:max(0px,calc(var(--rail-room) - 35px));overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;scrollbar-width:thin}
 #hud .right .direct-shortcut {width:40px;min-width:40px;height:38px;min-height:38px;margin:0}
 #hud .right .direct-shortcut svg {height:20px}
@@ -508,7 +508,7 @@ html.chat-typing #controls{visibility:hidden}
 #hud .buff-readout {grid-area:2/1;line-height:1.2;color:#ffe6a9;font-size:10px;text-shadow:0 1px 3px #000;pointer-events:none}
 #hud .buff-readout small:not([hidden]) {display:block}
 #hud .panel.right {grid-area:1/2;align-self:start;width:34px;z-index:3}
-#hud #quickMenuToggle {width:34px;min-width:34px;height:32px;border-color:#dfb95d;color:#f3cb74}
+#hud #menuBtn {width:34px;min-width:34px;height:32px;border-color:#dfb95d;color:#f3cb74}
 #hud #quickMenuTray {left:0;top:37px;bottom:auto;max-height:none;max-width:calc(100vw - var(--card-width) - 36px);overflow-x:auto;overscroll-behavior:contain;padding:4px}
 #hud #quickMenuTray nav {display:flex;gap:3px;flex-flow:row nowrap;width:max-content}
 #hud #quickMenuTray nav button {position:static;flex:0 0 38px;width:38px;height:38px;min-height:38px;margin:0;color:#ffe0a2;border:1px solid #887347;border-radius:8px;background:linear-gradient(#26485c,#0a1724)}

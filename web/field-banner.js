@@ -2,7 +2,7 @@
 export function installFieldBanner(resizeGame){
  if(!document.querySelector)return;
  const slot=document.querySelector('.sector-card'),hud=document.getElementById('hud');
- const modal=document.getElementById('modal'),menu=document.getElementById('quickMenuToggle');
+ const modal=document.getElementById('modal'),menu=document.getElementById('menuBtn');
  if(!slot||!hud||!menu)return;
  let frame=0,last='',reserved=0;
  function bounds(){

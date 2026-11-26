@@ -3,7 +3,7 @@ import {randomBytes} from 'node:crypto';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
 // Explicit internal-test grants only. These are not Google-verified SSV rewards.
 export function issueTestTicket(s,item,now=Date.now()){
- if(item==='dailyCheckin')throw Error('verified_ad_required');
+ if(item==='dailyCheckin'||item==='dailyCheckinTriple')throw Error('verified_ad_required');
  const restore=rewardTarget(s,item,now);
  s.adTickets=(s.adTickets||[]).filter(t=>t.created>now-86400000);
  const recent=s.adTickets.filter(t=>t.kind==='demo');

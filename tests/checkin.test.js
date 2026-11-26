@@ -11,3 +11,22 @@ import {issueTestTicket} from '../server/test-rewards.js';
 test('daily reward waits for verified callback, survives retry and cannot grant twice',()=>{const s=fresh('sword-cockro'),t=issueRewardTicket(s,'dailyCheckin',day);assert.equal(s.stones,0);const params={custom_data:t.nonce,timestamp:String(day+20000),transaction_id:'daily-ad-1'};assert(applyVerifiedReward(s,params,day+20001));assert.equal(s.stones,20000);assert.equal(applyVerifiedReward(s,params,day+30000),false);assert.throws(()=>issueRewardTicket(s,'dailyCheckin',day+40000),/already_claimed/);assert.throws(()=>issueTestTicket(fresh('sword-cockro'),'dailyCheckin',day),/verified_ad_required/);});
 test('ad started before Thai midnight credits that day and leaves new day claimable',()=>{const before=Date.parse('2026-10-29T16:59:50Z'),s=fresh('sword-cockro'),t=issueRewardTicket(s,'dailyCheckin',before);applyVerifiedReward(s,{custom_data:t.nonce,timestamp:String(before+20000),transaction_id:'midnight-ad'},before+21000);assert.equal(s.checkin.lastDay,thaiDay(before));assert.equal(checkinStatus(s,before+21000).claimed,false);assert.equal(checkinStatus(s,before+21000).day,2);});
 
+test('verified triple uses the quoted streak on all seven days and pays once across retries',()=>{
+ const s=fresh('sword-cockro');
+ for(let i=0;i<7;i++){
+  const now=day+i*D, before=s.stones, a=issueRewardTicket(s,'dailyCheckinTriple',now),b=issueRewardTicket(s,'dailyCheckinTriple',now);
+  const cb=t=>({custom_data:t.nonce,timestamp:String(now+20000),transaction_id:t.nonce});
+  assert.equal(s.stones,before);assert.throws(()=>issueTestTicket(s,'dailyCheckinTriple',now),/verified_ad_required/);
+  applyVerifiedReward(s,cb(a),now+20001);assert.equal(applyVerifiedReward(s,cb(a),now+20002),false);
+  applyVerifiedReward(s,cb(b),now+20003);assert.equal(claimCheckin(s,now+20004),0);
+  assert.equal(s.stones-before,3*DAILY_GOLD[i]);
+ }
+ assert.equal(s.stones,1290000);
+});
+test('overlapping free claim and late verified triple top up the quoted day across restart and midnight',()=>{
+ const before=Date.parse('2026-10-29T16:59:50Z'),s=fresh('sword-cockro'),ticket=issueRewardTicket(s,'dailyCheckinTriple',before);
+ assert.equal(claimCheckin(s,before+100),DAILY_GOLD[0]);assert.equal(claimCheckin(s,before+20000),DAILY_GOLD[1]);
+ const restored=validSave(s);
+ applyVerifiedReward(restored,{custom_data:ticket.nonce,timestamp:String(before+25000),transaction_id:'delayed-triple'},before+26000);
+ assert.equal(restored.stones,3*DAILY_GOLD[0]+DAILY_GOLD[1]);assert.equal(restored.checkin.lastDay,thaiDay(before)+1);
+});

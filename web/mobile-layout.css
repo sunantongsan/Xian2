@@ -61,3 +61,19 @@ body:not(.welcome-screen) #modal:has(.forge-panel) {width:min(760px,calc(100vw -
 
 /* Keep the playfield entirely below the loaded native banner. */
 #game {position:absolute;left:0;top:var(--field-ad-inset,0px);width:100%;height:calc(100% - var(--field-ad-inset,0px));}
+
+/* Shortcut art shares the illustrated equipment palette of the game HUD. */
+#hud #quickMenuTray nav {gap:3px}
+#hud #quickMenuTray nav button {
+ flex:0 0 auto;width:auto;min-width:39px;height:46px;min-height:46px;padding:2px 4px;gap:1px;
+ align-items:center;justify-content:center;
+ background:linear-gradient(165deg,#23435b,#0c1b2a 76%);border-color:#76664c;
+}
+#hud #quickMenuTray .hud-art,#hud #quickMenuTray .hud-bag,#hud #quickMenuTray img,#hud #quickMenuTray svg {
+ display:block;flex:none;width:26px;height:26px;margin:0;object-fit:contain;pointer-events:none;
+}
+#hud .hud-art {background:url(ui/hero-menu-atlas.webp) var(--col) var(--row)/400% 400% no-repeat;border-radius:4px}
+#hud .hud-bag {background:url(items/inventory-atlas.webp) 100% 100%/300% 300% no-repeat}
+#hud #quickMenuTray small {font-size:9px;line-height:13px;margin:0;color:#f2dfb0;white-space:nowrap}
+#hud #quickMenuTray :is(#exitShortcut,#logoutShortcut) svg {width:21px;height:26px;color:#f7ae83}
+#hud #quickMenuTray button:focus-visible {outline:2px solid #96e8ff;outline-offset:-2px}

@@ -1,5 +1,11 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"ออกจากบัญชี":"Sign out",
+"ออกเกม":"Exit game",
+"เลือกรับฟรี หรือดูโฆษณาจนจบเพื่อรับ 3 เท่า":"Claim for free or finish a rewarded ad for triple the coins.",
+"รางวัลพื้นฐานรวม 7 วัน":"7-day base reward total",
+"รับ x3":"Claim x3",
+
 "กดอีกครั้งเพื่อยืนยันการแลก":"Tap again to confirm the exchange",
 "แลกเหรียญ":"Exchange coins",
 "แลก G":"Exchange G",
