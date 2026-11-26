@@ -7,7 +7,8 @@ const hash = value => createHash('sha256').update(value).digest('hex');
 
 export function createReferrals(directory){
  const path=join(directory,'referrals.json');
- const read=()=>existsSync(path)?JSON.parse(readFileSync(path,'utf8')):{members:{},claims:{},awards:{}};
+ // 7.8.0 reprice: awards not yet delivered keep their baht value (amount /10).
+ const read=()=>{const l=existsSync(path)?JSON.parse(readFileSync(path,'utf8')):{members:{},claims:{},awards:{}};for(const a of Object.values(l.awards||{}))if(!a.delivered&&a.priceVersion!==2){a.amount=Math.floor(a.amount/10);a.priceVersion=2;}return l;};
  function write(ledger){
   mkdirSync(directory,{recursive:true});
   writeFileSync(path+'.tmp',JSON.stringify(ledger),{mode:0o600});
@@ -48,7 +49,7 @@ export function createReferrals(directory){
   }
   const total=(ledger.issued||0)+(inviter?INVITER+INVITED:WELCOME);
   if(total>available)throw Error('reward_budget_unavailable');
-  const award=(owner,amount)=>({account:owner,amount,reserved:true,delivered:false});
+  const award=(owner,amount)=>({account:owner,amount,priceVersion:2,reserved:true,delivered:false});
   ledger.claims[identity]=true;
   if(googleKey)ledger.claims[googleKey]=true;
   ledger.awards[welcomeId]=award(account,inviter?INVITED:WELCOME);

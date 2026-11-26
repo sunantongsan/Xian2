@@ -11,7 +11,7 @@ const store=new URL('https://play.google.com/store/apps/details');
 store.searchParams.set('id','com.sunantongsan.networkcokcro');
 if(code){
  document.getElementById('code').textContent=code;
- desc.textContent=navigator.language.startsWith('th')?'สมัครด้วยรหัสนี้เพื่อรับ 5,000,000 Cockro หากรหัสไม่ขึ้น ให้กรอกตอนสร้างตัวละคร':'Use this code when creating your first character for 5,000,000 Cockro. Enter it manually if needed.';
+ desc.textContent=navigator.language.startsWith('th')?'สมัครด้วยรหัสนี้เพื่อรับ 500,000 Cockro หากรหัสไม่ขึ้น ให้กรอกตอนสร้างตัวละคร':'Use this code when creating your first character for 500,000 Cockro. Enter it manually if needed.';
  open.hidden=false;open.href='cockronetwork://invite?ref='+code;
  store.searchParams.set('referrer','ref='+code);
 }else{desc.textContent='ลิงก์ไม่มีรหัสแนะนำ / Missing invite code';open.remove();}

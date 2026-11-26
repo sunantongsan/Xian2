@@ -24,9 +24,9 @@ async function connect(url,hello){const ws=new WebSocket(url,{origin:'http://loc
 test('new accounts receive 500 COCKRO coin once in both modes',async t=>{
  for(const enabled of [true,false]){
  const app=startServer({port:0,directory:mkdtempSync(join(tmpdir(),'aura-test-')),test:true,testRewards:enabled});await once(app.server,'listening');t.after(()=>app.close());const url=`ws://127.0.0.1:${app.server.address().port}/online/world`;
- const a=await connect(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});assert.equal(a.welcome.save.gold,0);assert.equal(a.welcome.save.stones,1000000);
+ const a=await connect(url,{type:'hello',version:PROTOCOL,create:true,name:'Tester',hero:'sword-cockro'});assert.equal(a.welcome.save.gold,0);assert.equal(a.welcome.save.stones,100000);
  const p=app.world.players.get(a.welcome.id);p.s.gold=Math.max(0,p.s.gold-125);p.s.stones=Math.max(0,p.s.stones-5);const close=once(a.ws,'close');a.ws.close();await close;
- const b=await connect(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(b.welcome.save.gold,Math.max(0,(0)-125));assert.equal(b.welcome.save.stones,999995);b.ws.terminate();
+ const b=await connect(url,{type:'hello',version:PROTOCOL,token:a.welcome.token});assert.equal(b.welcome.save.gold,Math.max(0,(0)-125));assert.equal(b.welcome.save.stones,99995);b.ws.terminate();
  }
 });
 

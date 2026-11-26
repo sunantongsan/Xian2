@@ -30,7 +30,7 @@ import {EXP_TICKETS,expMultiplier,expBoostUntil} from './exp-tickets.js';
 import {OnlineClient} from './online.js';
 import {celebrateCoins} from './coin-celebration.js';
 import {createGoldStore} from './gold-store.js';
-import {LOOT_PETS,buyPet,equipPet} from './loot-pets.js';
+import {LOOT_PETS,PET_PRICE,buyPet,equipPet} from './loot-pets.js';
 import {buyMerchantStack,drinkPotion,POTIONS} from './merchant.js';
 import {merchantHTML,bindMarket} from './shop-view.js';
 import {npcLife,drawNpcCall} from './npc-life.js';
@@ -194,7 +194,7 @@ function refreshOnlineShop(){
  set('protectionStock',`${s.protectionTickets||0}/${PROTECTION_CAP}`);
  document.querySelectorAll('[data-book]').forEach(b=>{const owned=s.skillBooks?.includes(b.dataset.book);b.dataset.locked=owned?'true':'false';const text=owned?t('เรียนแล้ว'):Number(b.dataset.price).toLocaleString()+' COCKRO';if(b.textContent!==text)b.textContent=text;});
  document.querySelectorAll('[data-stock]').forEach(el=>{const text=ui`มี ${s.upgradeItems?.[el.dataset.stock]||0} ชิ้น`;if(el.textContent!==text)el.textContent=text;});
- document.querySelectorAll('[data-pet]').forEach(b=>{const id=b.dataset.pet,owned=s.lootPets?.owned?.includes(id),active=s.lootPets?.active===id;b.dataset.op=owned?'equipPet':'buyPet';b.dataset.id=active?'none':id;b.dataset.price=owned?'0':'20000';b.textContent=owned?(active?t('พักสัตว์'):t('เรียกใช้')):'20,000 COCKRO';});
+ document.querySelectorAll('[data-pet]').forEach(b=>{const id=b.dataset.pet,owned=s.lootPets?.owned?.includes(id),active=s.lootPets?.active===id;b.dataset.op=owned?'equipPet':'buyPet';b.dataset.id=active?'none':id;b.dataset.price=owned?'0':String(PET_PRICE);b.textContent=owned?(active?t('พักสัตว์'):t('เรียกใช้')):PET_PRICE.toLocaleString()+' COCKRO';});
  document.querySelectorAll('[data-op]').forEach(b=>{const bulk=['buy','buyMP','buyUpgradeItem'].includes(b.dataset.op),qty=bulk?Number($('marketQuantity')?.value||1):1,price=Number(b.dataset.price)*qty;const funds=s.stones;b.disabled=!!purchasePending||(onlineMode&&!net.ready)||funds<price||b.dataset.locked==='true'||b.dataset.op==='buyProtectionTicket'&&(s.protectionTickets||0)>=PROTECTION_CAP;if(bulk)b.textContent=ui`${price.toLocaleString()} ${b.dataset.currency} / ${qty} ชิ้น`;});
  document.querySelectorAll('[data-reward-item]').forEach(b=>{b.disabled=b.dataset.rewardItem==='protectionTicket'&&(s.protectionTickets||0)>=PROTECTION_CAP;if(b.dataset.rewardItem==='hunterBoost')return;b.textContent=ads.state.test?t('ดูโฆษณาทดสอบ • รับ 1 ชิ้น'):t('ดูโฆษณา • รับ 1 ชิ้น');});
 }
@@ -341,7 +341,7 @@ async function title(){progressionUI.hide();chatUI.reset();gameAudio.setScene('w
 }
 function createCharacterScreen(owned){if(!net.hasAccount)return title();gameAudio.setScene('create');
  if(owned.length)return title();const cards=HERO_CLASSES.filter(h=>h.id==='sword-cockro');let selected=cards[0].id;
- show(ui`<h2>สร้างตัวละคร <small>${owned.length} / 1</small></h2><div class="hero-grid welcome-roster">${cards.map(h=>`<button class="card hero-card" data-roster-hero="${h.id}" aria-pressed="${h.id===selected}"><span class="job-emblem" style="color:${h.color}">${({"sword-cockro":'⚔',"sword-mage":'✦',"sword-dragonfly":'➶',"sword-acolyte":'✧',"demon-scorpion":'◆',"sword-cricket":'⚒'})[h.id]}</span><b>${h.name}</b></button>`).join('')}</div><label class="character-name-label" for="characterName">ชื่อตัวละคร<input id="characterName" maxlength="20" minlength="2" required autocomplete="off" placeholder="ตั้งชื่อ 2–20 ตัวอักษร"></label><label class="character-name-label">${inviteText('รหัสแนะนำ (ถ้ามี)','Invite code (optional)')}<input id="signupInvite" maxlength="16" autocapitalize="characters" autocomplete="off"></label><small>${inviteText('มีรหัสรับ 5,000,000 Cockro • สมัครเองรับ 1,000,000 Cockro','With code: 5,000,000 Cockro · Without code: 1,000,000 Cockro')}</small><div class="roster-actions">${button('choose',t('สร้างตัวละคร'))}${owned.length?button('rosterBack',t('กลับ')):''}${button('accountCenter',t('จัดการบัญชี'))}${googleButton()}</div>`);
+ show(ui`<h2>สร้างตัวละคร <small>${owned.length} / 1</small></h2><div class="hero-grid welcome-roster">${cards.map(h=>`<button class="card hero-card" data-roster-hero="${h.id}" aria-pressed="${h.id===selected}"><span class="job-emblem" style="color:${h.color}">${({"sword-cockro":'⚔',"sword-mage":'✦',"sword-dragonfly":'➶',"sword-acolyte":'✧',"demon-scorpion":'◆',"sword-cricket":'⚒'})[h.id]}</span><b>${h.name}</b></button>`).join('')}</div><label class="character-name-label" for="characterName">ชื่อตัวละคร<input id="characterName" maxlength="20" minlength="2" required autocomplete="off" placeholder="ตั้งชื่อ 2–20 ตัวอักษร"></label><label class="character-name-label">${inviteText('รหัสแนะนำ (ถ้ามี)','Invite code (optional)')}<input id="signupInvite" maxlength="16" autocapitalize="characters" autocomplete="off"></label><small>${inviteText('มีรหัสรับ 500,000 Cockro • สมัครเองรับ 100,000 Cockro','With code: 500,000 Cockro · Without code: 100,000 Cockro')}</small><div class="roster-actions">${button('choose',t('สร้างตัวละคร'))}${owned.length?button('rosterBack',t('กลับ')):''}${button('accountCenter',t('จัดการบัญชี'))}${googleButton()}</div>`);
  document.querySelectorAll('[data-roster-hero]').forEach(b=>b.onclick=()=>{selected=b.dataset.rosterHero;document.querySelectorAll('[data-roster-hero]').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.rosterHero===selected)));});
  prefillInvite($('signupInvite'));bindAccountButtons(owned);const nameInput=$('characterName');const validate=()=>{$('choose').disabled=!characterName(nameInput.value);};nameInput.oninput=validate;validate();
  $('choose').onclick=()=>{const name=characterName(nameInput.value);if(!name){nameInput.reportValidity();return;}++titleRequest;start({hero:selected,name,newCharacter:net.hasAccount,inviteCode:$('signupInvite').value.trim()});};if($('rosterBack'))$('rosterBack').onclick=title;
@@ -693,7 +693,7 @@ function whitePaper(){show(`<section class="text-settings white-paper"><h2>COCKR
 <h3>1. ภาพรวม</h3><p>COCKRO คือเหรียญหลักเพียงสกุลเดียวของเกม COCKRO MAN ใช้ซื้อสกิล อุปกรณ์ ยา ตีบวก และของทุกชิ้นในเกม ได้มาจากการล่ามอนสเตอร์และบอส</p>
 <h3>2. จำนวนเหรียญทั้งหมด</h3><p>100,000,000,000 COCKRO (หนึ่งแสนล้าน) มีจำนวนจำกัด ไม่ผลิตเพิ่ม</p>
 <h3>3. การจัดสรร</h3><p>• แจกในเกมผ่านการล่า 85%<br>• ขายแพ็กช่วงก่อนเปิดเหรียญ 4%<br>• สำรองกันเหรียญขาดตลาด 4%<br>• สภาพคล่อง (LP) 7%</p>
-<h3>4. ราคาเปิด</h3><p>0.000001 บาท ต่อ 1 COCKRO (1 บาท = 1,000,000 COCKRO) แพ็ก 30 บาทได้ 30,000,000 COCKRO ในช่วงก่อนเปิดเหรียญ</p>
+<h3>4. ราคาเปิด</h3><p>0.00001 บาท ต่อ 1 COCKRO (1 บาท = 100,000 COCKRO) แพ็ก 30 บาทได้ 3,000,000 COCKRO ในช่วงก่อนเปิดเหรียญ</p>
 <h3>5. ระบบเผา</h3><p>ทุกการซื้อของในเกม 50% ถูกเผาทิ้งถาวร อีก 50% กลับเข้าถังรางวัลให้ผู้เล่น ยิ่งเล่นมาก เหรียญในระบบยิ่งลดลง</p>
 <h3>6. การแจกอย่างยั่งยืน</h3><p>เหรียญถูกปล่อยจากถังรางวัลทีละน้อยทุกวัน มีเพดานต่อผู้เล่นเพื่อกันบอท และปรับตามจำนวนผู้เล่นเพื่อให้เหรียญคงคุณค่า</p>
 <h3>7. ความเป็นธรรม</h3><p>ไอเท็มและอุปกรณ์ผูกกับตัวละคร ไม่สามารถซื้อขายหรือโอนให้กันได้ ทุกคนต้องล่าหรือลงทุนเอง</p>
@@ -728,7 +728,7 @@ async function referralCenter(){
  try{
   const data=await net.account('referralStatus');
   const code=data.code,link=code?inviteLink(code):'';
-  show(`<h2>${t('แนะนำเพื่อน')}</h2><p>${tr('ผู้แนะนำรับ 20,000,000 Cockro เมื่อเพื่อนสมัครด้วยรหัส เพื่อนรับ 5,000,000 Cockro','Earn 20,000,000 Cockro when a new friend registers with your code. They get 5,000,000 Cockro.')}</p>
+  show(`<h2>${t('แนะนำเพื่อน')}</h2><p>${tr('ผู้แนะนำรับ 2,000,000 Cockro เมื่อเพื่อนสมัครด้วยรหัส เพื่อนรับ 500,000 Cockro','Earn 2,000,000 Cockro when a new friend registers with your code. They get 500,000 Cockro.')}</p>
    ${code?`<b>${escapeHTML(code)}</b><input id="inviteLink" readonly aria-label="Invite link" value="${escapeHTML(link)}">${button('shareInvite',tr('แชร์ลิงก์ชวนเพื่อน','Share invite link'))}`:
    data.canCreate?`<label>${tr('ตั้งรหัสของคุณ (A–Z, 0–9 จำนวน 4–16 ตัว)','Choose your code (4–16 letters or digits)')}<input id="myInvite" maxlength="16" autocapitalize="characters" autocomplete="off"></label>${button('createInvite',tr('สร้างรหัสแนะนำ','Create invite code'))}`:t('กรุณาเชื่อมบัญชี Google ก่อนใช้ระบบแนะนำเพื่อน')}
    ${data.pending?`<p>${tr('รางวัลรอเข้าตัวละคร','Pending character reward')} ${Number(data.pending).toLocaleString()} Cockro</p>`:''}

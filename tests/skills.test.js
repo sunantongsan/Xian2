@@ -4,7 +4,7 @@ import {fresh,validSave} from '../web/core.js';
 import {SKILL_BOOKS,compileSkill,knownSkills,buySkillBook,skillTargets} from '../web/skills.js';
 import {World} from '../server/world.js';
 import {drawSwordSkill,skillBookIcon,SWORD_FX} from '../web/sword-skills-fx.js';
-test('eight new sword books, unique ids and names, price rises with power, 2 to 30 baht',()=>{assert.equal(SKILL_BOOKS[0].price,2e6);assert.equal(SKILL_BOOKS[7].price,30e6);
+test('eight new sword books, unique ids and names, price rises with power, 2 to 30 baht',()=>{assert.equal(SKILL_BOOKS[0].price,2e5);assert.equal(SKILL_BOOKS[7].price,30e5);
  assert.equal(SKILL_BOOKS.length,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.id)).size,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.th)).size,8);assert.equal(new Set(SKILL_BOOKS.map(b=>b.fx)).size,8);
  for(let i=1;i<8;i++){assert(SKILL_BOOKS[i].price>SKILL_BOOKS[i-1].price);}
  for(const b of SKILL_BOOKS){const k=compileSkill(b);assert(k&&k.power>0&&k.mp>0&&k.cd>0,b.id);assert.equal(b.level,1);assert(SWORD_FX[b.fx]);assert(skillBookIcon(b.id).startsWith('data:image/svg+xml'));}
@@ -23,9 +23,9 @@ test('buying a book costs COCKRO, teaches the skill at any level, auto-equips an
  const v=validSave(JSON.parse(JSON.stringify(s)));assert.deepEqual(v.skillBooks,['b8']);assert.equal(v.equipped[0],'b8');
 });
 test('server sells books only at home and the bought skill casts with its sword effect id',()=>{
- const w=new World(),s=fresh('sword-cockro');s.stones=3_000_000;const p=w.join('reader',s);
+ const w=new World(),s=fresh('sword-cockro');s.stones=300_000;const p=w.join('reader',s);
  w.enter(p,'forest');w.command(p,{type:'op',op:'buySkillBook',id:'b1'},1);assert.deepEqual(s.skillBooks,[]);
- w.enter(p,'town');w.command(p,{type:'op',op:'buySkillBook',id:'b1'},2);assert.deepEqual(s.skillBooks,['b1']);assert.equal(s.stones,1_000_000);
+ w.enter(p,'town');w.command(p,{type:'op',op:'buySkillBook',id:'b1'},2);assert.deepEqual(s.skillBooks,['b1']);assert.equal(s.stones,100_000);
  w.enter(p,'forest');p.mp=999;const e=w.mobs.forest[0];Object.assign(e,{x:p.x+60,y:p.y,hp:99999});w.mobs.forest=[e];
  w.command(p,{type:'skill',slot:0,target:e.id},10);const ev=w.events.find(x=>x.kind==='skill');assert.equal(ev.skillId,'b1');assert(e.hp<99999);
 });

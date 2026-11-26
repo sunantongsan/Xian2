@@ -13,7 +13,7 @@ function client(url,hello){return new Promise((resolve,reject)=>{const ws=new We
 async function until(fn){for(let i=0;i<80;i++){const v=fn();if(v)return v;await new Promise(ok=>setTimeout(ok,50));}throw Error('timed out');}
 test('first 100 accounts get full drops, then half for each extra zero',()=>{
  for(const [n,m] of [[1,1],[100,1],[101,.5],[1000,.5],[1001,.25],[10000,.25],[10001,.125],[100000,.125],[100001,.0625]])assert.equal(accountDropMultiplier(n),m,String(n));
- assert.equal(baseKillCoins({level:1,accounts:100}),5100);assert.equal(baseKillCoins({level:1,accounts:500}),2550);assert.equal(baseKillCoins({level:1,accounts:5000}),1275);
+ assert.equal(baseKillCoins({level:1,accounts:100}),510);assert.equal(baseKillCoins({level:1,accounts:500}),255);assert.equal(baseKillCoins({level:1,accounts:5000}),127);
 });
 test('only the verified owner account sees and uses the admin panel; grants are booked and logged',async t=>{
  const directory=mkdtempSync(join(tmpdir(),'cockro-admin-')),app=startServer({port:0,directory,test:true});await once(app.server,'listening');

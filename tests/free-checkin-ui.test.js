@@ -10,7 +10,7 @@ test('gift center offers one free claim and an optional verified triple claim',(
  const html=render({stones:20});
  assert.match(html,/giftDailyTab/);assert.match(html,/giftCoinsTab/);
  assert.match(html,/id="claimDailyGift"[^>]*>/);assert.match(html,/data-reward-item="dailyCheckinTriple"/);
- assert.match(html,/60,000 COCKRO/);assert.match(html,/430,000 COCKRO/);
+ assert.match(html,/6,000 COCKRO/);assert.match(html,/43,000 COCKRO/);
  const claimed=render({stones:20,checkin:{streak:1,lastDay:Math.floor(Date.UTC(2026,10,26)/86400000)}});
  assert.match(claimed,/id="claimDailyGift"[^>]*disabled/);assert.match(claimed,/id="claimTripleGift"[^>]*disabled/);
 });

@@ -52,9 +52,10 @@ export function createBillingService(directory,verifier=createPlayVerifier(),{qu
  if(record?.credited){if(!record.consumed){await verifier.consume(productId,token);record.consumed=true;write(path,record);}return {gold:record.gold,duplicate:true,...destination};}
  verified??=await verifier.verify(productId,token);validatePlayPurchase(verified,{owner:p.account,character:p.id});
  if(verified.consumptionState===1&&!record)throw Error('already_consumed');
- if(!record){record={owner:p.account,character:p.id,characterName:p.s.name||null,product:productId,gold:quote(product.thb),credited:false,notify:true,created:Date.now(),orderId:typeof verified.orderId==='string'?verified.orderId.slice(0,128):null,purchasedAt:Number.isFinite(Number(verified.purchaseTimeMillis))?Number(verified.purchaseTimeMillis):null,test:verified.purchaseType===0};write(path,record);}
+ if(!record){record={owner:p.account,character:p.id,characterName:p.s.name||null,product:productId,gold:quote(product.thb),priceVersion:2,credited:false,notify:true,created:Date.now(),orderId:typeof verified.orderId==='string'?verified.orderId.slice(0,128):null,purchasedAt:Number.isFinite(Number(verified.purchaseTimeMillis))?Number(verified.purchaseTimeMillis):null,test:verified.purchaseType===0};write(path,record);}
  // Receipt marker and balance commit together; retry after a process crash cannot credit twice.
  const already=p.s.playReceipts?.includes(hash);if(!already){
+ if(!record.credited&&record.priceVersion!==2){record.gold=Math.floor(record.gold/10);record.priceVersion=2;} // quoted before the 7.8.0 reprice
  if(p.s.stones+record.gold>1e12)throw Error('wallet_full');
  const next=structuredClone(p.s);next.stones+=record.gold;next.playReceipts=[...(next.playReceipts||[]),hash];persist({id:p.id,s:next});p.s=next;p.dirty=false;
  }

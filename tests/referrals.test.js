@@ -62,8 +62,8 @@ test('legacy invite links and unpaid balances retain their original value',t=>{
  writeFileSync(join(dir,'referrals.json'),JSON.stringify({members:{[old]:{account:'old',identity:'oldhash'}},claims:{},awards:{oldReceipt:{account:'old',amount:500000,delivered:false}}}));
  assert.equal(r.status('old','uid').code,old);
  r.register('new','n',old,full);
- const s=freshHero();assert.equal(r.deliver('old','main',s,()=>{}),500000);
- assert.equal(s.stones,INVITER+500000);assert.equal(r.issued(),INVITER+INVITED);
+ const s=freshHero();assert.equal(r.deliver('old','main',s,()=>{}),50000); // same baht value after the 7.8.0 reprice
+ assert.equal(s.stones,INVITER+50000);assert.equal(r.issued(),INVITER+INVITED);
 });
 
 test('registration over the game socket credits the inviter wallet and charges supply once',async t=>{
@@ -109,7 +109,7 @@ test('registration over the game socket credits the inviter wallet and charges s
 
 test('promotion amounts and repeat enrolment with a new game ID',t=>{
  const {r}=setup(t);
- assert.deepEqual([INVITER,INVITED,WELCOME],[20000000,5000000,1000000]);
+ assert.deepEqual([INVITER,INVITED,WELCOME],[2000000,500000,100000]);
  r.createCode('alice','uid-a','ALICE');
  r.register('bob','uid-b','ALICE',full,'stable-b');
  r.remove('bob');

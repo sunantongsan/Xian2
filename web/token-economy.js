@@ -1,6 +1,6 @@
 // COCKRO single-currency economy (7.3.0). Everything is priced in baht and converted
 // at the pre-launch rate, so designers think in money and players see one coin.
-export const COCKRO_PER_THB=1_000_000; // launch price 0.000001 THB per COCKRO
+export const COCKRO_PER_THB=100_000; // 7.8.0 launch price 0.00001 THB per COCKRO (was 0.000001)
 export const thb=baht=>Math.round(baht*COCKRO_PER_THB);
 export const toTHB=coins=>coins/COCKRO_PER_THB;
 export const SUPPLY=100_000_000_000;
@@ -8,13 +8,13 @@ export const ALLOCATION=Object.freeze({farm:.85,presale:.04,reserve:.04,lp:.07})
 export const DAILY_RELEASE=.001;       // share of the farm bucket released each Thai day
 export const PIONEER_RELEASE=.01,PIONEER_DAYS=30; // first 30 days after 7.4.0: 1% a day
 // Real players hunt 1-2 hours a day; the daily cap is two hours of full drops (8 THB).
-export const PLAYER_DAILY_CAP=8_000_000;
+export const PLAYER_DAILY_CAP=thb(8);
 export const MIN_DAU=100;              // budgets never assume fewer players than this
 export const BURN_SHARE=.5;            // of every purchase; the rest returns to rewards
-// Kill drops: 5,000 + 100 per monster level (Lv.1 5,100 · Lv.60 11,000 · Lv.120 17,000 ·
-// Lv.240 29,000). Elites x3, bosses x10. Sized so a new player earns about 20 THB in
+// Kill drops: 500 + 10 per monster level (Lv.1 510 · Lv.60 1,100 · Lv.120 1,700 ·
+// Lv.240 2,900), the same baht value as before the 7.8.0 reprice. Elites x3, bosses x10. Sized so a new player earns about 20 THB in
 // 5 hours of hunting, i.e. 4 THB an hour; the daily cap stops bots after two hours.
-export const KILL_BASE=5000,COCKRO_PER_MONSTER_LEVEL=100,ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
+export const KILL_BASE=thb(.005),COCKRO_PER_MONSTER_LEVEL=thb(.0001),ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
 // Pioneer tier (internal, not shown in game): full drops for the first 100 accounts;
 // 101-1,000 accounts 50%, 1,001-10,000 25%, and half again for every extra zero.
 export function accountDropMultiplier(accounts=0){const n=Math.max(1,Math.floor(accounts)||1);return n<=100?1:.5**Math.ceil(Math.log10(n)-2);}
@@ -22,10 +22,11 @@ export function baseKillCoins({playerLevel=1,level=1,boss=false,elite=false,acco
  const lv=Math.max(1,Math.floor(level)||1),gap=playerLevel-lv,penalty=gap<10?1:gap<20?.5:.1;
  return Math.floor((KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty*accountDropMultiplier(accounts));
 }
-// Old balances were worth 5,000 COCKRO per 30 THB and G traded at 10 per COCKRO.
-export const LEGACY_COIN_FACTOR=6000,LEGACY_G_FACTOR=600;
+// Old balances were worth 5,000 COCKRO per 30 THB and G traded at 10 per COCKRO
+// (factors at the 0.000001 THB rate; PRICE_SHIFT converts them to today's rate).
+export const LEGACY_COIN_FACTOR=6000,LEGACY_G_FACTOR=600,PRICE_SHIFT=10,ECONOMY_VERSION=4;
 // Presale packs grow more expensive as the presale bucket sells out.
-export const PRESALE_STEPS=Object.freeze([{sold:0,perTHB:1_000_000},{sold:.25,perTHB:850_000},{sold:.5,perTHB:700_000},{sold:.75,perTHB:600_000}]);
+export const PRESALE_STEPS=Object.freeze([{sold:0,perTHB:thb(1)},{sold:.25,perTHB:thb(.85)},{sold:.5,perTHB:thb(.7)},{sold:.75,perTHB:thb(.6)}]);
 export const thaiDay=ms=>Math.floor((ms+7*3600000)/86400000);
 
 export function freshEconomy(now=Date.now()){
@@ -87,14 +88,18 @@ export function presaleCredit(e,baht){
 }
 export function economySummary(e){return {burned:e.burned,recycled:e.recycled,farm:e.farm,pool:e.pool,poolStart:e.poolStart,dailyBudget:dailyBudget(e),releaseRate:releaseRate(e),pioneerDaysLeft:Math.max(0,PIONEER_DAYS-(e.day-e.launchDay)),activePlayers:activePlayers(e),presaleLeft:e.presale,presaleRate:presaleRate(e),reserve:e.reserve,lp:e.lp,minted:e.minted};}
 
-// Redenominate a pre-7.3 save once: coins ×6000, G ×600 (10 G per old coin), G removed.
+// Redenominate a save once. Pre-7.3: coins ×6000, G ×600, G removed. 7.3-7.7 (version 3):
+// balances ÷10 for the 0.00001 THB price, so every balance keeps its baht value.
+// Returns the change in coins: positive is minted, negative goes back to the farm.
 export function redenominate(s,v){
- if(v.economyVersion===3){s.economyVersion=3;return 0;}
+ if(v.economyVersion===ECONOMY_VERSION){s.economyVersion=ECONOMY_VERSION;return 0;}
  const before=s.stones,gold=Math.max(0,Math.floor(Number(v.gold)||0));
- const coins=Math.min(1e12,before*LEGACY_COIN_FACTOR+gold*LEGACY_G_FACTOR);
- s.stones=coins;s.gold=0;s.bountyRemainder=0;s.economyVersion=3;
- return coins-before;
+ const old=v.economyVersion===3?before:Math.min(1e12,before*LEGACY_COIN_FACTOR+gold*LEGACY_G_FACTOR);
+ s.stones=Math.floor(old/PRICE_SHIFT);s.gold=0;s.bountyRemainder=0;s.economyVersion=ECONOMY_VERSION;
+ return s.stones-before;
 }
 // Coins created outside kill drops (rewards, refunds of legacy balances) come from
 // today's pool first, then from the farm bucket.
+// Coins removed by the reprice return to the farm bucket.
+export function unmint(e,amount){const n=whole(amount);e.farm+=n;e.minted=Math.max(0,e.minted-n);return n;}
 export function mint(e,amount){const n=whole(amount);const a=Math.min(e.pool,n);e.pool-=a;e.farm-=Math.min(e.farm,n-a);e.minted+=n;return n;}

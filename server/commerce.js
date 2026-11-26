@@ -47,6 +47,8 @@ export function createCommerce(directory,{players,getActor=id=>players().get(id)
  let removed=0;
  for(const vault of Object.values(ledger.vaults)){const items=vault.items||[];vault.items=items.filter(c=>!(c.kind==='material'||(c.kind==='gear'&&isRetiredArmor(c.item))));removed+=items.length-vault.items.length;}
  for(const shop of Object.values(ledger.shops)){const listings=shop.listings||[];shop.listings=listings.filter(x=>!(x.cargo?.kind==='material'||(x.cargo?.kind==='gear'&&isRetiredArmor(x.cargo.item))));removed+=listings.length-shop.listings.length;}
+ // 7.8.0: COCKRO repriced from 0.000001 to 0.00001 THB; vault coins keep their baht value.
+ if(ledger.priceVersion!==2){for(const vault of Object.values(ledger.vaults))vault.stones=Math.floor((vault.stones||0)/10);ledger.priceVersion=2;removed++;}
  if(removed){ledger.revision++;write(ledgerPath,ledger);}
  const grants=new WeakMap(),attempts=new Map();
  const unlocked=p=>{const g=grants.get(p),v=ledger.vaults[p.account];return !!(g&&g.until>Date.now()&&v?.pinHash&&g.hash===v.pinHash);};

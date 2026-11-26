@@ -30,9 +30,9 @@ test('old online saves migrate once before welcome and persist both balances',as
  a.ws.close();await until(()=>!app.world.players.has(id));
  const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.economyVersion;delete old.mutationVersion;delete old.mutationStage;delete old.balanceVersion;delete old.mpPotions;old.level=20;old.xp=822;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
  const b=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>b.ws.terminate());
- assert.equal(b.welcome.save.gold,0);assert.equal(b.welcome.save.stones,7*6000+1234*600);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,Math.floor(822/1645*xpNeed(20)));
+ assert.equal(b.welcome.save.gold,0);assert.equal(b.welcome.save.stones,(7*6000+1234*600)/10);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,Math.floor(822/1645*xpNeed(20)));
  const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,3);assert.equal(saved.mpPotions,5);
- b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,0);assert.equal(c.welcome.save.stones,7*6000+1234*600);
+ b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,0);assert.equal(c.welcome.save.stones,(7*6000+1234*600)/10);
 });
 
 test('v2 online saves preserve half-full XP across reconnect and persist v3 once',async t=>{
@@ -42,9 +42,9 @@ test('v2 online saves preserve half-full XP across reconnect and persist v3 once
  a.ws.close();await until(()=>!app.world.players.has(id));
  const path=join(directory,id+'.json'),old=JSON.parse(readFileSync(path));delete old.mutationVersion;delete old.mutationStage;old.balanceVersion=2;delete old.mpPotions;delete old.economyVersion;old.level=20;old.xp=3060;old.gold=1234;old.stones=7;writeFileSync(path,JSON.stringify(old));
  const b=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>b.ws.terminate());
- assert.equal(b.welcome.save.gold,0);assert.equal(b.welcome.save.stones,7*6000+1234*600);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,3978);
+ assert.equal(b.welcome.save.gold,0);assert.equal(b.welcome.save.stones,(7*6000+1234*600)/10);assert.equal(b.welcome.save.mpPotions,5);assert.equal(b.welcome.save.xp,3978);
  const saved=JSON.parse(readFileSync(path));assert.equal(saved.balanceVersion,3);assert.equal(saved.mpPotions,5);
- b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,0);assert.equal(c.welcome.save.stones,7*6000+1234*600);
+ b.ws.close();await until(()=>!app.world.players.has(id));const c=await client(url,{type:'hello',version:PROTOCOL,token});t.after(()=>c.ws.terminate());assert.equal(c.welcome.save.xp,saved.xp);assert.equal(c.welcome.save.gold,0);assert.equal(c.welcome.save.stones,(7*6000+1234*600)/10);
 });
 
 

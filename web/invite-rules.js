@@ -1,4 +1,5 @@
-export const WELCOME=1_000_000, INVITED=5_000_000, INVITER=20_000_000;
+import {thb} from './token-economy.js';
+export const WELCOME=thb(1), INVITED=thb(5), INVITER=thb(20);
 export function normalizeInviteCode(value){
  if(typeof value!=='string'||! /^[a-zA-Z0-9]{4,16}$/.test(value.trim()))return '';
  return value.trim().toUpperCase();
