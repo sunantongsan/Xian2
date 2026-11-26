@@ -71,6 +71,10 @@ import {ZONES,MONSTERS,HEROES,monsterLabel} from './catalog.js';
 import {allocateStats,allocateStat,trainSkill,combatStats,reputationTitle,fresh,maxHP,damage,reward,xpNeed,buyPotion,buyMPPotion,upgrade,upgradeCost,unlocked,inCone} from './core.js';
 const $=id=>document.getElementById(id), cv=$('game'),ctx=cv.getContext('2d',{alpha:false}),modal=$('modal');
 $('modalContent')?.addEventListener?.('click',e=>{if(e.target?.closest?.('[data-open-buffs]')){beep(520);adBuffMenu();}});
+// Anti-bot: tell the server whenever a real touch or key happens; no input for a few minutes gets the hero kicked.
+let humanAt=Date.now(),humanSent=0;
+for(const type of ['pointerdown','pointermove','keydown','touchstart'])globalThis.addEventListener?.(type,e=>{if(e.isTrusted!==false)humanAt=Date.now();},{capture:true,passive:true});
+setInterval(()=>{if(onlineMode&&net.ready&&humanAt>humanSent&&net.send({type:'active'}))humanSent=humanAt;},10000)?.unref?.();
 const staticLabels=[],staticAttributes=[];
 for(const root of [document.getElementById('hud'),document.getElementById('controls'),document.getElementById('loading'),document.getElementById('hint')]){
  if(!root)continue;
@@ -97,6 +101,7 @@ const isStar=()=>scene?.type==='tiles';
 let serverTimeOffset=0,groundDrops=[];
 let onlineMode=false,onlineEvent=0,onlineView=null,onlinePaint=0;
 const net=new OnlineClient(applyOnlineState,()=>{});
+net.onKicked=reason=>{onlineMode=false;try{net.disconnect();}catch{}paused=true;show(`<section class="text-settings"><h2>${t('ตัดการเชื่อมต่อ')}</h2><p>${reason==='idle'?t('ไม่มีการเล่นนานเกินไป ระบบตัดการเชื่อมต่อเพื่อป้องกันบอท'):t('ระบบตัดการเชื่อมต่อ')}</p>${button('kickedBack',t('เข้าเกมใหม่'))}</section>`);$('windowClose').hidden=true;$('kickedBack').onclick=()=>location.reload();};
 installMobileViewport();installFieldBanner(resize);
 const chatUI=createChatView({net,show,close,toast});
 $('chatToggle').onclick=()=>chatUI.open();
