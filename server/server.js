@@ -25,6 +25,16 @@ import {fresh,validSave} from '../web/core.js';
 import {normalizeEconomyState,presaleCredit,mint,rollDay,economySummary} from '../web/token-economy.js';
 export function startServer({port=8091,host='127.0.0.1',directory='./online-data',test=false,testRewards=false,roamers=false,maxPlayers=Number(process.env.COCKRO_MAX_PLAYERS||64),adUnit=process.env.ADMOB_REWARDED_UNIT_ID||'',ssvVerifier,billingVerifier,goldEvent}={}){
  mkdirSync(directory,{recursive:true,mode:0o700});const accounts=createAccounts(directory);const economyPath=join(directory,'economy.json');const economy=normalizeEconomyState(existsSync(economyPath)?JSON.parse(readFileSync(economyPath,'utf8')):null);let economySaved=0;const saveEconomy=(force=false)=>{const now=Date.now();if(!force&&now-economySaved<5000)return;economySaved=now;writeFileSync(economyPath+'.tmp',JSON.stringify(economy),{mode:0o600});renameSync(economyPath+'.tmp',economyPath);};saveEconomy(true);
+ // Only the difference between the two durable counters needs funding on restart.
+ function syncReferralSupply(){
+  const issued=accounts.referrals.issued(),delta=issued-(economy.referralIssued||0);
+  if(delta<=0)return;
+  if(delta>economy.farm+economy.pool)throw Error('reward_budget_unavailable');
+  const farmShare=Math.min(economy.farm,delta);
+  economy.farm-=farmShare;economy.pool-=delta-farmShare;
+  economy.minted+=delta;economy.referralIssued=issued;saveEconomy(true);
+ }
+ syncReferralSupply();
  // Owner-only administration: the Google-verified owner email set on the account profile.
  const OWNER_EMAILS=(process.env.COCKRO_OWNER_EMAILS||'sunan.tongsan@gmail.com').toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);
  const isOwner=account=>{try{const m=accounts.meta(account);return !!m.uid&&OWNER_EMAILS.includes(String(m.email||'').toLowerCase());}catch{return false;}};
@@ -111,7 +121,7 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.6.3',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.6.4',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144){if(data.type==='state')data.stalls=data.self.map==='town'?commerce.stalls().filter(it=>Math.hypot(it.x-data.self.x,it.y-data.self.y)<1800).slice(0,64):[];const packet=stateForWire(data,ws.eventCursor||0);ws.send(JSON.stringify(packet));if(packet.type==='state')for(const e of packet.events)ws.eventCursor=Math.max(ws.eventCursor||0,e.id);}else ws.close(1013,'slow_connection');};
@@ -139,10 +149,29 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  if(created||d.newCharacter===true){const name=characterName(d.name);if(!name)throw Error('invalid_name');state.name=name;}
  const id=characterId(account,character);
  // Test ads use the same starting G balance as production.
- const stonesBeforeDelivery=state.stones;accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
- if(state.redenominatedMint>0)mint(economy,state.redenominatedMint);delete state.redenominatedMint;if(state.stones>stonesBeforeDelivery)mint(economy,state.stones-stonesBeforeDelivery);saveEconomy(true);
+ let inviter=null;
+ if((created||d.newCharacter===true)&&characterRoster(directory,account).length===0){
+  inviter=accounts.referrals.register(account,accounts.meta(account).uid,d.inviteCode,
+   (economy.referralIssued||0)+economy.farm+economy.pool);
+  syncReferralSupply();
+ }
+ if(inviter){
+  // Credit an existing character immediately, whether the inviter is hunting or offline.
+  // If interrupted, the durable pending award is delivered on their next login.
+  const slot=characterRoster(directory,inviter)[0]?.id;
+  if(slot){
+   const inviterId=characterId(inviter,slot);
+   const actor=world.getActor(inviterId)||{id:inviterId,s:readCharacter(directory,inviter,slot)};
+   const legacy=accounts.referrals.deliver(inviter,slot,actor.s,value=>persist({...actor,s:value}));
+   if(legacy)mint(economy,legacy);
+  }
+ }
+ const legacy=accounts.referrals.deliver(account,character,state,value=>persist({id,s:value}));
+ if(legacy)mint(economy,legacy);
+ if(!testRewards)state.townBuffUntil=0;
+ if(state.redenominatedMint>0)mint(economy,state.redenominatedMint);delete state.redenominatedMint;saveEconomy(true);
  countAccounts();p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);registerForCheckin(account);state=p.s;clearTimeout(timer);
- send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),admin:isOwner(account),release:'7.6.3',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
+ send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),admin:isOwner(account),release:'7.6.4',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
     if(d.type==='admin'){
      if(!isOwner(p.account)){send(ws,{type:'adminResult',ok:false,message:'forbidden'});return;}
      try{send(ws,{type:'adminResult',ok:true,...adminRun(p,d)});}catch(e){send(ws,{type:'adminResult',ok:false,message:String(e.message||'error').slice(0,80)});}
@@ -185,7 +214,7 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
      catch(error){send(ws,{type:'adError',message:['save_unavailable','ad_limit','already_claimed','invalid_reward'].includes(error.message)?error.message:'ad_unavailable'});}return;
     }
     world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});if(d.op==='exchangeBounty')send(ws,{type:'hunterStats',...hunts.view(p)});}
-   }catch(error){send(ws,{type:'error',message:['version_mismatch','login_required','name_required','invalid_name','already_online','room_full','account_missing','save_unavailable','character_missing','character_limit'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
+   }catch(error){send(ws,{type:'error',message:['version_mismatch','login_required','name_required','invalid_name','already_online','room_full','account_missing','save_unavailable','character_missing','character_limit','referral_invalid','referral_self','reward_budget_unavailable','google_required'].includes(error.message)?error.message:'invalid_request'});if(!p||error.message==='save_unavailable')ws.close(1008);}
   });
   ws.on('close',()=>{clearTimeout(timer);connections.delete(ws);if(p){commerce.lockVault(p);world.disconnect(p);try{persist(p);}catch{}if(!managing)activeAccounts.delete(p.account);}});ws.player=()=>p;
  });
