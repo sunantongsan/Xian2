@@ -14,8 +14,8 @@ test('Google device session survives time and restart; logout revokes it without
 });
 test('all ten-level weapons grow, reject underlevel and malformed purchase, preserve old tiers',()=>{
  assert.deepEqual(TIERS.slice(0,6).map(x=>x.level),[1,10,20,30,40,50]);const s=fresh('sword-cockro');s.stones=1e12;s.gold=1e10;
- for(let i=1;i<TIERS.length;i++){assert.equal(TIERS[i].level,i*10);s.bag=[];s.level=i*10-1;const before=s.stones;assert.equal(buyShopGear(s,'weapon',i),false);assert.equal(s.stones,before);s.level=i*10;assert(buyShopGear(s,'weapon',i));assert(canEquip(s,s.bag[0]));assert(itemStats(s.bag[0]).atk>itemStats({slot:'weapon',tier:i-1,rarity:2}).atk);s.level--;assert.equal(canEquip(s,s.bag[0]),false);}
- for(const tier of [-1,NaN,1.5,999,'1'])assert.equal(buyShopGear(s,'weapon',tier),false);
+ for(let i=1;i<TIERS.length;i++){assert.equal(TIERS[i].level,i*10);s.bag=[];s.level=i*10-1;const before=s.stones;assert.equal(buyShopGear(s,'weapon',i,'divine'),false);assert.equal(s.stones,before);s.level=i*10;assert(buyShopGear(s,'weapon',i,'divine'));assert(canEquip(s,s.bag[0]));assert(itemStats(s.bag[0]).atk>itemStats({slot:'weapon',tier:i-1,rarity:s.bag[0].rarity}).atk);s.level--;assert.equal(canEquip(s,s.bag[0]),false);}
+ for(const tier of [-1,NaN,1.5,999,'1'])assert.equal(buyShopGear(s,'weapon',tier,'divine'),false);
 });
 test('merchant counter opens remotely in town but forest cannot spend currency',()=>{
  const w=new World(),p=w.join('merchant',fresh('sword-cockro')),pos=toWorld(MERCHANT_UV,MAPS.town);assert(MERCHANT_UV[0]>.2&&MERCHANT_UV[0]<.3);

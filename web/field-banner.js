@@ -23,14 +23,15 @@ export function installFieldBanner(resizeGame){
  }
  function sync(){cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{
   const message=bounds();
-  if(!message.visible)collapse();
+  if(hud.hidden)collapse(); // a window or the menu only hides the ad; the game keeps its size
   const key=JSON.stringify(message);if(key===last)return;
   if(window.CockroAds?.postMessage){window.CockroAds.postMessage(key);last=key;}
  });}
  window.addEventListener('cockro-field-banner',e=>{
   const {loaded,width,height}=e.detail||{},b=bounds();
-  if(!b.visible||!loaded||!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0||width>b.maxWidth||height>b.maxHeight){collapse();return;}
-  slot.style.setProperty('--ad-width',width+'px');slot.style.setProperty('--ad-height',height+'px');slot.classList.add('ad-loaded');
+  if(!b.visible)return;
+  if(!loaded||!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0||width>b.maxWidth||height>b.maxHeight){collapse();return;}
+  slot.style.setProperty('--ad-width',width+'px');slot.style.setProperty('--ad-height',height+'px');slot.classList.add('ad-loaded');sync();
   reserve(Math.ceil(b.top+height+8));
  });
  window.addEventListener('resize',sync);window.addEventListener('pageshow',sync);document.addEventListener('visibilitychange',sync);

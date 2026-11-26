@@ -110,7 +110,7 @@ export function gearShopPrice(slot,tier,term='permanent'){
  return term==='day'?Math.ceil(full/10):full;
 }
 export function buyShopGear(s,slot,tier=tierForLevel(s.level),term='permanent'){
- if(term!=='permanent' && term!=='divine' && !(slot==='weapon'&&term==='day'))return false;
+ if(term!=='divine')return false; // 7.8.2: the shop sells divine gear only
  if(!ENHANCE_SLOTS.includes(slot)||s.bag.length>=BAG_SIZE||!Number.isInteger(tier)||!TIERS[tier]||s.level<TIERS[tier].level)return false;
  const cost=gearShopPrice(slot,tier,term);
  const wallet='stones';

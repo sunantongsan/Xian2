@@ -2,29 +2,26 @@ import {COSTS} from '../web/chain-economy.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fresh,validSave} from '../web/core.js';
-import {buyShopGear,gearShopPrice,upgradeGear,equip,gearTotals,expireRentals,sellPrice,itemStats} from '../web/gear.js';
+import {buyShopGear,gearShopPrice,upgradeGear,equip,gearTotals,expireRentals,sellPrice,itemStats,makeItem,DIVINE_RARITY} from '../web/gear.js';
 import {take} from '../server/commerce.js';
 import {World} from '../server/world.js';
 
-test('rented and permanent weapons charge the advertised prices and preserve their terms on reload',()=>{
- const s=fresh('sword-cockro');s.stones=110000;s.gold=100;
- const start=Date.now();
- assert(!buyShopGear(s,'ring',0,'day'));
- assert(!buyShopGear(s,'weapon',0,'unknown'));
- assert(buyShopGear(s,'weapon',0));
- assert(buyShopGear(s,'weapon',0,'day'));
+test('the shop sells divine gear only; old rentals keep their terms on reload',()=>{
+ const s=fresh('sword-cockro');s.stones=1e9;s.gold=100;
+ for(const term of ['permanent','day','unknown',undefined])for(const slot of ['weapon','ring','amulet'])assert(!buyShopGear(s,slot,0,term));
+ assert.equal(s.stones,1e9);assert.equal(s.bag.length,0);
+ assert(buyShopGear(s,'weapon',0,'divine'));assert.equal(s.stones,1e9-gearShopPrice('weapon',0,'divine'));assert.equal(s.bag[0].rarity,DIVINE_RARITY);
+ const start=Date.now();s.bag.push({...makeItem('weapon',0,2),expiresAt:start+86400000});
  const [permanent,rental]=validSave(s).bag;
- assert.equal(s.stones,0);
- assert.equal(gearShopPrice('weapon',0,'day'),10000);
  assert.equal(permanent.expiresAt,undefined);
- assert(rental.expiresAt>=start+86400000&&rental.expiresAt<=Date.now()+86400000);
+ assert.equal(rental.expiresAt,start+86400000);
  assert.equal(sellPrice(rental),0);
  assert.throws(()=>take(s,'gear',rental.id,1),/item_not_transferable/);
 });
 
 test('expiry removes an upgraded rental from the equipped slot or bag during play and on load',()=>{
  const s=fresh('sword-cockro');s.stones=300000;s.gold=200;
- for(let i=0;i<2;i++)assert(buyShopGear(s,'weapon',0,'day'));
+ for(let i=0;i<2;i++)s.bag.push({...makeItem('weapon',0,2),expiresAt:Date.now()+86400000});
  const [held,spare]=s.bag;
  assert.equal(equip(s,held.id),null);
  assert(upgradeGear(s,'weapon',()=>.99));
