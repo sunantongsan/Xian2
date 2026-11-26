@@ -1,6 +1,6 @@
 import {thb} from './token-economy.js';
 import {t,ui} from './i18n.js';
-export const PET_PRICE=thb(20), PET_SEARCH_RADIUS=400, PET_PICKUP_RADIUS=45;
+export const PET_PRICE=20_000, PET_SEARCH_RADIUS=400, PET_PICKUP_RADIUS=45;
 export const LOOT_PETS=Object.freeze({dog:{get name(){return t('หมา');},tile:0},cat:{get name(){return t('แมว');},tile:1},chicken:{get name(){return t('ไก่');},tile:2},tiger:{get name(){return t('เสือ');},tile:3},buffalo:{get name(){return t('ควาย');},tile:4}});
 export function normalizePets(s,v=s){const old=v.lootPets||{};const owned=Array.isArray(old.owned)?[...new Set(old.owned.filter(id=>typeof id==='string'&&Object.hasOwn(LOOT_PETS,id)))]:[];s.lootPets={owned,active:owned.includes(old.active)?old.active:null};}
 export function buyPet(s,id){if(typeof id!=='string'||!Object.hasOwn(LOOT_PETS,id))return false;normalizePets(s);if(s.lootPets.owned.includes(id)||!Number.isFinite(s.stones)||s.stones<PET_PRICE)return false;s.stones-=PET_PRICE;s.lootPets.owned.push(id);s.lootPets.active=id;return true;}

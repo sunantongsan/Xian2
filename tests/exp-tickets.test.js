@@ -1,26 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fresh,validSave,reward} from '../web/core.js';
-import {EXP_TICKETS,EXP_DURATION,buyExpTicket,useExpTicket,expMultiplier} from '../web/exp-tickets.js';
+import {fresh,validSave} from '../web/core.js';
+import {EXP_TICKETS,buyExpTicket,useExpTicket,expMultiplier,expBoostUntil} from '../web/exp-tickets.js';
 import {World} from '../server/world.js';
-test('all tickets charge COCKRO exactly and preserve legacy G',()=>{
- for(const [id,it]of Object.entries(EXP_TICKETS)){const s=fresh('sword-cockro');s.stones=it.price;s.gold=500;assert.equal(buyExpTicket(s,id),true);assert.equal(s.stones,0);assert.equal(s.gold,500);assert.equal(validSave(s).expTickets[id],1);const before=JSON.stringify(s);assert.equal(buyExpTicket(s,id),false);assert.equal(buyExpTicket(s,'__proto__'),false);assert.equal(JSON.stringify(s),before);}
+test('EXP tickets are retired: no purchase, no use, and the shop has no ticket tab',async()=>{
+ const s=fresh('sword-cockro');s.stones=1e9;for(const id of Object.keys(EXP_TICKETS)){assert.equal(buyExpTicket(s,id),false);assert.equal(useExpTicket(s,id),false);}assert.equal(s.stones,1e9);
+ const {merchantHTML}=await import('../web/shop-view.js');assert.ok(!merchantHTML(s,()=>'',x=>x).includes('data-shop-panel="tickets"'));
+ const w=new World(),p=w.join('ticket-player',fresh('sword-cockro'));p.s.stones=1e9;w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},1);assert.notEqual(p.opResult?.ok,true);assert.equal(p.s.stones,1e9);
 });
-test('ticket boosts actual monster XP only for one hour and replacement requires current expiry',()=>{
- const s=fresh('sword-cockro'),now=Date.now();s.expTickets={x2:2,x5:2,x10:1};
- assert.equal(useExpTicket(s,'x2',0,now),true);assert.equal(s.expBoost.until,now+EXP_DURATION);
- const m={id:0,xp:1,gold:1},ordinary=fresh(s.hero);reward(ordinary,m,()=>1);reward(s,m,()=>1);assert.equal(s.xp,ordinary.xp*2);
- assert.equal(useExpTicket(s,'x5',0,now+1),false);assert.equal(s.expTickets.x5,2);
- const old=s.expBoost.until;assert.equal(useExpTicket(s,'x5',old,now+2),true);assert.equal(useExpTicket(s,'x5',old,now+3),false);
- assert.equal(s.expTickets.x5,1);assert.equal(expMultiplier(validSave(s),now+3),5);assert.equal(expMultiplier(s,now+2+EXP_DURATION),1);
+test('unused tickets are refunded once at their price, an active ticket boost ends, the ad EXP x5 stays',()=>{
+ const now=Date.now(),old=fresh('sword-cockro');old.stones=1000;old.expTickets={x2:2,x10:1};old.expBoost={id:'x10',until:now+60000};old.adExpUntil=now+60000;
+ const s=validSave(JSON.parse(JSON.stringify(old)));
+ const refund=2*EXP_TICKETS.x2.price+EXP_TICKETS.x10.price;
+ assert.equal(s.stones,1000+refund);assert.equal(s.redenominatedMint,refund);assert.deepEqual(s.expTickets,{});assert.equal(s.expBoost,null);
+ assert.equal(expMultiplier(s,now),5);assert.equal(expBoostUntil(s,now),now+60000);
+ delete s.redenominatedMint;const again=validSave(JSON.parse(JSON.stringify(s)));assert.equal(again.stones,s.stones);assert.equal(again.redenominatedMint,undefined);
+ s.adExpUntil=0;assert.equal(expMultiplier(s,now),1);
 });
-test('malformed inventory/boost rejected and old balances retained',()=>{
- const s=fresh('sword-cockro');s.stones=98765;s.expTickets={x2:-1,x5:Infinity,x10:1.5};s.expBoost={id:'x99',until:Infinity};const v=validSave(s);assert.deepEqual(v.expTickets,{x2:0,x5:0,x10:0});assert.equal(v.expBoost,null);assert.equal(v.stones,98765);
-});
-test('server enforces shop map, balance, owned tickets and dead-player restrictions',()=>{
- const w=new World(),p=w.join('ticket-player',fresh('sword-cockro')),now=Date.now()/1000;p.s.stones=300000;p.map='forest';w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},now);assert.equal(p.opResult.ok,false);
- p.map='town';w.command(p,{type:'op',op:'buyExpTicket',id:'x2'},now+1);assert.equal(p.opResult.ok,true);assert.equal(p.s.stones,100000);
- p.hp=0;w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+2);assert.equal(p.opResult.ok,false);assert.equal(p.s.expTickets.x2,1);
- p.hp=1;w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+3);assert.equal(p.opResult.ok,true);w.command(p,{type:'op',op:'useExpTicket',id:'x2'},now+4);assert.equal(p.opResult.ok,false);
-});
-
