@@ -3,8 +3,8 @@ import {randomBytes,verify} from 'node:crypto';
 import {UPGRADE_ITEMS} from '../web/upgrade-items.js';
 const TTL=3600000, RETENTION=86400000;
 // Only Google-signed callbacks can consume these server-created tickets.
-export function issueRewardTicket(s,item,now=Date.now()){
- const restore=rewardTarget(s,item,now);
+export function issueRewardTicket(s,item,now=Date.now(),checkinDivisor=1){
+ const restore=rewardTarget(s,item,now,checkinDivisor);
  const tickets=(s.adTickets||[]).filter(t=>t.created>now-RETENTION);
  // A failed load has no SSV callback. Pending tickets must not impose a retry cooldown.
  // Each attempt has a unique nonce; signed transaction verification below prevents duplicate grants.

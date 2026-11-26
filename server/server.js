@@ -46,7 +46,24 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
  const commerceOptions={players:()=>world.players,getActor:merchantAccount,capture:p=>{if(p.map)capturePresence(p);},record:hunts.record};
  let commerce=createCommerce(directory,commerceOptions);
  backupBefore416(directory,'single-character-4502-v1');
- migrateAllCharacters(directory);
+ const migrated=migrateAllCharacters(directory);
+ // Account profiles can exist before a character. Legacy save owners and profiles
+ // share one registration key, even when the surviving character is in another slot.
+ const registrations=new Set();
+ const profileDir=join(directory,'accounts');
+ if(existsSync(profileDir))for(const name of readdirSync(profileDir)){
+  if(/^profile-[a-f0-9]{64}\.json$/.test(name))registrations.add(name.slice(8,-5));
+ }
+ function registerForCheckin(account){
+  if(registrations.size<=100)registrations.add(createHash('sha256').update(account).digest('hex'));
+  economy.checkinDivisor=registrations.size>100?2:1;
+ }
+ economy.checkinDivisor=registrations.size>100?2:1;
+ for(const receipt of migrated)registerForCheckin(receipt.account);
+ const deletionDir=join(directory,'account-deletions');
+ if(existsSync(deletionDir))for(const name of readdirSync(deletionDir)){
+  if(/^[a-f0-9]{64}\.json$/.test(name))registerForCheckin(name.slice(0,-5));
+ }
  commerce=createCommerce(directory,commerceOptions);
  migrateArmorSaves(directory);migrateRetiredSystems(directory); // After commerce WAL recovery, before loading any characters.
  // Index saved balances without spawning disconnected characters.
@@ -94,13 +111,13 @@ export function startServer({port=8091,host='127.0.0.1',directory='./online-data
   }catch(error){ssvStatus.rejected++;ssvStatus.lastError=['wrong_ad_unit','wrong_reward','invalid_reward_identity','invalid_signature','duplicate_parameter','invalid_callback','keys_unavailable','expired_probe','unknown_account','unknown_ticket','expired_reward','used_ticket','duplicate_transaction','inventory_full','save_unavailable'].includes(error.message)?error.message:'verification_failed';res.writeHead(error.message==='save_unavailable'||error.message==='keys_unavailable'?503:400);res.end('Unverified reward');}
   finally{verifying--;}return;
  }
-if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.5.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
+if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.writeHead(diskFailure?503:200);res.end(JSON.stringify({ok:!diskFailure,version:PROTOCOL,release:'7.5.8',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,desertMap:true,oasisCity:true,desertMapRevision:20261116,desertTiles:world.maps.star.N,desertPopulation:world.mobs.star.length,fullSuitDrops:false,suitTypes:0,identityCleanupPublicKey:accounts.deletion.publicKey,ssv:ssvStatus,advancedSpecies:20,forestSpecies:20,forestRoaming:true,forestPopulation:world.mobs.forest.length,forestBosses:world.mobs.forest.filter(e=>e.def.boss).length,roamingCharacters:0,players:world.players.size,offlinePlayers:0,persistentPvp:false,groundLoot:true,capacity:world.maxPlayers,singleCurrency:true,economy:economySummary(economy)}));}else{res.writeHead(404);res.end();}});
  const wss=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
  server.on('upgrade',(req,socket,head)=>{const origin=req.headers.origin;const validOrigin=origin==='https://appassets.androidplatform.net'||origin==='https://cockro-game-updates.vercel.app'||/^https:\/\/cockro-game-updates-[a-z0-9-]+\.vercel\.app$/.test(origin||'')||test&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin||'');const ip=req.socket.remoteAddress==='127.0.0.1'?(req.headers['x-real-ip']||req.socket.remoteAddress):req.socket.remoteAddress;if(req.url!=='/online/world'||!validOrigin||connections.size>=maxPlayers+16||!allow(ip)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
  const send=(ws,data)=>{if(ws.readyState===1&&ws.bufferedAmount<262144){if(data.type==='state')data.stalls=data.self.map==='town'?commerce.stalls().filter(it=>Math.hypot(it.x-data.self.x,it.y-data.self.y)<1800).slice(0,64):[];const packet=stateForWire(data,ws.eventCursor||0);ws.send(JSON.stringify(packet));if(packet.type==='state')for(const e of packet.events)ws.eventCursor=Math.max(ws.eventCursor||0,e.id);}else ws.close(1013,'slow_connection');};
  const chat=createChat({connections,send});
  wss.on('connection',ws=>{connections.add(ws);let p=null,count=0,since=Date.now();const timer=setTimeout(()=>ws.close(1008,'handshake_timeout'),6000);ws.alive=true;ws.on('pong',()=>ws.alive=true);ws.on('error',()=>{});
-  let managing=false;ws.on('message',async raw=>{if(managing)return;if(commerce.failed){ws.close(1011);return;}try{const now=Date.now();if(now-since>=1000){count=0;since=now;}if(++count>35)throw Error('rate_limit');const d=JSON.parse(raw);if(!d||Array.isArray(d)||typeof d!=='object')throw Error('invalid_message');if(!p&&['manage','authStart','authFinish'].includes(d.type)){managing=true;clearTimeout(timer);try{let result;if(d.type==='authStart'){if(d.token){try{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');}catch(e){if(e.message!=='login_required')throw e;}}result=await accounts.authStart(d.token,d.purpose);}else if(d.type==='authFinish'){result=await accounts.authFinish(d.flow,d.code);}else{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');const owner=accounts.resolve(d.token);try{if(d.action==='delete'&&commerce.ownsListedItems(owner,characterId(owner,d.character)))throw Error('shop_items_pending');result=d.action==='purchaseHistory'?billing.history(owner,d.offset??0):await accounts.manage(d.token,d);if(d.action==='purchaseHistory'){const roster=characterRoster(directory,owner);for(const r of result.purchases){const c=roster.find(c=>characterId(owner,c.id)===r.character);r.characterName=r.characterName||(c?'ช่อง '+(CHARACTER_SLOTS.indexOf(c.id)+1)+' (ไม่บันทึกชื่อเดิม)':'ตัวละครที่ถูกลบ');delete r.character;}}}finally{
+  let managing=false;ws.on('message',async raw=>{if(managing)return;if(commerce.failed){ws.close(1011);return;}try{const now=Date.now();if(now-since>=1000){count=0;since=now;}if(++count>35)throw Error('rate_limit');const d=JSON.parse(raw);if(!d||Array.isArray(d)||typeof d!=='object')throw Error('invalid_message');if(!p&&['manage','authStart','authFinish'].includes(d.type)){managing=true;clearTimeout(timer);try{let result;if(d.type==='authStart'){if(d.token){try{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');}catch(e){if(e.message!=='login_required')throw e;}}result=await accounts.authStart(d.token,d.purpose);}else if(d.type==='authFinish'){result=await accounts.authFinish(d.flow,d.code);registerForCheckin(accounts.resolve(result.token));}else{if(activeAccounts.has(accounts.resolve(d.token)))throw Error('already_online');const owner=accounts.resolve(d.token);try{if(d.action==='delete'&&commerce.ownsListedItems(owner,characterId(owner,d.character)))throw Error('shop_items_pending');result=d.action==='purchaseHistory'?billing.history(owner,d.offset??0):await accounts.manage(d.token,d);if(d.action==='purchaseHistory'){const roster=characterRoster(directory,owner);for(const r of result.purchases){const c=roster.find(c=>characterId(owner,c.id)===r.character);r.characterName=r.characterName||(c?'ช่อง '+(CHARACTER_SLOTS.indexOf(c.id)+1)+' (ไม่บันทึกชื่อเดิม)':'ตัวละครที่ถูกลบ');delete r.character;}}}finally{
  if(accounts.deletion.isDeleted(owner))commerce.removeAccount(owner);
  if((result&&d.action==='delete')||accounts.deletion.isDeleted(owner)){
  const ids=d.action==='delete'? [characterId(owner,d.character)]:CHARACTER_SLOTS.map(slot=>characterId(owner,slot));
@@ -124,8 +141,8 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
  // Test ads use the same starting G balance as production.
  const stonesBeforeDelivery=state.stones;accounts.referrals.deliver(account,character,state,value=>{const file=join(directory,id+'.json');writeFileSync(file+'.tmp',JSON.stringify(value));renameSync(file+'.tmp',file);},{welcome:(created||d.newCharacter===true)&&characterRoster(directory,account).length===0});if(!testRewards)state.townBuffUntil=0;
  if(state.redenominatedMint>0)mint(economy,state.redenominatedMint);delete state.redenominatedMint;if(state.stones>stonesBeforeDelivery)mint(economy,state.stones-stonesBeforeDelivery);saveEconomy(true);
- countAccounts();p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);state=p.s;clearTimeout(timer);
- send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),admin:isOwner(account),release:'7.5.5',currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
+ countAccounts();p=world.join(id,state);p.account=account;p.character=character;activeAccounts.add(account);persist(p);registerForCheckin(account);state=p.s;clearTimeout(timer);
+ send(ws,{type:'welcome',...accounts.languageProfile(account,d.deviceLocale),admin:isOwner(account),release:'7.5.8',checkinDivisor:economy.checkinDivisor,currency:'COCKRO',gameplayBase:'4.50.2',singleCharacter:true,protectionTickets:true,id,character,chatEnabled:true,token:created?token:undefined,save:state,adsEnabled,testRewards,billingEnabled:billing.enabled,billingOwner:account,billingRecipients:characterRoster(directory,account).map(c=>({...c,profile:characterId(account,c.id)})),billingNotices:billing.notifications(account,id)});send(ws,world.snapshot(p));return;}
     if(d.type==='admin'){
      if(!isOwner(p.account)){send(ws,{type:'adminResult',ok:false,message:'forbidden'});return;}
      try{send(ws,{type:'adminResult',ok:true,...adminRun(p,d)});}catch(e){send(ws,{type:'adminResult',ok:false,message:String(e.message||'error').slice(0,80)});}
@@ -161,7 +178,10 @@ if(req.url==='/online/health'){res.setHeader('Content-Type','application/json');
     }
     if(d.type==='adTicket'){
      if(!adsEnabled){send(ws,{type:'adError',message:'ads_disabled'});return;}
-     try{const copy=structuredClone(p.s),ticket=issueRewardTicket(copy,d.item);persist({id:p.id,s:copy});p.s=copy;p.dirty=false;send(ws,{type:'adTicket',user:p.id,nonce:ticket.nonce,item:ticket.item});}
+     if(d.item==='dailyCheckinTriple'&&d.checkinDivisor!==undefined&&d.checkinDivisor!==economy.checkinDivisor){
+      send(ws,world.snapshot(p));send(ws,{type:'adError',message:'checkin_rate_changed'});return;
+     }
+     try{const copy=structuredClone(p.s),ticket=issueRewardTicket(copy,d.item,Date.now(),economy.checkinDivisor);persist({id:p.id,s:copy});p.s=copy;p.dirty=false;send(ws,{type:'adTicket',user:p.id,nonce:ticket.nonce,item:ticket.item});}
      catch(error){send(ws,{type:'adError',message:['save_unavailable','ad_limit','already_claimed','invalid_reward'].includes(error.message)?error.message:'ad_unavailable'});}return;
     }
     world.command(p,d);if(p.dirty&&['op','potion','mpPotion','enter','revive'].includes(d.type))persist(p);if(d.type==='op'){send(ws,world.snapshot(p));send(ws,{type:'opResult',op:d.op,requestId:d.requestId,...p.opResult});if(d.op==='exchangeBounty')send(ws,{type:'hunterStats',...hunts.view(p)});}

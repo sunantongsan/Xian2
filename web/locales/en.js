@@ -1,5 +1,6 @@
 // Authored game copy only; player-provided names and chat are never translated.
 export const EN = {
+"รางวัลเช็กอินเปลี่ยนแล้ว กรุณาตรวจยอดแล้วกดรับอีกครั้ง":"Check-in rewards have changed. Review the amount and claim again.",
 "ออกจากบัญชี":"Sign out",
 "ออกเกม":"Exit game",
 "เลือกรับฟรี หรือดูโฆษณาจนจบเพื่อรับ 3 เท่า":"Claim for free or finish a rewarded ad for triple the coins.",

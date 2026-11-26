@@ -30,3 +30,25 @@ test('overlapping free claim and late verified triple top up the quoted day acro
  applyVerifiedReward(restored,{custom_data:ticket.nonce,timestamp:String(before+25000),transaction_id:'delayed-triple'},before+26000);
  assert.equal(restored.stones,3*DAILY_GOLD[0]+DAILY_GOLD[1]);assert.equal(restored.checkin.lastDay,thaiDay(before)+1);
 });
+
+test('weekly check-in halving applies to each free claim and each server-verified ad quote',()=>{
+ const free=fresh('sword-cockro'),ads=fresh('sword-cockro');
+ for(let i=0;i<7;i++){
+  const now=day+i*D;
+  assert.equal(claimCheckin(free,now,2),DAILY_GOLD[i]/2);
+  const ticket=issueRewardTicket(ads,'dailyCheckinTriple',now,2);
+  const old=ads.stones;
+  applyVerifiedReward(ads,{custom_data:ticket.nonce,timestamp:String(now),transaction_id:ticket.nonce},now);
+  assert.equal(ads.stones-old,3*DAILY_GOLD[i]/2);
+ }
+ assert.equal(free.stones,215000);assert.equal(ads.stones,645000);
+});
+test('an ad quoted before the threshold keeps its promised amount, including legacy tickets',()=>{
+ for(const legacy of [false,true]){
+  const s=fresh('sword-cockro'),ticket=issueRewardTicket(s,'dailyCheckinTriple',day,1);
+  if(legacy)delete ticket.restore.divisor;
+  assert.equal(claimCheckin(s,day+1,2),10000);
+  applyVerifiedReward(s,{custom_data:ticket.nonce,timestamp:String(day+20000),transaction_id:ticket.nonce},day+20001);
+  assert.equal(s.stones,60000);
+ }
+});
