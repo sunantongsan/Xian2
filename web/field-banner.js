@@ -32,7 +32,7 @@ export function installFieldBanner(resizeGame){
   if(!b.visible)return;
   if(!loaded||!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0||width>b.maxWidth||height>b.maxHeight){collapse();return;}
   slot.style.setProperty('--ad-width',width+'px');slot.style.setProperty('--ad-height',height+'px');slot.classList.add('ad-loaded');sync();
-  reserve(Math.ceil(b.top+height+8));
+  reserve(0); // 7.8.6: no band above the game; the 320x50 ad sits in the empty top-right corner
  });
  window.addEventListener('resize',sync);window.addEventListener('pageshow',sync);document.addEventListener('visibilitychange',sync);
  const observer=new MutationObserver(sync);

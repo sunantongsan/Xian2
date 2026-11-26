@@ -12,3 +12,7 @@ test('field banner keeps the game size when a window or menu hides it',()=>{
  const src=fs.readFileSync(new URL('../web/field-banner.js',import.meta.url),'utf8');
  assert.ok(src.includes('if(hud.hidden)collapse();'));assert.ok(src.includes('if(!b.visible)return;'));
 });
+test('the field banner never pushes the game down with a band',()=>{
+ const src=fs.readFileSync(new URL('../web/field-banner.js',import.meta.url),'utf8');
+ assert.ok(!/reserve\(Math\.ceil/.test(src));
+});
