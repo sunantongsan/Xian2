@@ -33,3 +33,9 @@ test('verified ad callbacks deliver every boost, and trial skills fill empty slo
  const s=fresh('sword-cockro'),tk=issueTestTicket(s,'divineTrial',now);completeTestTicket(s,tk.nonce,now);assert(s.divineTrialUntil>now);
  assert.throws(()=>issueRewardTicket(fresh('sword-cockro'),'cockroCoins',now),/invalid_reward/);
 });
+test('HUD time for an ad-only EXP boost works without a ticket, and a throwing frame keeps the loop alive',async()=>{
+ const {expBoostUntil}=await import('../web/exp-tickets.js');const {createFrameLoop}=await import('../web/frame-loop.js');
+ const s=fresh('sword-cockro'),now=Date.now();grantAdBoost(s,'expTrial',now);assert.equal(s.expBoost,null);assert.equal(expBoostUntil(s,now),s.adExpUntil);
+ const queued=[];let calls=0;const loop=createFrameLoop(()=>{calls++;throw Error('boom');},{request:f=>{queued.push(f);return queued.length;},cancel(){}});
+ const log=console.error;console.error=()=>{};try{loop.start();for(let i=0;i<3;i++)queued.shift()(i*16);}finally{console.error=log;}assert.equal(calls,3);assert.equal(queued.length,1);
+});
