@@ -17,6 +17,6 @@ test('ticket cap, duplicate callback and save persistence',()=>{
  const s=fresh('sword-cockro');s.protectionTickets=4;const ticket=issueTestTicket(s,'protectionTicket');completeTestTicket(s,ticket.nonce);completeTestTicket(s,ticket.nonce);assert.equal(s.protectionTickets,5);assert.throws(()=>issueTestTicket(s,'protectionTicket'));assert.equal(validSave(s).protectionTickets,5);
 });
 test('reward boundaries and fractional carry survive save',()=>{
- assert.deepEqual([99,100,999,1000,99999,100000].map(onlineRate),[5,2.5,2.5,1,1,.5]);let s=fresh('sword-cockro');creditOnlineMinute(s,100);assert.equal(s.stones,2);s=validSave(s);creditOnlineMinute(s,100);assert.equal(s.stones,5);
+ assert.deepEqual([99,100,999,1000,99999,100000].map(onlineRate),[.05,.025,.025,.01,.01,.005]);let s=fresh('sword-cockro');for(let i=0;i<39;i++)creditOnlineMinute(s,100);assert.equal(s.stones,0);s=validSave(s);creditOnlineMinute(s,100);assert.equal(s.stones,1);
 });
 

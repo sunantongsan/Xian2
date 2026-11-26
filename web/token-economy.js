@@ -1,26 +1,28 @@
 // COCKRO single-currency economy (7.3.0). Everything is priced in baht and converted
 // at the pre-launch rate, so designers think in money and players see one coin.
-export const COCKRO_PER_THB=1_000_000; // launch price 0.000001 THB per COCKRO
+export const COCKRO_PER_THB=100_000; // in-game reference price 0.00001 THB per COCKRO
 export const thb=baht=>Math.round(baht*COCKRO_PER_THB);
 export const toTHB=coins=>coins/COCKRO_PER_THB;
 export const SUPPLY=100_000_000_000;
 export const ALLOCATION=Object.freeze({farm:.85,presale:.04,reserve:.04,lp:.07});
 export const DAILY_RELEASE=.001;       // share of the farm bucket released each Thai day
 export const PIONEER_RELEASE=.01,PIONEER_DAYS=30; // first 30 days after 7.4.0: 1% a day
-// Real players hunt 1-2 hours a day; the daily cap is two hours of full drops (8 THB).
-export const PLAYER_DAILY_CAP=8_000_000;
+export const PLAYER_DAILY_CAP=80_000;
 export const MIN_DAU=100;              // budgets never assume fewer players than this
 export const BURN_SHARE=.5;            // of every purchase; the rest returns to rewards
-// Kill drops: 5,000 + 100 per monster level (Lv.1 5,100 · Lv.60 11,000 · Lv.120 17,000 ·
-// Lv.240 29,000). Elites x3, bosses x10. Sized so a new player earns about 20 THB in
-// 5 hours of hunting, i.e. 4 THB an hour; the daily cap stops bots after two hours.
-export const KILL_BASE=5000,COCKRO_PER_MONSTER_LEVEL=100,ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
+// New free payouts are one hundredth of the previous schedule.
+export const KILL_BASE=50,COCKRO_PER_MONSTER_LEVEL=1,ELITE_MULTIPLIER=3,BOSS_MULTIPLIER=10;
+// Fractional drops keep their expected value even at the smallest population tiers.
+export function rollCoinAmount(amount,rng=Math.random){
+ const whole=Math.floor(amount),fraction=amount-whole;
+ return whole+(fraction>0&&rng()<fraction?1:0);
+}
 // Pioneer tier (internal, not shown in game): full drops for the first 100 accounts;
 // 101-1,000 accounts 50%, 1,001-10,000 25%, and half again for every extra zero.
 export function accountDropMultiplier(accounts=0){const n=Math.max(1,Math.floor(accounts)||1);return n<=100?1:.5**Math.ceil(Math.log10(n)-2);}
 export function baseKillCoins({playerLevel=1,level=1,boss=false,elite=false,accounts=0}={}){
  const lv=Math.max(1,Math.floor(level)||1),gap=playerLevel-lv,penalty=gap<10?1:gap<20?.5:.1;
- return Math.floor((KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty*accountDropMultiplier(accounts));
+ return (KILL_BASE+COCKRO_PER_MONSTER_LEVEL*lv)*(boss?BOSS_MULTIPLIER:elite?ELITE_MULTIPLIER:1)*penalty*accountDropMultiplier(accounts);
 }
 // Old balances were worth 5,000 COCKRO per 30 THB and G traded at 10 per COCKRO.
 export const LEGACY_COIN_FACTOR=6000,LEGACY_G_FACTOR=600;
@@ -53,16 +55,16 @@ export function rollDay(e,now=Date.now(),force=false){
  e.pool=release+e.recycledPending;e.recycledPending=0;e.poolStart=e.pool;e.players={};e.day=today;return e;
 }
 export const activePlayers=e=>Math.max(MIN_DAU,e.dauYesterday,Object.keys(e.players).length);
-export const dailyBudget=e=>Math.min(PLAYER_DAILY_CAP,Math.floor(e.poolStart/activePlayers(e)));
+export const dailyBudget=e=>Math.min(PLAYER_DAILY_CAP,Math.floor(e.poolStart/(100*activePlayers(e))));
 export const releaseRate=(e,day=e.day)=>day-(e.launchDay??day)<PIONEER_DAYS?PIONEER_RELEASE:DAILY_RELEASE;
 export function earnedToday(e,id){return e.players[id]||0;}
 // COCKRO for one kill, reserved from today's pool. Full rate until the budget is used,
 // 10% up to 150% of it, then nothing; farther-below-level monsters pay less.
-export function killReward(e,id,{playerLevel=1,level=1,boss=false,elite=false}={},now=Date.now()){
+export function killReward(e,id,{playerLevel=1,level=1,boss=false,elite=false}={},now=Date.now(),rng=Math.random){
  rollDay(e,now);
  const budget=dailyBudget(e),earned=earnedToday(e,id);
  const rate=earned<budget?1:earned<budget*1.5?.1:0;
- const amount=Math.min(e.pool,Math.floor(baseKillCoins({playerLevel,level,boss,elite,accounts:e.accounts||0})*rate));
+ const amount=Math.min(e.pool,rollCoinAmount(baseKillCoins({playerLevel,level,boss,elite,accounts:e.accounts||0})*rate,rng));
  if(amount<=0)return 0;
  e.pool-=amount;e.players[id]=earned+amount;e.minted+=amount;return amount;
 }

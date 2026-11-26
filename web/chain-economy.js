@@ -9,7 +9,7 @@ export const SUCCESS=[100,90,85,80,75,65,55,45,35,25,20,15];
 export const PRACTICE=[5,10,20,40,80,120,200,300,450,600,800,1000];
 export const COIN_CAP=1e12;
 export const trainingPoints=s=>Math.max(0,(Math.floor(s.level||1)-1)*5);
-export function normalizeEconomy(s,v=s){s.protectionTickets=Number.isSafeInteger(v.protectionTickets)?Math.max(0,Math.min(5,v.protectionTickets)):0;s.onlineRewardHalf= v.onlineRewardHalf===1?1:0;return s;}
+export function normalizeEconomy(s,v=s){s.protectionTickets=Number.isSafeInteger(v.protectionTickets)?Math.max(0,Math.min(5,v.protectionTickets)):0;s.onlineRewardUnits=Number.isInteger(v.onlineRewardUnits)&&v.onlineRewardUnits>=0&&v.onlineRewardUnits<200?v.onlineRewardUnits:(v.onlineRewardHalf===1?100:0);return s;}
 export function enhance(s,it,useProtection=false,rng=Math.random){
  const p=it?.plus||0,cost=COSTS[p];
  if(!it||!Number.isInteger(p)||p<0||p>=12||!Number.isSafeInteger(s.stones)||s.stones<cost||useProtection&&!(s.protectionTickets>0))return false;
@@ -26,9 +26,16 @@ export function enhance(s,it,useProtection=false,rng=Math.random){
  it.upgradeFails=0;
  return {success,cost,protected:useProtection};
 }
-export const onlineRate=count=>count<100?5:count<1000?2.5:count<100000?1:.5;
-// Half-coin remainder avoids losing fractional rewards in legacy integer balances.
-export function creditOnlineMinute(s,count){const half=(s.onlineRewardHalf||0)+onlineRate(count)*2,coins=Math.floor(half/2);if(s.stones+coins>COIN_CAP)return false;s.stones+=coins;s.onlineRewardHalf=half%2;return true;}
+export const onlineRate=count=>count<100?.05:count<1000?.025:count<100000?.01:.005;
+// Accumulate in 1/200 coin units across sessions.
+export function creditOnlineMinute(s,count){
+ const units=(s.onlineRewardUnits||0)+Math.round(onlineRate(count)*200);
+ const coins=Math.floor(units/200);
+ if(s.stones+coins>COIN_CAP)return false;
+ s.stones+=coins;
+ s.onlineRewardUnits=units%200;
+ return true;
+}
 
 export const PROTECTION_PRICE=thb(1),PROTECTION_CAP=5,PROTECTED_FAIL_COST=thb(.05);
 export function buyProtectionTicket(s,quantity=1){

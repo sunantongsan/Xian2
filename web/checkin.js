@@ -1,5 +1,4 @@
-import {thb} from './token-economy.js';
-export const DAILY_GOLD=[.02,.03,.04,.05,.06,.08,.15].map(thb);
+export const DAILY_GOLD=[200,300,400,500,600,800,1500];
 export const CHECKIN_AD_MULTIPLIER=3;
 const DAY=86400000;
 export const thaiDay=ms=>Math.floor((ms+7*3600000)/DAY);
@@ -26,15 +25,19 @@ function creditCheckin(s,day,streak,total){
  c.receipts.push({day,paid:total});
  return amount;
 }
-export function claimCheckin(s,now=Date.now(),divisor=1){
+export function claimCheckin(s,now=Date.now(),divisor=1,scale=1){
  if(!Number.isFinite(now))return 0;
  normalizeCheckin(s);
  const status=checkinStatus(s,now,divisor);
+ status.reward*=scale;
  if(status.claimed||s.stones>1e12-status.reward)return 0;
  return creditCheckin(s,status.today,status.day,status.reward);
 }
 export function claimVerifiedTripleCheckin(s,target){
  if(!Number.isSafeInteger(target?.day)||!Number.isInteger(target.streak)||!DAILY_GOLD[target.streak-1])throw Error('invalid_reward');
  normalizeCheckin(s);
- return creditCheckin(s,target.day,target.streak,DAILY_GOLD[target.streak-1]*CHECKIN_AD_MULTIPLIER/(target.divisor===2?2:1));
+ // Tickets issued before the cutover used the previous 100x schedule.
+ const base=target.baseReward??(100*DAILY_GOLD[target.streak-1]/(target.divisor===2?2:1));
+ if(!Number.isSafeInteger(base)||base<=0)throw Error('invalid_reward');
+ return creditCheckin(s,target.day,target.streak,base*CHECKIN_AD_MULTIPLIER);
 }
