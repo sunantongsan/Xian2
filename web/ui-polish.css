@@ -1,0 +1,77 @@
+/* COCKRO 7.7 — one clean look for every in-game window: dark glass, no frames, small pill buttons. Loaded last. */
+:root{--ui-bg:linear-gradient(165deg,rgba(24,32,47,.97),rgba(9,13,21,.98));--ui-soft:rgba(255,255,255,.045);--ui-soft2:rgba(255,255,255,.085);--ui-soft3:rgba(255,255,255,.13);--ui-gold:#f3c86c;--ui-gold2:#d99f3a;--ui-text:#eef1f6;--ui-muted:#9eabbd}
+
+body:not(.welcome-screen) dialog#modal{background:var(--ui-bg)!important;border:0!important;border-radius:18px!important;box-shadow:0 18px 60px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.05)!important;color:var(--ui-text)!important;padding:0 16px 16px!important;outline:0!important}
+body:not(.welcome-screen) dialog#modal::before,body:not(.welcome-screen) dialog#modal::after{display:none!important}
+body:not(.welcome-screen) dialog#modal::backdrop{background:rgba(3,6,12,.55)!important;backdrop-filter:blur(3px)!important}
+
+/* Titles: plain gold text, no bars or ornaments */
+body:not(.welcome-screen) #modal h2{position:sticky!important;top:0!important;z-index:2!important;margin:0 -16px 10px!important;padding:15px 52px 8px 18px!important;background:linear-gradient(rgba(20,27,40,.98) 75%,rgba(20,27,40,0))!important;border:0!important;box-shadow:none!important;text-shadow:none!important;color:var(--ui-gold)!important;font-size:16px!important;font-weight:700!important;letter-spacing:.3px!important;text-align:left!important}
+body:not(.welcome-screen) #modal h2::before,body:not(.welcome-screen) #modal h2::after{display:none!important;content:none!important}
+body:not(.welcome-screen) #modal h3{color:#f6e2b4!important;font-size:14px!important;letter-spacing:0!important;border:0!important;background:none!important;box-shadow:none!important}
+body:not(.welcome-screen) #modal p{color:#d9dfe8}
+body:not(.welcome-screen) #modal small,body:not(.welcome-screen) #modal .sub{color:var(--ui-muted)!important}
+body:not(.welcome-screen) #modal hr{border:0;height:1px;background:rgba(255,255,255,.07)}
+
+/* Close: a small soft circle */
+body:not(.welcome-screen) #modal #windowClose{position:sticky!important;top:11px!important;float:right!important;z-index:4!important;width:30px!important;height:30px!important;min-height:0!important;margin:11px -4px 0 0!important;padding:0!important;border:0!important;border-radius:50%!important;background:rgba(255,255,255,.09)!important;box-shadow:none!important;color:#d6dde7!important;font-size:17px!important;line-height:30px!important;text-shadow:none!important}
+body:not(.welcome-screen) #modal #windowClose:hover{background:rgba(255,255,255,.18)!important;color:#fff!important}
+
+/* Buttons: small pills */
+body:not(.welcome-screen) #modal button:not(#windowClose){min-height:32px!important;height:auto!important;padding:6px 14px!important;font-size:12.5px!important;font-weight:600!important;line-height:1.25!important;border:0!important;border-radius:999px!important;background:var(--ui-soft2)!important;color:#f2ead9!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transition:background .15s,transform .1s}
+body:not(.welcome-screen) #modal button:not(#windowClose):hover:not(:disabled){background:var(--ui-soft3)!important;color:#fff!important}
+body:not(.welcome-screen) #modal button:not(#windowClose):active:not(:disabled){transform:scale(.96)}
+body:not(.welcome-screen) #modal button:disabled{opacity:.38!important;filter:grayscale(.4)!important}
+body:not(.welcome-screen) #modal #modalContent>button{margin:6px 4px 0!important}
+/* Primary actions: buy, enhance, watch ad, claim */
+body:not(.welcome-screen) #modal :is(.market-card button,.boost-watch,[data-forge],button[data-reward-item],.primary,#claimDaily,#confirmBuy,.forge-action,.buy-btn):not(:disabled){background:linear-gradient(180deg,var(--ui-gold),var(--ui-gold2))!important;color:#2b1a04!important}
+body:not(.welcome-screen) #modal :is(.market-card button,.boost-watch,[data-forge],button[data-reward-item],.primary,#claimDaily,#confirmBuy):hover:not(:disabled){background:linear-gradient(180deg,#ffd987,#e5ad48)!important;color:#1d1102!important}
+body:not(.welcome-screen) #modal .danger{background:rgba(226,86,86,.2)!important;color:#ffc9c4!important}
+/* Selected tabs / toggles */
+body:not(.welcome-screen) #modal button[aria-pressed=true],body:not(.welcome-screen) #modal button.active,body:not(.welcome-screen) #modal button[aria-selected=true]{background:rgba(243,200,108,.18)!important;color:var(--ui-gold)!important}
+
+/* Frames: gone. Surfaces separate by soft tone only */
+body:not(.welcome-screen) #modal :is(div,section,aside,header,nav,footer,ul,li,fieldset,label,details,table,td,th):not(.boost-card):not(.boost-hero):not([class*=plus-]){border-color:transparent!important;box-shadow:none!important}
+body:not(.welcome-screen) #modal :is(.card,.market-card,.forge-card,.bar,.panel,fieldset,details,.inventory-cell,.stat-row,.daily-day,.checkin-day){border:0!important;border-radius:14px!important;background:var(--ui-soft)!important;box-shadow:none!important}
+body:not(.welcome-screen) #modal .market-card.skill-book{background:linear-gradient(135deg,rgba(120,110,255,.08),rgba(255,255,255,.03))!important}
+body:not(.welcome-screen) #modal article:not(.boost-card){border:0!important;box-shadow:none!important}
+
+/* Inputs */
+body:not(.welcome-screen) #modal :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){min-height:34px;padding:6px 12px!important;font-size:13px!important;border:0!important;border-radius:10px!important;background:rgba(255,255,255,.07)!important;color:#fff!important;box-shadow:none!important}
+body:not(.welcome-screen) #modal input[type=checkbox]{accent-color:var(--ui-gold)}
+
+/* Shop: sidebar tabs as quiet text pills, cards with a compact buy pill */
+body:not(.welcome-screen) #modal .market-tabs{background:transparent!important;border:0!important}
+body:not(.welcome-screen) #modal .market-tabs button{width:100%;justify-content:flex-start;text-align:left!important;border-radius:10px!important;background:transparent!important;color:#b8c3d2!important;font-size:12px!important;margin:0 0 3px!important}
+body:not(.welcome-screen) #modal .market-tabs button[aria-pressed=true]{background:rgba(243,200,108,.15)!important;color:var(--ui-gold)!important}
+body:not(.welcome-screen) #modal .market-card button{grid-column:2!important;justify-self:end!important;width:auto!important;min-height:28px!important;padding:5px 14px!important;font-size:12px!important}
+body:not(.welcome-screen) #modal .market-card button:disabled{background:rgba(255,255,255,.07)!important;color:#aab4c2!important}
+body:not(.welcome-screen) #modal .market-icon{background:transparent!important;border:0!important}
+
+/* Settings-style stacks of buttons read as a tidy list */
+body:not(.welcome-screen) #modal .settings-list button,body:not(.welcome-screen) #modal .menu-list button{width:100%;text-align:left;border-radius:12px!important;padding:10px 14px!important}
+
+/* In-window buff shortcut shown at the merchant, forge and sage */
+.npc-buff-chip{display:inline-flex!important;align-items:center;gap:6px;margin:0 0 10px!important;background:linear-gradient(90deg,rgba(255,196,77,.22),rgba(255,120,60,.16))!important;color:#ffd77c!important;border-radius:999px!important;padding:6px 14px!important;min-height:30px!important;font-size:12.5px!important;animation:npcChipGlow 2.4s ease-in-out infinite}
+.npc-buff-chip i{font-style:normal;background:#ffcc55;color:#2a1700;border-radius:999px;padding:1px 7px;font-size:10.5px}
+@keyframes npcChipGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,200,80,0)}50%{box-shadow:0 0 14px 1px rgba(255,200,80,.35)}}
+
+@media(max-height:450px){body:not(.welcome-screen) #modal h2{padding:11px 46px 6px 14px!important;font-size:14.5px!important}body:not(.welcome-screen) #modal #windowClose{top:8px!important;margin-top:8px!important;width:28px!important;height:28px!important;line-height:28px!important}body:not(.welcome-screen) #modal button:not(#windowClose){min-height:30px!important;padding:5px 12px!important;font-size:12px!important}}
+body:not(.welcome-screen) #modal .market-brand,body:not(.welcome-screen) #modal .forge-tabs{display:none!important}
+body:not(.welcome-screen) #modal button.selected{background:rgba(243,200,108,.18)!important;color:var(--ui-gold)!important}
+.npc-buff-chip{width:auto!important;max-width:max-content;align-self:flex-start;justify-self:start}
+/* Item slots keep a soft square, not a pill */
+body:not(.welcome-screen) #modal :is(.inventory-cell,.armory-slot,.equip-slot,.forge-slot,.forge-equip button,.armory button,[data-equip-slot],[data-forge-slot],[data-inventory-equipped],.bag-cell,.gear-slot,.hero-card){border-radius:12px!important;padding:2px!important;background:rgba(255,255,255,.05)!important;outline:0!important}
+body:not(.welcome-screen) #modal :is(.inventory-cell,[data-forge-slot]).selected,body:not(.welcome-screen) #modal [data-forge-slot][aria-pressed=true]{background:rgba(243,200,108,.2)!important;box-shadow:inset 0 0 0 1.5px rgba(243,200,108,.7)!important}
+body:not(.welcome-screen) #modal .inventory-cell.empty{background:rgba(255,255,255,.03)!important}
+body:not(.welcome-screen) #modal button:focus-visible{outline:2px solid rgba(243,200,108,.6)!important;outline-offset:2px}
+body:not(.welcome-screen) #modal .inventory-tabs button.selected{outline:0!important}
+/* Free-buff hall: keep its colour themes, drop the outlines */
+body:not(.welcome-screen) #modal .boost-hero h2{position:static!important;margin:0!important;padding:0!important;background:none!important;font-size:19px!important;color:#fff4d6!important}
+body:not(.welcome-screen) #modal .boost-hero{border:0!important;box-shadow:none!important;border-radius:16px!important}
+body:not(.welcome-screen) #modal .boost-card{border:0!important;box-shadow:none!important;border-radius:16px!important}
+body:not(.welcome-screen) #modal .boost-card.active{box-shadow:inset 0 0 0 1.5px rgba(255,214,120,.55)!important}
+body:not(.welcome-screen) #modal .boost-card .boost-watch{width:auto!important;margin:8px auto 0!important;display:block;padding:6px 18px!important}
+body:not(.welcome-screen) #modal .boost-plus{border:0!important;background:rgba(255,255,255,.1)!important}
+body:not(.welcome-screen) #modal .boost-hall{padding-top:14px}
+body:not(.welcome-screen) #modal :is(.market-card button,.boost-watch,[data-forge],button[data-reward-item],.primary,#claimDaily,#confirmBuy):not(:disabled) :is(small,span,em,b){color:inherit!important;opacity:.85}
