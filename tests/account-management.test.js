@@ -1,3 +1,4 @@
+import {googleReply} from './google-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -29,7 +30,7 @@ test('whole account deletion purges all slots, archive and backup; revokes token
  const restarted=createAccounts(f.dir);assert.throws(()=>restarted.resolve(f.token),/account_deleted/);assert(restarted.deletion.isCharacterDeleted(slot));
 });
 test('Google password recovery binds to same identity and grants one short-lived reset',async t=>{
- let uid='qa-google';const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:uid,identities:[{provider:'google'}]}});
+ let uid='qa-google';const fetcher=async u=>({ok:true,json:async()=>googleReply(u,uid,undefined,'test')});
  const f=setup(t,{fetcher});const link=await f.api.authStart(f.token);const signed=await f.api.authFinish(link.flow,'code');f.token=signed.token;await password(f);
  await assert.rejects(f.api.manage(f.token,{action:'setPassword',reset:true,password:'recovered-pass'}),/reauth_required/);
  let flow=await f.api.authStart(f.token,'resetPassword');uid='different-google';await assert.rejects(f.api.authFinish(flow.flow,'code'),/wrong_google_account/);
@@ -38,7 +39,7 @@ test('Google password recovery binds to same identity and grants one short-lived
  await assert.rejects(f.api.manage(proof.token,{action:'setPassword',reset:true,password:'again-pass'}),/reauth_required/);
 });
 test('identity deletion stays pending without admin access and retries server-side without reviving game data',async t=>{
- let deleted=false;const fetcher=async(u,options)=>{if(options.method==='DELETE'){deleted=true;return {ok:true};}return {ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:'qa-google',identities:[{provider:'google'}]}};};
+ let deleted=false;const fetcher=async(u,options)=>{if(options.method==='DELETE'){deleted=true;return {ok:true};}return {ok:true,json:async()=>googleReply(u,'qa-google',undefined,'test')};};
  const f=setup(t,{fetcher,adminKey:''});const begin=await f.api.authStart(f.token),session=await f.api.authFinish(begin.flow,'code');f.token=session.token;await password(f);
  const proofFlow=await f.api.authStart(f.token,'deleteAccount');f.token=(await f.api.authFinish(proofFlow.flow,'code')).token;
  const result=await f.api.manage(f.token,{action:'deleteAccount',password:'safe-pass-429',confirmText:'ลบบัญชี COCKRO'});assert(result.identityCleanupPending);
@@ -54,7 +55,7 @@ test('history is account-scoped, paginated, preserves verified order/test status
 });
 
 test('Google account deletion uses recent same-account proof without a separate game password',async t=>{
- let uid='delete-qa';const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:uid,identities:[{provider:'google'}]}});
+ let uid='delete-qa';const fetcher=async u=>({ok:true,json:async()=>googleReply(u,uid,undefined,'test')});
  const f=setup(t,{fetcher,adminKey:''});let flow=await f.api.authStart(f.token);f.token=(await f.api.authFinish(flow.flow,'code')).token;
  assert.equal((await f.api.manage(f.token,{action:'status'})).hasPassword,false);
  await assert.rejects(f.api.manage(f.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);
@@ -65,7 +66,7 @@ test('Google account deletion uses recent same-account proof without a separate 
  const result=await f.api.manage(proof.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'});assert(result.deleted);assert(result.identityCleanupPending);assert.throws(()=>f.api.resolve(proof.token));
 });
 test('expired Google deletion proof leaves account and game data intact',async t=>{
- const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:'expiry-qa',identities:[{provider:'google'}]}});
+ const fetcher=async u=>({ok:true,json:async()=>googleReply(u,'expiry-qa',undefined,'test')});
  const f=setup(t,{fetcher});let flow=await f.api.authStart(f.token);f.token=(await f.api.authFinish(flow.flow,'code')).token;flow=await f.api.authStart(f.token,'deleteAccount');const proof=await f.api.authFinish(flow.flow,'code');
  const file=join(f.dir,'accounts','session-'+hash(proof.token)+'.json'),session=JSON.parse(readFileSync(file));session.deleteReauthAt=Date.now()-300001;writeFileSync(file,JSON.stringify(session));assert.equal((await f.api.manage(proof.token,{action:'status'})).canDelete,false);
  await assert.rejects(f.api.manage(proof.token,{action:'deleteAccount',confirmText:'ลบบัญชี COCKRO'}),/reauth_required/);assert(existsSync(join(f.dir,f.account+'.json')));
@@ -73,7 +74,7 @@ test('expired Google deletion proof leaves account and game data intact',async t
 
 test('account details persist verified identity and same-account verification cannot switch characters',async t=>{
  let uid='identity-one',email='owner@example.com';
- const fetcher=async u=>({ok:true,json:async()=>u.includes('/token?')?{access_token:'test'}:{id:uid,email,user_metadata:{full_name:'Owner'},identities:[{provider:'google'}]}});
+ const fetcher=async u=>({ok:true,json:async()=>googleReply(u,uid,email,'test')});
  const f=setup(t,{fetcher});
  assert.equal((await f.api.manage(f.token,{action:'status'})).email,null);
  await assert.rejects(f.api.authStart(f.token,'verifyAccount'),/google_required/);

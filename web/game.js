@@ -1,3 +1,5 @@
+import {prefillInvite,clearInvite,inviteText,inviteError,shareInvite} from './invite-ui.js';
+import {inviteLink} from './invite-rules.js';
 import {triggerMonsterHit,reactToMonsterHit,drawMonsterReaction} from './monster-reaction.js';
 import {bindWorldInput} from './world-input.js';
 import {loadCockroach3D} from './cockroach-3d.js';
@@ -238,7 +240,35 @@ $('exitShortcut').onclick=exitGame;
 $('logoutShortcut').onclick=logoutScreen;
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#quickMenuTray,#menuBtn'))setQuickMenu(false);});
 $('menuBtn').onclick=()=>{if(s&&p&&!travelBusy)setQuickMenu($('menuBtn').getAttribute('aria-expanded')!=='true');};
-const accountError=e=>({confirmation_mismatch:t('พิมพ์คำยืนยันให้ตรงตามที่แสดง'),reauth_required:t('กรุณายืนยันตัวตนด้วย Google บัญชีเดิมอีกครั้ง'),wrong_google_account:t('กรุณาเลือก Google บัญชีเดิม'),google_required:t('ต้องเชื่อมบัญชี Google ก่อน'),deletion_pending:t('บัญชีนี้อยู่ระหว่างลบข้อมูลยืนยันตัวตน กรุณาติดต่อฝ่ายช่วยเหลือ'),account_deleted:t('บัญชีนี้ถูกลบแล้ว'),wrong_password:t('รหัสผ่านไม่ถูกต้อง'),password_locked:t('ลองรหัสผิดหลายครั้ง กรุณารอ 10 นาที'),weak_password:t('ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร'),get invalid_name(){return t('กรุณาตั้งชื่อ 2–20 ตัวอักษร');},already_online:t('กรุณาออกจากเกมบนเครื่องอื่นก่อน'),get name_mismatch(){return t('ชื่อตัวละครไม่ตรงกัน');},auth_failed:t('เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่'),auth_expired:t('คำขอหมดเวลา กรุณาเข้าสู่ระบบใหม่'),login_required:t('กรุณาเข้าสู่ระบบ Google อีกครั้ง')}[e.message]||t('ทำรายการไม่สำเร็จ กรุณาลองใหม่'));
+const accountError=e=>emailMessage(e.message)||({confirmation_mismatch:t('พิมพ์คำยืนยันให้ตรงตามที่แสดง'),reauth_required:t('กรุณายืนยันตัวตนด้วย Google บัญชีเดิมอีกครั้ง'),wrong_google_account:t('กรุณาเลือก Google บัญชีเดิม'),google_required:t('ต้องเชื่อมบัญชี Google ก่อน'),deletion_pending:t('บัญชีนี้อยู่ระหว่างลบข้อมูลยืนยันตัวตน กรุณาติดต่อฝ่ายช่วยเหลือ'),account_deleted:t('บัญชีนี้ถูกลบแล้ว'),wrong_password:t('รหัสผ่านไม่ถูกต้อง'),password_locked:t('ลองรหัสผิดหลายครั้ง กรุณารอ 10 นาที'),weak_password:t('ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร'),get invalid_name(){return t('กรุณาตั้งชื่อ 2–20 ตัวอักษร');},already_online:t('กรุณาออกจากเกมบนเครื่องอื่นก่อน'),get name_mismatch(){return t('ชื่อตัวละครไม่ตรงกัน');},auth_failed:t('เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่'),auth_expired:t('คำขอหมดเวลา กรุณาเข้าสู่ระบบใหม่'),login_required:t('กรุณาเข้าสู่ระบบ Google อีกครั้ง')}[e.message]||t('ทำรายการไม่สำเร็จ กรุณาลองใหม่'));
+const emailMessage=reason=>({
+ email_unverified:inviteText('กรุณาเข้าสู่ระบบ Google อีกครั้งด้วยบัญชีที่ยืนยันอีเมลแล้ว','Sign in with Google again using a verified email.'),
+ google_registration_required:inviteText('กรุณาสมัครด้วย Google ก่อนเข้าใช้ผ่านอีเมล','Register with Google before using email sign-in.'),
+ invalid_email:inviteText('กรุณาตรวจสอบที่อยู่อีเมล','Check your email address.'),
+ email_rate_limit:inviteText('ส่งคำขอบ่อยเกินไป กรุณารอก่อนขอลิงก์ใหม่','Please wait before requesting a new link.'),
+ email_unavailable:inviteText('ส่งอีเมลไม่ได้ กรุณาลองใหม่หรือเข้าสู่ระบบด้วย Google','Email is unavailable. Try again or use Google.')
+})[reason];
+function emailLoginScreen(){
+ const tr=inviteText;
+ show(`<h2>${tr('เข้าใช้ด้วยอีเมล','Sign in by email')}</h2><p>${tr('ใช้เมลเดียวกับที่สมัครเกมด้วย Google แล้วเปิดลิงก์ยืนยันบนเครื่องนี้','Use the address registered with Google, then open the confirmation link on this device.')}</p>
+ <input type="email" id="signinEmail" required maxlength="254" autocomplete="email" aria-label="Email">
+ ${button('sendEmailLink',tr('ส่งลิงก์ยืนยัน','Send sign-in link'))}${button('backFromEmail',t('กลับ'))}<p role="status" id="emailNotice"></p>`);
+ $('backFromEmail').onclick=title;
+ $('sendEmailLink').onclick=async()=>{
+  const field=$('signinEmail'),btn=$('sendEmailLink'),notice=$('emailNotice');
+  if(!field.reportValidity())return;
+  btn.disabled=true;
+  try{
+   const email=field.value.trim();
+   const result=await net.account('authStart',{purpose:'emailLogin',email});
+   if(!result.flow||!Number.isFinite(result.until))throw Error('email_unavailable');
+   localStorage.setItem('cockro-google-flow',JSON.stringify({flow:result.flow,purpose:'emailLogin',until:result.until}));
+   window.CockroAuth.postMessage(JSON.stringify({action:'awaitEmail'}));
+   notice.textContent=tr('หากมีบัญชีที่ใช้อีเมลนี้ ให้เปิดลิงก์จากกล่องจดหมายบนเครื่องนี้ภายใน 15 นาที','If this address is registered, open the link from your inbox on this device within 15 minutes.');
+  }catch(e){notice.textContent=emailMessage(e.message)||accountError(e);}
+  finally{btn.disabled=false;}
+ };
+}
 function googleButton(force=false){if(net.hasAccount&&!force)return '';return button('googleLogin',t('เข้าสู่ระบบ / เชื่อมบัญชี Google'));}
 function bindAccountButtons(owned,selected){
  if(!$('welcomeSound')){const b=document.createElement('button');b.id='welcomeSound';const label=()=>{b.textContent=soundEnabled()?t('เสียง: เปิด'):t('เสียง: ปิด');b.setAttribute('aria-pressed',String(soundEnabled()));};label();b.onclick=()=>{const enabled=!soundEnabled();if(s)s.sound=enabled;try{localStorage.setItem('cockro-sound',enabled?'on':'off');}catch{}gameAudio.sync(enabled);label();};$('modalContent').append(b);}
@@ -276,14 +306,15 @@ async function finishGoogleLogin(){
   const result=JSON.parse(raw),pending=JSON.parse(localStorage.getItem('cockro-google-flow')||'null');
   if(result.error)throw Error('auth_cancelled');
   if(!pending||pending.until<Date.now()||typeof result.code!=='string')throw Error('auth_expired');
-  show(t('<h2>กำลังยืนยันบัญชี Google…</h2><p>กำลังเชื่อมบัญชีและโหลดตัวละคร</p>'));
+  if(pending.purpose==='emailLogin')show('<h2>'+inviteText('กำลังยืนยันลิงก์อีเมล…','Verifying your email link…')+'</h2>');
+  else show(t('<h2>กำลังยืนยันบัญชี Google…</h2><p>กำลังเชื่อมบัญชีและโหลดตัวละคร</p>'));
   const account=await net.account('authFinish',{flow:pending.flow,code:result.code});
   net.setToken(account.token);language.bind(account.accountId,account);
   localStorage.removeItem('cockro-google-result');localStorage.removeItem('cockro-google-flow');
   if(account.accountIdentityReady){await accountCenter();return;}
   if(account.accountDeletionReady){await title();await deleteAccountScreen();return;}
   if(account.passwordReset){await title();await passwordScreen(true);return;}
-  await title();googleStatus(account.loadedExisting?t('เข้าสู่ระบบสำเร็จ • โหลดตัวละครจากบัญชี Google แล้ว'):t('เข้าสู่ระบบสำเร็จ • เชื่อมบัญชี Google และบันทึกตัวละครแล้ว'));
+  await title();if(pending.purpose==='emailLogin'){googleStatus(inviteText('ยืนยันอีเมลและโหลดบัญชีเดิมแล้ว','Email verified. Your existing account is loaded.'));return;}googleStatus(account.loadedExisting?t('เข้าสู่ระบบสำเร็จ • โหลดตัวละครจากบัญชี Google แล้ว'):t('เข้าสู่ระบบสำเร็จ • เชื่อมบัญชี Google และบันทึกตัวละครแล้ว'));
  }catch(error){
   localStorage.removeItem('cockro-google-result');localStorage.removeItem('cockro-google-flow');
   await title();googleStatus(error.message==='auth_cancelled'?t('ยกเลิกการเข้าสู่ระบบ สามารถลองใหม่ได้'):accountError(error));
@@ -295,7 +326,7 @@ async function deleteCharacterScreen(c){let status;try{status=await net.account(
 let titleRequest=0;
 async function title(){progressionUI.hide();chatUI.reset();gameAudio.setScene('welcome');gameAudio.sync(soundEnabled());
  const request=++titleRequest;await net.disconnect();if(request!==titleRequest)return;onlineMode=false;p=null;resetControls();$('hud').hidden=true;$('controls').hidden=true;$('hint').hidden=true;document.body.classList.add('welcome-screen');
- if(!net.hasAccount){show(ui`<h1>COCKRO</h1>${googleButton()}`);bindAccountButtons([]);return;}
+ if(!net.hasAccount){show(ui`<h1>COCKRO</h1>${googleButton()}${window.CockroInvite&&window.CockroAuth?button('emailLogin',inviteText('เข้าใช้ด้วยอีเมล','Sign in by email')):''}`);bindAccountButtons([]);if($('emailLogin'))$('emailLogin').onclick=emailLoginScreen;return;}
  show(ui`<h1>COCKRO</h1><h2>กำลังโหลดตัวละคร…</h2><button id="choose" disabled>${t('เล่น')}</button>`);
  let owned;try{owned=await net.roster();refreshStaticLanguage();}catch(error){if(request!==titleRequest)return;show(`<h1>COCKRO</h1><p>${escapeHTML(error.message)}</p>${button('choose',t('ลองใหม่'))}${googleButton(true)}`);$('choose').onclick=title;bindAccountButtons([]);return;}
  if(request!==titleRequest)return;
@@ -309,13 +340,13 @@ async function title(){progressionUI.hide();chatUI.reset();gameAudio.setScene('w
 }
 function createCharacterScreen(owned){if(!net.hasAccount)return title();gameAudio.setScene('create');
  if(owned.length)return title();const cards=HERO_CLASSES.filter(h=>h.id==='sword-cockro');let selected=cards[0].id;
- show(ui`<h2>สร้างตัวละคร <small>${owned.length} / 1</small></h2><div class="hero-grid welcome-roster">${cards.map(h=>`<button class="card hero-card" data-roster-hero="${h.id}" aria-pressed="${h.id===selected}"><span class="job-emblem" style="color:${h.color}">${({"sword-cockro":'⚔',"sword-mage":'✦',"sword-dragonfly":'➶',"sword-acolyte":'✧',"demon-scorpion":'◆',"sword-cricket":'⚒'})[h.id]}</span><b>${h.name}</b></button>`).join('')}</div><label class="character-name-label" for="characterName">ชื่อตัวละคร<input id="characterName" maxlength="20" minlength="2" required autocomplete="off" placeholder="ตั้งชื่อ 2–20 ตัวอักษร"></label><div class="roster-actions">${button('choose',t('สร้างตัวละคร'))}${owned.length?button('rosterBack',t('กลับ')):''}${button('accountCenter',t('จัดการบัญชี'))}${googleButton()}</div>`);
+ show(ui`<h2>สร้างตัวละคร <small>${owned.length} / 1</small></h2><div class="hero-grid welcome-roster">${cards.map(h=>`<button class="card hero-card" data-roster-hero="${h.id}" aria-pressed="${h.id===selected}"><span class="job-emblem" style="color:${h.color}">${({"sword-cockro":'⚔',"sword-mage":'✦',"sword-dragonfly":'➶',"sword-acolyte":'✧',"demon-scorpion":'◆',"sword-cricket":'⚒'})[h.id]}</span><b>${h.name}</b></button>`).join('')}</div><label class="character-name-label" for="characterName">ชื่อตัวละคร<input id="characterName" maxlength="20" minlength="2" required autocomplete="off" placeholder="ตั้งชื่อ 2–20 ตัวอักษร"></label><label class="character-name-label">${inviteText('รหัสแนะนำ (ถ้ามี)','Invite code (optional)')}<input id="signupInvite" maxlength="16" autocapitalize="characters" autocomplete="off"></label><small>${inviteText('มีรหัสรับ 5,000,000 Cockro • สมัครเองรับ 1,000,000 Cockro','With code: 5,000,000 Cockro · Without code: 1,000,000 Cockro')}</small><div class="roster-actions">${button('choose',t('สร้างตัวละคร'))}${owned.length?button('rosterBack',t('กลับ')):''}${button('accountCenter',t('จัดการบัญชี'))}${googleButton()}</div>`);
  document.querySelectorAll('[data-roster-hero]').forEach(b=>b.onclick=()=>{selected=b.dataset.rosterHero;document.querySelectorAll('[data-roster-hero]').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.rosterHero===selected)));});
- bindAccountButtons(owned);const nameInput=$('characterName');const validate=()=>{$('choose').disabled=!characterName(nameInput.value);};nameInput.oninput=validate;validate();
- $('choose').onclick=()=>{const name=characterName(nameInput.value);if(!name){nameInput.reportValidity();return;}++titleRequest;start({hero:selected,name,newCharacter:net.hasAccount});};if($('rosterBack'))$('rosterBack').onclick=title;
+ prefillInvite($('signupInvite'));bindAccountButtons(owned);const nameInput=$('characterName');const validate=()=>{$('choose').disabled=!characterName(nameInput.value);};nameInput.oninput=validate;validate();
+ $('choose').onclick=()=>{const name=characterName(nameInput.value);if(!name){nameInput.reportValidity();return;}++titleRequest;start({hero:selected,name,newCharacter:net.hasAccount,inviteCode:$('signupInvite').value.trim()});};if($('rosterBack'))$('rosterBack').onclick=title;
 }
 
-async function start(data){onlineEvent=0;net.latestState=null;onlineMode=true;{show(t('<h2>กำลังโหลดตัวละคร…</h2>'));try{data=await net.connect(data.hero,data.character||'main',data.newCharacter===true,data.name);}catch(e){net.disconnect();onlineMode=false;title();toast(e.message);return;}}try{await loadLayeredHero(data.hero,mutationVisualLevel(data));}catch{net.disconnect();onlineMode=false;await title();toast(t('โหลดภาพตัวละครไม่ได้ กรุณาลองเข้าใหม่'));return;}document.body.classList.remove('welcome-screen');$('chatToggle').hidden=false;chatUI.mount();if(heroAssetFiles(data.hero,mutationVisualLevel(data)).length){}else if(CLASS_SHEETS.includes(data.hero)){try{await loadImage('heroes/'+data.hero+'.webp');if(data.hero==='sword-cricket'&&!images.has('cricket-walk-prepared'))images.set('cricket-walk-prepared',prepareCricketWalk(await loadImage(CRICKET_WALK)));}catch{toast(t('โหลดตัวละครไม่ได้'));return;}}else if(data.hero!=='sword-cockro'){try{await Promise.all(['walk','actions'].map(state=>loadImage('heroes/'+data.hero+'-'+state+'.webp')));}catch{toast(t('โหลดตัวละครเดิมไม่ได้'));return;}}s=data;s.sound=soundEnabled();gameAudio.setScene('world');gameAudio.sync(soundEnabled());p={x:0,y:0,hp:maxHP(s),face:1,anim:'idle',animTime:0,walkDistance:0,walkDX:.707,walkDY:.707,back:false,inv:0,dead:false};cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};p.mp=maxMP();close();$('hud').hidden=false;$('controls').hidden=false;$('hint').hidden=true;resize();if(net.latestState){await loadRoadScene(net.latestState);toast(t('กลับเข้าสู่ตำแหน่งที่บันทึกไว้'));}initGoldStore().resume();}
+async function start(data){onlineEvent=0;net.latestState=null;onlineMode=true;{show(t('<h2>กำลังโหลดตัวละคร…</h2>'));try{const registering=data.newCharacter===true;data=await net.connect(data.hero,data.character||'main',registering,data.name,data.inviteCode);if(registering)clearInvite();}catch(e){net.disconnect();onlineMode=false;title();toast(e.message);return;}}try{await loadLayeredHero(data.hero,mutationVisualLevel(data));}catch{net.disconnect();onlineMode=false;await title();toast(t('โหลดภาพตัวละครไม่ได้ กรุณาลองเข้าใหม่'));return;}document.body.classList.remove('welcome-screen');$('chatToggle').hidden=false;chatUI.mount();if(heroAssetFiles(data.hero,mutationVisualLevel(data)).length){}else if(CLASS_SHEETS.includes(data.hero)){try{await loadImage('heroes/'+data.hero+'.webp');if(data.hero==='sword-cricket'&&!images.has('cricket-walk-prepared'))images.set('cricket-walk-prepared',prepareCricketWalk(await loadImage(CRICKET_WALK)));}catch{toast(t('โหลดตัวละครไม่ได้'));return;}}else if(data.hero!=='sword-cockro'){try{await Promise.all(['walk','actions'].map(state=>loadImage('heroes/'+data.hero+'-'+state+'.webp')));}catch{toast(t('โหลดตัวละครเดิมไม่ได้'));return;}}s=data;s.sound=soundEnabled();gameAudio.setScene('world');gameAudio.sync(soundEnabled());p={x:0,y:0,hp:maxHP(s),face:1,anim:'idle',animTime:0,walkDistance:0,walkDX:.707,walkDY:.707,back:false,inv:0,dead:false};cooldown={attack:0,skill:0,dash:0,potion:0};skillTimers={};p.mp=maxMP();close();$('hud').hidden=false;$('controls').hidden=false;$('hint').hidden=true;resize();if(net.latestState){await loadRoadScene(net.latestState);toast(t('กลับเข้าสู่ตำแหน่งที่บันทึกไว้'));}initGoldStore().resume();}
 async function travel(z,toTown=false,regionId=0){
  z=0;
  if(travelBusy||!s||!p)return false;
@@ -682,14 +713,32 @@ async function accountCenter(){
  await title();if(!net.hasAccount)return;
  show(t('<h2>กำลังโหลดบัญชี…</h2>'));
  try{const status=await net.account('status'),owned=await net.roster();refreshStaticLanguage();
- show(ui`<h2>ข้อมูลบัญชีที่ใช้งาน</h2><section class="account-identity"><p><b>${t('บัญชีเข้าเกม')}</b><br><span translate="no">${escapeHTML(status.email||t(status.google?'บัญชีเดิมยังไม่มีข้อมูลอีเมล กรุณายืนยัน Google เดิม':'บัญชีผู้เยี่ยมชม • ยังไม่เชื่อม Google'))}</span></p>${status.displayName?`<p>${escapeHTML(status.displayName)}</p>`:''}<p>รหัสผู้เล่น: <b translate="no">${escapeHTML(status.accountId)}</b></p><p>${t('ตัวละครในบัญชีนี้')}: ${owned.length?owned.map(c=>escapeHTML(c.name||t('กรุณาตั้งชื่อ'))+' · Lv.'+Number(c.level)).join(' / '):t('ยังไม่มีตัวละคร')}</p><p class="sub">${t('บัญชีจ่ายเงิน Google Play อาจต่างจากบัญชีเข้าเกม ตรวจอีเมลผู้จ่ายในหน้าชำระเงิน')}</p></section><div class="account-actions">${status.google?button('verifyAccountIdentity',t('ยืนยันและแสดงอีเมล Google เดิม')):''}${button('deletePassword',status.hasPassword?t('เปลี่ยนรหัสรักษาความปลอดภัย'):t('ตั้งรหัสรักษาความปลอดภัย'))}${status.google?button('forgotDeletePassword',t('ลืมรหัสรักษาความปลอดภัย')):googleButton(true)}${button('referralCenter',t('แนะนำเพื่อน • รับ 500 COCKRO coin'))}${button('purchaseHistory',t('ประวัติเติมเงิน'))}${button('logoutAccount',t('ออกจากระบบ'))}${button('deleteAccount',t('ลบบัญชีทั้งหมด'))}${button('accountSupport',t('ช่วยเหลือ / แจ้งปัญหา'))}${button('accountPrivacy',t('ความเป็นส่วนตัว'))}${button('accountBack',t('กลับไปเลือกตัวละคร'))}</div>`);
+ show(ui`<h2>ข้อมูลบัญชีที่ใช้งาน</h2><section class="account-identity"><p><b>${t('บัญชีเข้าเกม')}</b><br><span translate="no">${escapeHTML(status.email||t(status.google?'บัญชีเดิมยังไม่มีข้อมูลอีเมล กรุณายืนยัน Google เดิม':'บัญชีผู้เยี่ยมชม • ยังไม่เชื่อม Google'))}</span></p>${status.displayName?`<p>${escapeHTML(status.displayName)}</p>`:''}<p>รหัสผู้เล่น: <b translate="no">${escapeHTML(status.accountId)}</b></p><p>${t('ตัวละครในบัญชีนี้')}: ${owned.length?owned.map(c=>escapeHTML(c.name||t('กรุณาตั้งชื่อ'))+' · Lv.'+Number(c.level)).join(' / '):t('ยังไม่มีตัวละคร')}</p><p class="sub">${t('บัญชีจ่ายเงิน Google Play อาจต่างจากบัญชีเข้าเกม ตรวจอีเมลผู้จ่ายในหน้าชำระเงิน')}</p></section><div class="account-actions">${status.google?button('verifyAccountIdentity',t('ยืนยันและแสดงอีเมล Google เดิม')):''}${button('deletePassword',status.hasPassword?t('เปลี่ยนรหัสรักษาความปลอดภัย'):t('ตั้งรหัสรักษาความปลอดภัย'))}${status.google?button('forgotDeletePassword',t('ลืมรหัสรักษาความปลอดภัย')):googleButton(true)}${button('referralCenter',t('แนะนำเพื่อน'))}${button('purchaseHistory',t('ประวัติเติมเงิน'))}${button('logoutAccount',t('ออกจากระบบ'))}${button('deleteAccount',t('ลบบัญชีทั้งหมด'))}${button('accountSupport',t('ช่วยเหลือ / แจ้งปัญหา'))}${button('accountPrivacy',t('ความเป็นส่วนตัว'))}${button('accountBack',t('กลับไปเลือกตัวละคร'))}</div>`);
  bindAccountButtons(owned);if($('verifyAccountIdentity'))$('verifyAccountIdentity').onclick=()=>googleLogin('verifyAccount');if($('forgotDeletePassword'))$('forgotDeletePassword').onclick=()=>googleLogin('resetPassword');
  $('referralCenter').onclick=referralCenter;
  $('purchaseHistory').onclick=()=>purchaseHistory();$('deleteAccount').onclick=deleteAccountScreen;$('logoutAccount').onclick=logoutScreen;$('accountBack').onclick=title;$('accountPrivacy').onclick=privacy;$('accountSupport').onclick=()=>accountSupport(status.accountId);
  if($('selectDeleteCharacter'))$('selectDeleteCharacter').onclick=()=>{show(ui`<h2>เลือกตัวละครที่จะลบ</h2>${owned.length?owned.map(c=>`<button data-delete-slot="${c.id}">${escapeHTML(c.name||t('กรุณาตั้งชื่อ'))} • Lv.${c.level}</button>`).join(''):t('<p>ยังไม่มีตัวละคร</p>')}${button('cancelSelectDelete',t('กลับ'))}`);document.querySelectorAll('[data-delete-slot]').forEach(b=>b.onclick=()=>deleteCharacterScreen(owned.find(c=>c.id===b.dataset.deleteSlot)));$('cancelSelectDelete').onclick=accountCenter;};
  }catch(e){show(ui`<h2>โหลดบัญชีไม่สำเร็จ</h2><p>${escapeHTML(accountError(e))}</p>${button('retryAccount',t('ลองใหม่'))}${button('accountBack',t('กลับ'))}`);$('retryAccount').onclick=accountCenter;$('accountBack').onclick=title;}
 }
-async function referralCenter(){show(t('<h2>กำลังโหลดรหัสแนะนำ…</h2>'));try{const data=await net.account('referralStatus');show(ui`<h2>แนะนำเพื่อน</h2><p>เพื่อนเชื่อม Google และกรอกรหัสคุณ คุณได้รับ <b>500 COCKRO coin</b> ต่อบัญชีเพื่อนหนึ่งครั้ง</p>${data.code?ui`<p>รหัสของคุณ</p><input id="referralCode" readonly value="${escapeHTML(data.code)}" aria-label="รหัสแนะนำเพื่อน">${button('copyReferral',t('คัดลอกรหัส'))}<p>รอรับ ${data.pending} COCKRO coin • เข้าตัวละครที่ต้องการรับรางวัล</p>`:t('<p>กรุณาเชื่อมบัญชี Google ก่อนใช้ระบบแนะนำเพื่อน</p>')}${data.code&&!data.used?ui`<label>รหัสของเพื่อน<input id="friendReferralCode" maxlength="12" autocomplete="off" autocapitalize="characters"></label>${button('redeemReferral',t('ยืนยันรหัสเพื่อน'))}`:data.used?t('<p>บัญชีนี้ใช้รหัสแนะนำแล้ว</p>'):''}<p id="referralMessage" role="status"></p>${button('referralBack',t('กลับ'))}`);$('referralBack').onclick=accountCenter;if($('copyReferral'))$('copyReferral').onclick=async()=>{try{await navigator.clipboard.writeText(data.code);$('referralMessage').textContent=t('คัดลอกรหัสแล้ว');}catch{$('referralCode').select();$('referralMessage').textContent=t('กดค้างที่รหัสเพื่อคัดลอก');}};if($('redeemReferral'))$('redeemReferral').onclick=async()=>{$('redeemReferral').disabled=true;try{await net.account('redeemReferral',{code:$('friendReferralCode').value});await referralCenter();$('referralMessage').textContent=t('สำเร็จ! เพื่อนจะได้รับ 500 COCKRO coin เมื่อเข้าตัวละคร');}catch(e){$('redeemReferral').disabled=false;$('referralMessage').textContent=({referral_invalid:t('ไม่พบรหัสแนะนำนี้'),referral_self:t('ใช้รหัสของตัวเองไม่ได้'),referral_used:t('บัญชีนี้ใช้รหัสแล้ว'),google_required:t('กรุณาเชื่อม Google ก่อน')})[e.message]||accountError(e);}};}catch(e){toast(accountError(e));accountCenter();}}
+async function referralCenter(){
+ const tr=inviteText;
+ try{
+  const data=await net.account('referralStatus');
+  const code=data.code,link=code?inviteLink(code):'';
+  show(`<h2>${t('แนะนำเพื่อน')}</h2><p>${tr('ผู้แนะนำรับ 20,000,000 Cockro เมื่อเพื่อนสมัครด้วยรหัส เพื่อนรับ 5,000,000 Cockro','Earn 20,000,000 Cockro when a new friend registers with your code. They get 5,000,000 Cockro.')}</p>
+   ${code?`<b>${escapeHTML(code)}</b><input id="inviteLink" readonly aria-label="Invite link" value="${escapeHTML(link)}">${button('shareInvite',tr('แชร์ลิงก์ชวนเพื่อน','Share invite link'))}`:
+   data.canCreate?`<label>${tr('ตั้งรหัสของคุณ (A–Z, 0–9 จำนวน 4–16 ตัว)','Choose your code (4–16 letters or digits)')}<input id="myInvite" maxlength="16" autocapitalize="characters" autocomplete="off"></label>${button('createInvite',tr('สร้างรหัสแนะนำ','Create invite code'))}`:t('กรุณาเชื่อมบัญชี Google ก่อนใช้ระบบแนะนำเพื่อน')}
+   ${data.pending?`<p>${tr('รางวัลรอเข้าตัวละคร','Pending character reward')} ${Number(data.pending).toLocaleString()} Cockro</p>`:''}
+   <p id="inviteMessage" role="status"></p>${button('referralBack',t('กลับ'))}`);
+  $('referralBack').onclick=accountCenter;
+  if(code)$('shareInvite').onclick=async()=>{$('inviteMessage').textContent=await shareInvite(code,$('inviteLink'))||'';};
+  if($('createInvite'))$('createInvite').onclick=async()=>{
+   const btn=$('createInvite');btn.disabled=true;
+   try{await net.account('createReferralCode',{code:$('myInvite').value});await referralCenter();}
+   catch(e){btn.disabled=false;$('inviteMessage').textContent=inviteError(e.message)||accountError(e);}
+  };
+ }catch(e){toast(accountError(e));accountCenter();}
+}
 async function logoutScreen(){
  show(ui`<h2>ล็อกเอาต์?</h2><p>ตัวละครและของยังอยู่ กลับเข้าเกมด้วย Google บัญชีเดิมได้</p>${button('confirmLogout',t('ล็อกเอาต์'))}${button('cancelLogout',t('ยกเลิก'))}`);
  $('cancelLogout').onclick=()=>p&&net.ready?close():title();

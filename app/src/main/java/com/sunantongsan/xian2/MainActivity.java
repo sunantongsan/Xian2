@@ -13,6 +13,7 @@ import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 public class MainActivity extends ComponentActivity {
+ private InviteLinks invites;
  private static final int PICK_PATCH=880;
  private static final String ORIGIN="https://appassets.androidplatform.net";
  private final Handler handler=new Handler(Looper.getMainLooper());
@@ -24,6 +25,8 @@ public class MainActivity extends ComponentActivity {
  @Override public void onCreate(Bundle state){
   super.onCreate(state);root=new FrameLayout(this);setContentView(root);
   getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+  invites=new InviteLinks(this,()->runOnUiThread(()->{if(web!=null)web.evaluateJavascript("window.dispatchEvent(new Event('cockro-invite'))",null);}));
+  invites.receive(getIntent());invites.readInstall();
   billing=new GoldBilling(this);googleLogin=new GoogleLogin(this);googleLogin.callback(getIntent());ads=new RewardedAds(this);ads.start();
   loading=new StartupScreen(this);status=loading.status;progress=loading.progress;
   loading.resume.setOnClickListener(v->{if(updating){loading.resume.setEnabled(false);status.setText(NativeLanguage.text(MainActivity.this,"กำลังพัก เก็บไฟล์ที่โหลดไว้…","Pausing and saving download progress…"));updater.cancel();}else checkUpdate();});
@@ -67,7 +70,7 @@ public class MainActivity extends ComponentActivity {
    @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())failedBoot();}
    @Override public boolean onRenderProcessGone(WebView view,RenderProcessGoneDetail detail){boolean restored=!forceBundled&&GamePatch.pending(MainActivity.this)&&GamePatch.rollback(MainActivity.this);root.removeView(view);view.destroy();web=null;if(restored)recreate();else{loading.setVisibility(View.VISIBLE);status.setText(NativeLanguage.text(MainActivity.this,"เกมหยุดทำงาน กรุณาปิดแล้วเปิดใหม่","The game stopped. Please close and reopen it."));progress.setVisibility(View.GONE);}return true;}
   });
-  web.addJavascriptInterface(new NativeLanguage(this),"CockroLanguage");ads.attach(web);googleLogin.attach(web);billing.attach(web);
+  web.addJavascriptInterface(invites,"CockroInvite");web.addJavascriptInterface(new NativeLanguage(this),"CockroLanguage");ads.attach(web);googleLogin.attach(web);billing.attach(web);
   web.loadUrl(ORIGIN+"/assets/index.html");if(!foreground){web.onPause();}
  }
  private void checkBoot(int attempt){if(destroyed||web==null)return;if(!foreground){handler.postDelayed(()->checkBoot(attempt),500);return;}web.evaluateJavascript("Boolean(window.cockroBootReady || (document.getElementById('loading')?.hidden && (document.getElementById('choose') || document.getElementById('googleLogin'))))",value->{if(destroyed)return;if("true".equals(value)){if(!forceBundled)worker.execute(()->GamePatch.healthy(this));}else if(attempt<40){handler.postDelayed(()->checkBoot(attempt+1),500);}else failedBoot();});}
@@ -75,7 +78,7 @@ public class MainActivity extends ComponentActivity {
  @Override protected void onActivityResult(int request,int result,android.content.Intent data){super.onActivityResult(request,result,data);if(request!=PICK_PATCH||result!=RESULT_OK||data==null||data.getData()==null)return;
   loading.setVisibility(View.VISIBLE);status.setText(NativeLanguage.text(MainActivity.this,"กำลังตรวจสอบแพตช์…","Checking game updates…"));android.net.Uri uri=data.getData();worker.execute(()->{try{GamePatch.install(this,uri);runOnUiThread(()->{if(!destroyed){gameLoaded=false;if(web!=null){root.removeView(web);web.destroy();web=null;}loadGame();}});}catch(Exception e){runOnUiThread(()->{if(!destroyed){loading.setVisibility(View.GONE);Toast.makeText(this,NativeLanguage.text(MainActivity.this,"ติดตั้งแพตช์ไม่ได้: ","Could not install update: ")+e.getMessage(),Toast.LENGTH_LONG).show();}});}});
  }
- @Override protected void onNewIntent(android.content.Intent intent){super.onNewIntent(intent);setIntent(intent);if(googleLogin!=null)googleLogin.callback(intent);}
+ @Override protected void onNewIntent(android.content.Intent intent){super.onNewIntent(intent);setIntent(intent);if(invites!=null)invites.receive(intent);if(googleLogin!=null)googleLogin.callback(intent);}
  @Override protected void onPause(){foreground=false;if(ads!=null)ads.setForeground(false);if(web!=null){web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'));",null);web.onPause();}super.onPause();}
- @Override protected void onDestroy(){destroyed=true;if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){destroyed=true;if(invites!=null)invites.close();if(billing!=null)billing.destroy();if(ads!=null)ads.destroy();updater.cancel();handler.removeCallbacksAndMessages(null);worker.shutdownNow();if(web!=null){root.removeView(web);web.destroy();web=null;}super.onDestroy();}
 }

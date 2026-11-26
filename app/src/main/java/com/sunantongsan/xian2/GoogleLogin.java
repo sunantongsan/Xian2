@@ -18,6 +18,7 @@ final class GoogleLogin {
    if(!mainFrame||!"https://appassets.androidplatform.net".equals(origin.toString()))return;
    try{JSONObject msg=new JSONObject(message.getData());String action=msg.optString("action");
     if("exit".equals(action)){activity.finishAndRemoveTask();return;}
+    if("awaitEmail".equals(action)){state.edit().clear().putLong("until",System.currentTimeMillis()+900000).commit();return;}
     if("ready".equals(action)){ready=true;resume();return;}
     Uri uri=Uri.parse(msg.getString("url"));
     if(!"https".equals(uri.getScheme())||!"kfohckvypopaoogmnjuy.supabase.co".equals(uri.getHost())||!"/auth/v1/authorize".equals(uri.getPath())||!"google".equals(uri.getQueryParameter("provider"))||!"cockronetwork://auth/callback".equals(uri.getQueryParameter("redirect_to"))||!"s256".equals(uri.getQueryParameter("code_challenge_method"))||uri.getQueryParameter("code_challenge")==null)return;

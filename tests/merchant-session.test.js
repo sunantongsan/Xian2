@@ -1,3 +1,4 @@
+import {googleReply} from './google-fixture.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mkdtempSync,readdirSync,readFileSync,writeFileSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';
 import {createAccounts} from '../server/accounts.js';import {fresh} from '../web/core.js';import {World} from '../server/world.js';
@@ -5,7 +6,7 @@ import {TIERS,buyShopGear,itemStats,canEquip} from '../web/gear.js';import {MERC
 import {receiveActor,renderPosition} from '../web/render-motion.js';import {stateForWire} from '../server/state-wire.js';
 test('Google device session survives time and restart; logout revokes it without deleting account',async t=>{
  const dir=mkdtempSync(join(tmpdir(),'cockro-session-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
- const fetcher=async url=>({ok:true,json:async()=>url.includes('/token?')?{access_token:'test'}:{id:'verified-test-user',identities:[{provider:'google'}]}});
+ const fetcher=async url=>({ok:true,json:async()=>googleReply(url,'verified-test-user',undefined,'test')});
  let api=createAccounts(dir,{fetcher});let f=await api.authStart();const a=await api.authFinish(f.flow,'verified-code'),owner=api.resolve(a.token);
  const file=join(dir,'accounts',readdirSync(join(dir,'accounts')).find(x=>x.startsWith('session-'))),data=JSON.parse(readFileSync(file));data.expires=1;writeFileSync(file,JSON.stringify(data));
  api=createAccounts(dir,{fetcher});assert.equal(api.resolve(a.token),owner);await api.manage(a.token,{action:'logout'});assert.throws(()=>api.resolve(a.token),/login_required/);

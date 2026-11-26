@@ -36,7 +36,7 @@ export function freshEconomy(now=Date.now()){
 const whole=v=>Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER?Math.round(v):0;
 export function normalizeEconomyState(v,now=Date.now()){
  const e=freshEconomy(now);if(!v||v.version!==1)return rollDay(e,now,true);
- for(const k of ['farm','presale','presaleSold','reserve','lp','burned','recycled','recycledPending','minted','pool','poolStart','dauYesterday','accounts'])e[k]=whole(v[k]);
+ for(const k of ['farm','presale','presaleSold','reserve','lp','burned','recycled','recycledPending','minted','referralIssued','pool','poolStart','dauYesterday','accounts'])e[k]=whole(v[k]);
  e.day=Number.isSafeInteger(v.day)?v.day:thaiDay(now);
  e.launchDay=Number.isSafeInteger(v.launchDay)?v.launchDay:null;
  if(e.launchDay===null){ // 7.4.0 upgrade: pioneer phase starts today; top today's pool up to 1%.
