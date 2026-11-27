@@ -27,15 +27,28 @@ export const BAG_SIZE=40;
 const NOUN={weapon:{get 'sword-cockro'(){return t('ดาบนักรบ');},get 'demon-scorpion'(){return t('มีดคู่');},get 'sword-dragonfly'(){return t('ธนู');},get 'sword-cricket'(){return t('ค้อน');},get 'sword-mage'(){return t('คทาเวท');},get 'sword-acolyte'(){return t('คทาศักดิ์สิทธิ์');}}};
 export function itemName(it,hero){const insect=INSECT_ARMOR[insectFields(it).insect];const noun=insect?(language.current==='en'?insect.en:insect.name):it.slot==='weapon'?(NOUN.weapon[hero]||t('อาวุธฮีโร่')):SLOTS[it.slot].name;return `${noun}${language.current==='en'?' ':''}${TIERS[it.tier].name}`+(it.rarity===DIVINE_RARITY?' · '+RARITY[DIVINE_RARITY].name:'')+(it.plus?` +${it.plus}`:'')+(it.expiresAt?' · '+t('ใช้ถึง')+' '+new Date(it.expiresAt).toLocaleString(language.current==='en'?'en-GB':'th-TH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'');}
 export const tierForLevel=level=>TIERS.reduce((t,x,i)=>level>=x.level?i:t,0);
+// 7.9.4: enhancement is a big, visible power jump. Every + multiplies the whole item (divine
+// bonuses included) by 18% plus its forge roll, and every third + unlocks a perk:
+// weapon crit +4% and skill power +8%, ring crit +3% and attack +10%, amulet HP and defense +12%.
+export const ENHANCE_STEP=.18;
+export function enhanceMultiplier(it){const plus=Math.max(it?.plus||0,it?.legacyPlus||0);return 1+plus*ENHANCE_STEP+(it?.forgeBonus||0)/100;}
 export function itemStats(it){
- const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult*(1+Math.max(it.plus||0,it.legacyPlus||0)*.08+(it.forgeBonus||0)/100),o={};
- for(const key of ['atk','def','hp','crit','speed','mp','spell'])if(base[key])o[key]=+(base[key]*k).toFixed(key==='crit'||key==='spell'?3:1);
+ const base=SLOTS[it.slot],k=(1+it.tier*1.15)*RARITY[it.rarity].mult,o={};
+ for(const key of ['atk','def','hp','crit','speed','mp','spell'])if(base[key])o[key]=base[key]*k;
  if(it.rarity===DIVINE_RARITY){
   const step=it.tier+1;
   if(it.slot==='weapon')o.atk+=70*step;
   if(it.slot==='ring')o.atk=20*step;
   if(it.slot==='amulet'){o.hp=160*step;o.def=10*step;}
  }
+ const enh=enhanceMultiplier(it),perks=Math.floor(Math.max(it.plus||0,it.legacyPlus||0)/3);
+ for(const key of ['atk','def','hp','mp'])if(o[key])o[key]*=enh;
+ if(perks){
+  if(it.slot==='weapon'){o.crit=(o.crit||0)+.04*perks;o.spell=(o.spell||0)+.08*perks;}
+  if(it.slot==='ring'){o.crit=(o.crit||0)+.03*perks;if(o.atk)o.atk*=1+.1*perks;}
+  if(it.slot==='amulet'){if(o.hp)o.hp*=1+.12*perks;if(o.def)o.def*=1+.12*perks;}
+ }
+ for(const key of Object.keys(o))o[key]=+o[key].toFixed(key==='crit'||key==='spell'?3:1);
  for(const id of GEM_IDS){const n=normalizeGems(it.gems)[id],g=UPGRADE_ITEMS[id];if(n)o[g.stat]=+((o[g.stat]||0)+n*g.amount).toFixed(g.stat==='crit'?3:1);}
  const opt=specialInfo(it.special);if(opt&&!['hpRegen','mpRegen'].includes(opt.stat))o[opt.stat]=(o[opt.stat]||0)+opt.value;
  for(const [key,value] of Object.entries(INSECT_ARMOR[insectFields(it).insect]?.bonus||{}))o[key]=(o[key]||0)+value*(1+it.tier*.4);

@@ -44,10 +44,10 @@ test('successful rolls vary, survive restart and preserve existing enhancement p
   assert(upgradeGear(s,'weapon',()=>roll));
   const saved=validSave(s).equip.weapon;
   assert.equal(saved.forgeBonus,bonus);
-  assert.equal(itemStats(saved).atk,Number((9*(1.08+bonus/100)).toFixed(1)));
+  assert.equal(itemStats(saved).atk,Number((9*(1.18+bonus/100)).toFixed(1)));
  }
  const s=fresh('sword-cockro');s.equip.weapon.plus=5;
- assert.equal(itemStats(validSave(s).equip.weapon).atk,12.6);
+ const plus5=itemStats(validSave(s).equip.weapon);assert.equal(plus5.atk,Number((9*1.9).toFixed(1)));assert.equal(plus5.crit,.04);assert.equal(plus5.spell,.08);
 });
 
 test('an unprotected failure destroys only the confirmed weapon, protection preserves its exact stats',()=>{

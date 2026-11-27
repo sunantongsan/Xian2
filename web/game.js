@@ -192,9 +192,30 @@ function applyOnlineState(d){
  if(onlineView&&!forgePending&&(onlineView!=='forge'||oldForge!==JSON.stringify([s.equip,s.upgradeItems,s.stones,s.stones]))&&onlineView!=='shop'&&onlineView!=='stats'&&onlineView!=='character'&&onlineView!=='gifts'&&modal.open&&performance.now()-onlinePaint>1000){const focus=document.activeElement;if(!focus||focus.tagName!=='SELECT')onlineMenu(onlineView);}hud();
 }
 function onlineAttack(){if(!p||p.dead||town||paused||!net.ready||cooldown.attack>0)return;const e=target?.hp>0?target:enemies.filter(e=>e.hp>0).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return;target=e;if(Math.hypot(e.x-p.x,e.y-p.y)>attackRange()){target=e;return;}cooldown.attack=.46;net.send({type:'attack',target:e.id});}
-function drawEnhanceAura(g,x,y,size,localT,n){if(n<3)return;g.save();g.globalCompositeOperation='lighter';g.strokeStyle=n>=9?'#ffe697':n>=6?'#d689ff':'#79dcff';g.fillStyle=g.strokeStyle;g.globalAlpha=.65;g.lineWidth=n>=9?3:2;g.beginPath();g.ellipse(x,y,size*.34,size*.11,0,0,Math.PI*2);g.stroke();const count=s?.quality==='low'?3:n>=9?9:5;for(let i=0;i<count;i++){const a=localT*1.2+i*Math.PI*2/count;g.beginPath();g.arc(x+Math.cos(a)*size*.3,y-size*.2-((localT*25+i*17)%(size*.55)),n>=9?2.5:1.7,0,7);g.fill();}g.restore();}
+// Enhancement fire (7.9.4): soft additive fire particles rising behind the hero, a glowing ring at
+// the feet and sparks in front. +1–3 warm embers, +4–6 orange blaze, +7–9 red fire with blue
+// sparks, +10–12 violet-blue inferno. Particles are cached sprites, so it stays cheap on phones.
+const fireSprites=new Map();
+function fireSprite(inner,outer,hot=false){const key=inner+outer+hot;let c=fireSprites.get(key);if(c)return c;c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,hot?'#ffffff':inner);r.addColorStop(.25,inner);r.addColorStop(.6,outer+'99');r.addColorStop(1,outer+'00');g.fillStyle=r;g.fillRect(0,0,64,64);fireSprites.set(key,c);return c;}
+const FIRE_TIERS=[{core:'#ffe9a8',edge:'#ff7a1a',spark:'#ffd36b',ring:'#ff9a3a'},{core:'#ffd86b',edge:'#ff4d12',spark:'#ffe08a',ring:'#ff6a1a'},{core:'#ffcf5a',edge:'#e0241a',spark:'#8fd8ff',ring:'#ff3b2a'},{core:'#f3c8ff',edge:'#8a2dff',spark:'#9fd2ff',ring:'#b04dff'}];
+function drawEnhanceAura(g,x,y,size,localT,n,layer='both'){if(n<1||!globalThis.document)return;const low=s?.quality==='low',tier=n>=10?3:n>=7?2:n>=4?1:0,c=FIRE_TIERS[tier],k=Math.min(12,n)/12;
+ g.save();g.globalCompositeOperation='lighter';
+ if(layer!=='front'){
+  const ring=g.createRadialGradient(x,y,size*.05,x,y,size*(.3+k*.15));ring.addColorStop(0,c.ring+'66');ring.addColorStop(1,c.ring+'00');g.fillStyle=ring;g.beginPath();g.ellipse(x,y,size*(.3+k*.15),size*(.1+k*.05),0,0,7);g.fill();
+  const body=fireSprite(c.core,c.edge),count=low?8+tier*3:14+n*4,height=size*(.55+k*.75),spread=size*(.2+k*.14);
+  const hot=fireSprite(c.core,c.edge,true);
+  for(let i=0;i<count;i++){const seed=((Math.sin(i*12.9898)*43758.5453)%1+1)%1,ph=(localT*(.8+tier*.12)+i/count+seed*.5)%1,
+   // flame tongues: wide at the feet, drawn together toward a flickering tip
+   px=x+(seed-.5)*2*spread*(1-ph*.85)+Math.sin(localT*4.3+i*1.7)*size*.02*ph,py=y-size*.02-ph*height,r=size*(.06+k*.05)*(1-ph*.7)+1.5;
+   g.globalAlpha=Math.min(1,(1-ph)*1.6)*(.32+k*.33);g.drawImage(ph<.35?hot:body,px-r,py-r*1.6,r*2,r*3.2);}
+ }
+ if(layer!=='back'){
+  const spark=fireSprite(c.spark,c.spark,true),sparks=low?2+tier:2+Math.ceil(n*.7);
+  for(let i=0;i<sparks;i++){const ph=(localT*.6+i*.618)%1,px=x+Math.sin(i*5.3+localT*1.3)*size*(.14+k*.08),py=y-size*.15-ph*size*(.6+k*.35),r=(.9+tier*.35)*(1.4-ph);g.globalAlpha=(1-ph)*.85;g.drawImage(spark,px-r*2,py-r*2,r*4,r*4);}
+ }
+ g.restore();}
 function drawPlayerName(g,name,x,y){g.save();g.textAlign='center';g.font='bold 13px GameThai,sans-serif';g.strokeStyle='#071421';g.lineWidth=3;g.strokeText(name,x,y);g.fillStyle='#8fffd9';g.fillText(name,x,y);g.restore();}
-function drawRemote(e){if(!visibleActor(e))return;const point=renderPosition(e),q=project(point.x,point.y),size=110*scale,labelHeight=size*(e.insectArmor?INSECT_DISPLAY_SCALE:1);ctx.save();ctx.fillStyle='#25e4bd55';ctx.beginPath();ctx.ellipse(q.x,q.y,28*scale,11*scale,0,0,7);ctx.fill();drawHero(ctx,images,e.hero,e,q.x,q.y,size);drawEnhanceAura(ctx,q.x,q.y,size,time,e.auraLevel||0);if(buffActive(e,Date.now()+serverTimeOffset))drawBuffAura(ctx,q.x,q.y,scale,time);ctx.textAlign='center';ctx.font='bold 12px GameThai,sans-serif';ctx.strokeStyle='#071421';ctx.lineWidth=3;const label=e.name;if(e.title){ctx.strokeText(e.title,q.x,q.y-labelHeight-30);ctx.fillStyle=e.offline?'#c2bdcc':'#8fffd9';ctx.fillText(e.title,q.x,q.y-labelHeight-30);}ctx.strokeText(label,q.x,q.y-labelHeight-14);ctx.fillStyle=e.offline?'#c2bdcc':'#8fffd9';ctx.fillText(label,q.x,q.y-labelHeight-14);ctx.fillRect(q.x-25,q.y-labelHeight-9,50*Math.max(0,e.hp/e.maxHp),4);ctx.restore();}
+function drawRemote(e){if(!visibleActor(e))return;const point=renderPosition(e),q=project(point.x,point.y),size=110*scale,labelHeight=size*(e.insectArmor?INSECT_DISPLAY_SCALE:1);ctx.save();ctx.fillStyle='#25e4bd55';ctx.beginPath();ctx.ellipse(q.x,q.y,28*scale,11*scale,0,0,7);ctx.fill();drawEnhanceAura(ctx,q.x,q.y,size,time,e.auraLevel||0,'back');drawHero(ctx,images,e.hero,e,q.x,q.y,size);drawEnhanceAura(ctx,q.x,q.y,size,time,e.auraLevel||0,'front');if(buffActive(e,Date.now()+serverTimeOffset))drawBuffAura(ctx,q.x,q.y,scale,time);ctx.textAlign='center';ctx.font='bold 12px GameThai,sans-serif';ctx.strokeStyle='#071421';ctx.lineWidth=3;const label=e.name;if(e.title){ctx.strokeText(e.title,q.x,q.y-labelHeight-30);ctx.fillStyle=e.offline?'#c2bdcc':'#8fffd9';ctx.fillText(e.title,q.x,q.y-labelHeight-30);}ctx.strokeText(label,q.x,q.y-labelHeight-14);ctx.fillStyle=e.offline?'#c2bdcc':'#8fffd9';ctx.fillText(label,q.x,q.y-labelHeight-14);ctx.fillRect(q.x-25,q.y-labelHeight-9,50*Math.max(0,e.hp/e.maxHp),4);ctx.restore();}
 function refreshOnlineShop(){
  if(!s)return;
  const set=(id,text)=>{const el=$(id);if(el&&el.textContent!==text)el.textContent=text;};
@@ -808,13 +829,17 @@ function bindForgeSelection(){if($('useProtection'))$('useProtection').onchange=
  if($('forgeBag'))$('forgeBag').onclick=()=>onlineMode?onlineInventory():statMenu('bag');
 }
 // Every enhancement step with its fee and success rate; the next step is highlighted.
+// What the next success gives, so players see the real power jump before enhancing.
+function forgePreview(it){const now=itemStats(it),next=itemStats({...it,plus:(it.plus||0)+1,forgeBonus:(it.forgeBonus||0)+3}),L={atk:t('โจมตี'),def:t('ป้องกัน'),hp:'HP',crit:t('คริติคอล'),mp:t('พลังงาน'),spell:t('พลังวิชา'),speed:t('ความเร็ว')};
+ const rows=Object.keys(next).filter(k=>(next[k]||0)>(now[k]||0)).map(k=>{const pct=k==='crit'||k==='spell',f=v=>pct?(v*100).toFixed(1)+'%':Math.round(v).toLocaleString();return `<span>${L[k]} ${f(now[k]||0)} <b>→ ${f(next[k])}</b></span>`;}).join('');
+ const perk=((it.plus||0)+1)%3===0?`<em>${t('ขั้นนี้ปลดล็อกพลังพิเศษ!')}</em>`:'';return `<div class="forge-preview">${rows}${perk}</div>`;}
 function forgeCostTable(plus){return `<div class="forge-costs"><small>${t('โอกาสสำเร็จแต่ละขั้น • ตีบวกฟรี ใบป้องกันเพิ่มโอกาส 5%')}</small><div class="forge-cost-grid">${SUCCESS.map((c,i)=>`<span class="${i===plus?'next':i<plus?'done':''}"><b>+${i+1}</b>${c}%</span>`).join('')}</div></div>`;}
 function forgeHTML(online=false){
  forgeTab='upgrade';if(!ENHANCE_SLOTS.includes(forgeSlot))forgeSlot='weapon';if(!(s.protectionTickets>0))forgeProtected=false;const slot=forgeSlot,it=s.equip[slot],plus=it?.plus||0;
  const action=(op,label,disabled,id='')=>`<button class="forge-submit" ${online?`data-op="${op}"`:op==='upgradeGear'?'data-forge="true"':op==='socketGem'?'data-gem="true"':'data-reroll="true"'} data-slot="${slot}" data-id="${id}" ${disabled?'disabled':''}>${label}</button>`;
  let work='',cost='',submit='';
  if(it&&forgeTab==='upgrade'){
-  work=`<span class="forge-next">+${plus} → +${Math.min(12,plus+1)}</span><label><input id="useProtection" type="checkbox" ${forgeProtected?'checked':''} ${(s.protectionTickets||0)<1?'disabled':''}>${t('ใช้ตั๋วป้องกัน')} (${s.protectionTickets||0}/5)</label>`;
+  work=`${plus<12?forgePreview(it):''}<span class="forge-next">+${plus} → +${Math.min(12,plus+1)}</span><label><input id="useProtection" type="checkbox" ${forgeProtected?'checked':''} ${(s.protectionTickets||0)<1?'disabled':''}>${t('ใช้ตั๋วป้องกัน')} (${s.protectionTickets||0}/5)</label>`;
   cost=plus>=12?t('สูงสุด +12'):`${t('สำเร็จ')} ${Math.round(upgradeChance(it,forgeProtected)*100)}%`;
   submit=action('upgradeGear',plus>=12?t('สูงสุด +12'):t('ตีบวก'),plus>=12||s.stones<gearUpgradeCost(it));
   if((s.protectionTickets||0)<5)submit+=`<button class="forge-restore" data-reward-item="protectionTicket">${t('ดูโฆษณารับตั๋วป้องกัน')} (${s.protectionTickets||0}/5)</button>`;
@@ -951,7 +976,7 @@ function slotIcon(slot,color='#d9b25c'){if(slot==='weapon'){const tile=({'sword-
 function statLine(it){const st=itemStats(it),L={atk:t('โจมตี'),def:t('ป้องกัน'),hp:'HP',crit:t('คริติคอล'),speed:t('ความเร็ว'),mp:t('พลังงาน'),spell:t('พลังวิชา')};return Object.entries(st).map(([k,v])=>`${L[k]} +${k==='crit'||k==='spell'?(v*100).toFixed(1)+'%':v}`).join(' • ')+(specialInfo(it.special)?' • '+specialInfo(it.special).name:'');}
 function basePower(state=s){const c=combatStats(state);return damage(state)*3+maxHP(state)*.4+c.defense*6+c.crit*900+(c.spell-1)*600;}
 // Wings and a legendary aura make equipment visible on the hero in the world and in the sheet.
-function drawGearAura(g,x,y,size,localT,back){if(!back)drawEnhanceAura(g,x,y,size,localT,auraLevel(s));
+function drawGearAura(g,x,y,size,localT,back){drawEnhanceAura(g,x,y,size,localT,auraLevel(s),back?'back':'front');
  const w=s?.equip?.wings,wep=s?.equip?.weapon;
  if(back&&w){const col=RARITY[w.rarity].color,span=size*(.55+w.tier*.05),flap=Math.sin(localT*3)*.12;g.save();g.translate(x,y-size*.62);g.globalCompositeOperation='lighter';
   for(const side of [-1,1]){g.save();g.scale(side,1);g.rotate(-.25+flap);const gr=g.createLinearGradient(0,0,span,-span*.5);gr.addColorStop(0,col+'cc');gr.addColorStop(1,col+'00');g.fillStyle=gr;
