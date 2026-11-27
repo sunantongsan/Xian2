@@ -1,6 +1,7 @@
 package com.sunantongsan.xian2;
 
 import android.app.Activity;
+import android.os.SystemClock;
 import android.webkit.WebView;
 import android.view.Gravity;
 import android.view.View;
@@ -22,6 +23,9 @@ final class RewardedAds {
  private AdView banner;
  private boolean rosterVisible, foreground;
  private int bannerInset;
+ private long rosterRetryAt, fieldRetryAt;
+ private final Runnable retryRoster = this::syncBanner;
+ private final Runnable retryField = this::syncFieldBanner;
  private AdView fieldAd;
  private boolean fieldWanted,fieldLoaded;
  private double fieldViewport,fieldTop,fieldRight,fieldMaxWidth,fieldMaxHeight;
@@ -58,9 +62,19 @@ final class RewardedAds {
  }
  // The roster gets a separate row outside the WebView, so an ad cannot cover its buttons.
  void setForeground(boolean value){foreground=value;syncBanner();syncFieldBanner();}
+ private static long retryDelay(AdError error){
+  return error.getCode()==AdRequest.ERROR_CODE_NETWORK_ERROR ? 15_000L : 60_000L;
+ }
+ private boolean waitingForRetry(Runnable retry,long next){
+  handler.removeCallbacks(retry);
+  long remaining=next-SystemClock.elapsedRealtime();
+  if(remaining<=0)return false;
+  handler.postDelayed(retry,remaining);
+  return true;
+ }
  private void syncBanner(){
   if(dead||!foreground||!rosterVisible||!initialized||!canLoadAds()||web==null){
-   clearBanner();return;
+   handler.removeCallbacks(retryRoster);clearBanner();return;
   }
   if(banner!=null||!(web.getParent() instanceof FrameLayout))return;
   FrameLayout host=(FrameLayout)web.getParent();
@@ -68,6 +82,7 @@ final class RewardedAds {
   int height=AdSize.BANNER.getHeightInPixels(activity);
   int gap=Math.round(8*activity.getResources().getDisplayMetrics().density);
   if(host.getWidth()<width+2*gap||host.getHeight()<height*4)return;
+  if(waitingForRetry(retryRoster,rosterRetryAt))return;
   AdView view=new AdView(activity);
   banner=view;view.setAdSize(AdSize.BANNER);view.setAdUnitId(BuildConfig.ADMOB_BANNER_UNIT_ID);
   FrameLayout.LayoutParams params=new FrameLayout.LayoutParams(width,height,Gravity.BOTTOM|Gravity.LEFT);
@@ -78,7 +93,8 @@ final class RewardedAds {
     if(banner!=view)return;
     setBannerInset(height+2*gap);view.setVisibility(View.VISIBLE);
    }
-   @Override public void onAdFailedToLoad(LoadAdError error){if(banner==view)clearBanner();}
+   @Override public void onAdFailedToLoad(LoadAdError error){if(banner!=view)return;
+    clearBanner();rosterRetryAt=SystemClock.elapsedRealtime()+retryDelay(error);syncBanner();}
   });
   view.loadAd(new AdRequest.Builder().build());
  }
@@ -101,6 +117,7 @@ final class RewardedAds {
   int width=AdSize.BANNER.getWidthInPixels(activity),height=AdSize.BANNER.getHeightInPixels(activity);
   boolean fits=Double.isFinite(scale)&&scale>0&&Double.isFinite(fieldTop)&&Double.isFinite(fieldRight)&&fieldTop>=0&&fieldRight>=0&&width<=fieldMaxWidth*scale&&height<=fieldMaxHeight*scale&&fieldRight*scale+width<=web.getWidth()&&fieldTop*scale+height<=web.getHeight();
   if(!foreground||!fieldWanted||rosterVisible||!initialized||!canLoadAds()||!fits){
+   handler.removeCallbacks(retryField);
    if(fieldAd!=null)fieldAd.setVisibility(View.GONE);
    emitFieldBanner(false,0,0);return;
   }
@@ -109,18 +126,28 @@ final class RewardedAds {
   FrameLayout.LayoutParams params=new FrameLayout.LayoutParams(width,height,Gravity.TOP|Gravity.RIGHT);
   params.rightMargin=right;params.topMargin=top;
   if(fieldAd==null){
+   if(waitingForRetry(retryField,fieldRetryAt))return;
    AdView view=new AdView(activity);fieldAd=view;fieldLoaded=false;
    view.setAdSize(AdSize.BANNER);view.setAdUnitId(BuildConfig.ADMOB_BANNER_UNIT_ID);
    view.setVisibility(View.INVISIBLE);host.addView(view,params);
    view.setAdListener(new AdListener(){
     @Override public void onAdLoaded(){if(dead||fieldAd!=view)return;fieldLoaded=true;syncFieldBanner();}
-    @Override public void onAdFailedToLoad(LoadAdError error){if(fieldAd!=view)return;fieldLoaded=false;view.setVisibility(View.GONE);emitFieldBanner(false,0,0);}
+    @Override public void onAdFailedToLoad(LoadAdError error){if(fieldAd!=view)return;
+     clearFieldBanner();fieldRetryAt=SystemClock.elapsedRealtime()+retryDelay(error);syncFieldBanner();}
    });
    view.loadAd(new AdRequest.Builder().build());
   }else{
    fieldAd.setLayoutParams(params);fieldAd.setVisibility(fieldLoaded?View.VISIBLE:View.INVISIBLE);
   }
   emitFieldBanner(fieldLoaded,width/scale,height/scale);
+ }
+ private void clearFieldBanner(){
+  AdView old=fieldAd;fieldAd=null;fieldLoaded=false;
+  if(old!=null){
+   if(old.getParent() instanceof FrameLayout)((FrameLayout)old.getParent()).removeView(old);
+   old.destroy();
+  }
+  emitFieldBanner(false,0,0);
  }
  private void emitFieldBanner(boolean loaded,double width,double height){
   if(dead||web==null)return;
