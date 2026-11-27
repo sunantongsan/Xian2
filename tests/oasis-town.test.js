@@ -16,16 +16,16 @@ test('town has exactly two open roads; hunting route never switches scenes',()=>
  assert.equal(m.pois.filter(p=>['town','forest'].includes(p.action)).length,1);
 });
 
-test('desert return and revive use city 2; merchant is restricted to city',()=>{
+test('desert revive returns to the first town; merchant is restricted to city',()=>{
  const w=new World(),s=fresh('sword-cockro'),p=w.join('oasis',s);s.gold=12;s.stones=100000;
  w.enter(p,'star',5);assert(!w.home(p));const n=s.potions;
  w.command(p,{type:'op',op:'buy',quantity:1},100);assert.equal(s.potions,n);
  w.enter(p,'star',0);assert(w.home(p));w.command(p,{type:'op',op:'buy',quantity:1},102);assert(s.potions>n);
- w.enter(p,'star',5);p.hp=0;w.command(p,{type:'revive'},104);assert.equal(p.map,'star');assert(w.home(p));
- assert(walkable(w.maps.star,p));assert(p.hp>0);
- const correction=w.snapshot(p).self;assert(correction.correction);assert.equal(correction.map,'star');
+ w.enter(p,'star',5);p.hp=0;w.command(p,{type:'revive'},104);assert.equal(p.map,'town');assert(w.home(p));
+ assert(walkable(w.maps.town,p));assert(p.hp>0);
+ const correction=w.snapshot(p).self;assert(correction.correction);assert.equal(correction.map,'town');
  capturePresence(p);const restored=w.makeActor('rejoin',validSave(s));
- assert.equal(restored.map,'star');assert.equal(restored.x,p.x);assert.equal(restored.y,p.y);
+ assert.equal(restored.map,'town');assert.equal(restored.x,p.x);assert.equal(restored.y,p.y);
 });
 
 test('distant desert monsters sleep',()=>{

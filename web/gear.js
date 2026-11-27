@@ -105,7 +105,7 @@ export function upgradeGear(s,slot,rng=Math.random,useProtection=false){
 }
 export function gearShopPrice(slot,tier,term='permanent'){
  // Baht: rare weapons 1 + 0.5/tier, jewelry 0.6 + 0.3/tier; divine 100 THB + 25 THB per tier.
- if(term==='divine')return thb(100+25*tier);
+ if(term==='divine')return 1_000_000; // 7.9.1: every divine item costs 1,000,000 COCKRO
  const full=slot==='weapon'?thb(1+.5*tier):thb(.6+.3*tier);
  return term==='day'?Math.ceil(full/10):full;
 }

@@ -594,7 +594,7 @@ function atHome(){const h=isStar()&&homeGate();return !!h&&Math.hypot(p.x-h.x,p.
 function goHome(){
  autoHunt.reset();
  if(onlineMode&&p?.dead)return net.send({type:'revive'});
- return isStar()?travelStar(0,true):travel(0,true);
+ return travel(0,true); // every map, the oasis city included, returns to the first town
 }
 async function travelStar(gate=0,home=false){
  if(travelBusy||!s||!p)return false;
