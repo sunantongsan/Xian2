@@ -1,0 +1,43 @@
+{
+  "license": "Pixabay Content License",
+  "licenseUrl": "https://pixabay.com/service/license-summary/",
+  "downloaded": "2026-11-27",
+  "sources": [
+    {
+      "title": "UI Button Click",
+      "author": "Universfield",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-ui-button-click-147358/",
+      "sha256": "477a9be6631994b8b0f09353cde3642e88e3e8394c82ddbfa0a4f38a6a14eef5",
+      "derivatives": [
+        "menu-click"
+      ]
+    },
+    {
+      "title": "Hit Swing Sword Small 2",
+      "author": "freesound_community",
+      "url": "https://pixabay.com/th/sound-effects/%E0%B8%A0%E0%B8%B2%E0%B8%9E%E0%B8%A2%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B9%81%E0%B8%A5%E0%B8%B0%E0%B9%80%E0%B8%97%E0%B8%84%E0%B8%99%E0%B8%84%E0%B8%9E%E0%B9%80%E0%B8%A8%E0%B8%A9-hit-swing-sword-small-2-95566/",
+      "sha256": "913b47420eaa213dc30cbe3b1ef970e6762db53d0ead35a7710809e3ecc62bd7",
+      "derivatives": [
+        "sword-swing"
+      ]
+    },
+    {
+      "title": "Coins",
+      "author": "SoundReality",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-coins-135571/",
+      "sha256": "13af3dc4e851050f4d99bd0f8b52eaab63c926c28e1143ecf85b6191ce6c848e",
+      "derivatives": [
+        "coin-pickup"
+      ]
+    },
+    {
+      "title": "Game Character Fall",
+      "author": "Universfield",
+      "url": "https://pixabay.com/th/sound-effects/%E0%B8%A0%E0%B8%B2%E0%B8%9E%E0%B8%A2%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B9%81%E0%B8%A5%E0%B8%B0%E0%B9%80%E0%B8%97%E0%B8%84%E0%B8%99%E0%B8%84%E0%B8%9E%E0%B9%80%E0%B8%A8%E0%B8%A9-game-character-fall-131797/",
+      "sha256": "42d36e3e718b248c480d9bd2b0c77ae88aa11d40ef01be19186a65138df83050",
+      "derivatives": [
+        "hero-fall"
+      ]
+    }
+  ]
+}

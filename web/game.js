@@ -71,7 +71,7 @@ import {createTutorial} from './tutorial.js';
 import {ZONES,MONSTERS,HEROES,monsterLabel} from './catalog.js';
 import {allocateStats,allocateStat,trainSkill,combatStats,reputationTitle,fresh,maxHP,damage,reward,xpNeed,buyPotion,buyMPPotion,upgrade,upgradeCost,unlocked,inCone} from './core.js';
 const $=id=>document.getElementById(id), cv=$('game'),ctx=cv.getContext('2d',{alpha:false}),modal=$('modal');
-$('modalContent')?.addEventListener?.('click',e=>{if(e.target?.closest?.('[data-open-buffs]')){beep(520);adBuffMenu();}});
+$('modalContent')?.addEventListener?.('click',e=>{if(e.target?.closest?.('[data-open-buffs]')){adBuffMenu();}});
 // Anti-bot: tell the server whenever a real touch or key happens; no input for a few minutes gets the hero kicked.
 let humanAt=Date.now(),humanSent=0;
 for(const type of ['pointerdown','pointermove','keydown','touchstart'])globalThis.addEventListener?.(type,e=>{if(e.isTrusted!==false)humanAt=Date.now();},{capture:true,passive:true});
@@ -92,7 +92,13 @@ const progressionUI=createProgressionUI();
 let appSuspended=false,exitingGame=false;
 const gameAudio=new GameAudio();let forgePending=null;let forgeTimer=null;
 function soundEnabled(){try{const pref=localStorage.getItem('cockro-sound');if(pref!==null)return pref==='on';}catch{}return s?s.sound===true:true;}
-document.addEventListener('pointerdown',e=>{gameAudio.unlock(soundEnabled());if(e.target.closest('button'))gameAudio.tap();},{passive:true});
+document.addEventListener('pointerdown',()=>gameAudio.unlock(soundEnabled()),{capture:true,passive:true});
+document.addEventListener('click',event=>{
+ const control=event.target.closest?.('button,[role="button"]');
+ if(!control||control.matches(':disabled,[aria-disabled="true"],#welcomeSound,#toggleSound'))return;
+ gameAudio.unlock(soundEnabled());
+ gameAudio.tap();
+},{capture:true});
 document.addEventListener('visibilitychange',()=>gameAudio.sync(soundEnabled()));
 let travelBusy=false, bookRequest=0,scene=null,route=[],pendingPoi=null;
 let mapZoom=.8;
@@ -172,10 +178,10 @@ function applyOnlineState(d){
  if(!onlineMode||!p||!s||travelBusy)return;
  const current=scene?.id||(isStar()?'star':town?'town':'forest');if(!scene||d.self.map!==current){loadRoadScene(d);return;}
  for(const [id,item] of Object.entries(UPGRADE_ITEMS)){if((d.self.save.upgradeItems?.[id]||0)>(s.upgradeItems?.[id]||0)&&adPending)toast(t('ได้รับ ')+item.name+t(' • บันทึกแล้ว'));}
- const oldForge=onlineView==='forge'?JSON.stringify([s.equip,s.upgradeItems,s.stones,s.stones]):'';const lastCheckin=s.checkin?.lastDay;const oldKills=s.kills,oldLevel=s.level,oldCoins=s.stones;const prefs={sound:s.sound,quality:s.quality,autoAttack:s.autoAttack};s={...d.self.save,...prefs};if(Number.isFinite(oldCoins)&&s.stones!==oldCoins)coinFlyout(s.stones-oldCoins,{anchor:$('money'),sound:Math.abs(s.stones-oldCoins)>=100000?coinSound:null});
+ const oldForge=onlineView==='forge'?JSON.stringify([s.equip,s.upgradeItems,s.stones,s.stones]):'';const lastCheckin=s.checkin?.lastDay;const oldLevel=s.level,oldCoins=s.stones;const prefs={sound:s.sound,quality:s.quality,autoAttack:s.autoAttack};s={...d.self.save,...prefs};if(Number.isFinite(oldCoins)&&s.stones!==oldCoins)coinFlyout(s.stones-oldCoins,{anchor:$('money'),sound:Math.abs(s.stones-oldCoins)>=100000?coinSound:null});
  if(onlineView==='gifts'&&modal.open&&(lastCheckin!==s.checkin?.lastDay||Number($('claimDailyGift')?.dataset?.divisor||1)!==(d.economy?.checkinDivisor??1)))checkinMenu();
  const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));const gap=Math.hypot(p.x-confirmed.x,p.y-confirmed.y);if(d.self.correction||gap>600){net.movement.applied(p,confirmed);Object.assign(p,confirmed);glide=null;}else if(gap>70){net.movement.applied(p,confirmed);glide={x:confirmed.x,y:confirmed.y};}
- const wasDead=p.dead;if(d.self.hp<p.hp&&d.self.hp>0)p.hurtAt=performance.now();p.hp=d.self.hp;p.mp=d.self.mp;p.dead=p.hp<=0;if(wasDead&&!p.dead){p.anim='idle';p.animTime=0;if($('onlineRevive'))close();}if(p.dead){if(!wasDead)p.animTime=0;p.anim='dead';}
+ const wasDead=p.dead;if(d.self.hp<p.hp&&d.self.hp>0)p.hurtAt=performance.now();p.hp=d.self.hp;p.mp=d.self.mp;p.dead=p.hp<=0;if(wasDead&&!p.dead){p.anim='idle';p.animTime=0;if($('onlineRevive'))close();}if(p.dead){if(!wasDead){p.animTime=0;gameAudio.fall();}p.anim='dead';}
  
  cooldown.attack=d.self.cooldowns.attack||0;cooldown.dash=d.self.cooldowns.dash||0;cooldown.potion=d.self.cooldowns.potion||0;cooldown.mpPotion=d.self.cooldowns.mpPotion||0;
  for(const r of knownSkills(s))skillTimers[r.id]=d.self.cooldowns[r.id]||0;
@@ -185,7 +191,6 @@ function applyOnlineState(d){
  for(const e of d.events){if(e.id<=onlineEvent)continue;onlineEvent=Math.max(onlineEvent,e.id);if(e.kind==='lootPickup'&&e.player===d.self.id){showPickup(e.loot);}else if(['levelUp','mutation'].includes(e.kind)&&e.player!==d.self.id){effects.push({type:'levelUp',player:e.player,x:e.x,y:e.y,color:'#ffe8a2',life:3.2,max:3.2});}else if(e.kind==='buff'){effects.push({type:'buff',player:e.player,x:e.x,y:e.y,color:'#8ef4ff',life:3,max:3});if(e.player===d.self.id){gameAudio.buff();toast(t('ได้รับบัฟ AURA • 1 ชั่วโมง'));}}else if(e.kind==='monsterSkill'){effects.push({...e,type:'monsterSkill',life:.65,max:.65});}else if(e.kind==='hit'){floating(e.x,e.y,String(e.amount),'#ffe6a1');const victim=reactToMonsterHit(e,enemies,[d.self,...d.players],time);if(victim)effects.push({type:'impact',x:victim.x,y:victim.y,color:'#ffe7a0',life:.24,max:.24,radius:victim.def.boss?44:32});}else if(e.kind==='attack'){if(e.player===d.self.id)gameAudio.attack(e.hero);const aim=e.aim||(e.player===d.self.id&&target)||enemies.filter(m=>m.hp>0).sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0];if(baseAttackRange(e.hero)>120&&aim)effects.push({type:'technique',hero:e.hero,skillId:'arrow',form:'bolt',x:e.x,y:e.y,aim:{x:aim.x,y:aim.y},color:'#60eaff',life:.42,max:.42});else effects.push({type:'technique',hero:e.hero,form:'circle',x:e.x,y:e.y,aim:{x:e.x+1,y:e.y},color:e.hero==='demon-scorpion'?'#9bf05c':e.hero==='sword-cricket'?'#ffc45e':'#ff8855',radius:65,life:.28,max:.28});}else if(e.kind==='skill'){const life=swordSkillLife(e.skillId);effects.push({...e,type:'technique',life,max:life});if(e.player===d.self.id)gameAudio.skill({...knownSkills(s).find(k=>k.id===e.skillId),...e});}if(e.player!==d.self.id&&['skill','attack'].includes(e.kind)){const r=net.players.find(a=>a.id===e.player);if(r){r.anim=e.kind;r.combo=e.combo||0;r.visualAnimTime=0;r.receivedAt=performance.now();if(e.aim){r.aimDX=e.aim.x-r.x;r.aimDY=e.aim.y-r.y;}}}if(e.player===d.self.id&&['skill','attack'].includes(e.kind)){if(e.aim){p.aimDX=e.aim.x-p.x;p.aimDY=e.aim.y-p.y;}p.anim=e.kind;p.combo=e.combo||0;p.animTime=0;p.animDuration=e.kind==='skill'?.6:.46;p.castId=e.skillId;}}
  loadLayeredHero(s.hero,mutationVisualLevel(s)).catch(()=>{});
  if(s.level>oldLevel)celebrateProgress();
- if(s.kills>oldKills)beep(700,.1);
   if(p.dead&&(!modal.open||!$('onlineRevive'))){show(ui`<h2>พลังงานหมด</h2>${button('onlineRevive',t(d.self.map==='star'?'กลับเมืองโอเอซิส':'เกิดที่หมู่บ้าน'))}`);$('onlineRevive').onclick=goHome;}
  if(onlineView==='shop'&&modal.open)refreshOnlineShop();
  if(onlineView==='stats'&&modal.open&&lastInventoryKey!==inventoryKey(s))onlineInventory();
@@ -266,7 +271,7 @@ const button=(id,text)=>`<button id="${id}">${text}</button>`;
 function atlas(g,im,col,row,cols,rows,x,y,w,h,flip=false){if(!im)return;const cw=im.width/cols,ch=im.height/rows;g.save();g.translate(x,y);if(flip)g.scale(-1,1);g.drawImage(im,col*cw,row*ch,cw,ch,-w/2,-h,w,h);g.restore();}
 function previewHeroes(){HEROES.forEach(h=>{const c=$('preview-'+h.id);if(c)drawHero(c.getContext('2d'),images,h.id,{face:1,anim:'idle',walkDX:1,walkDY:0},c.width/2,c.height-5,118);});}
 function setQuickMenu(open){$('menuBtn').setAttribute('aria-expanded',String(open));$('quickMenuTray').classList.toggle('open',open);$('quickMenuTray').inert=!open;}
-$('characterShortcut').onclick=()=>statMenu('stats');$('characterShortcut').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();statMenu('stats');}};
+$('characterShortcut').onclick=()=>statMenu('stats');$('characterShortcut').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.currentTarget.click();}};
 $('shopShortcut').onclick=()=>{if(s&&p&&!travelBusy)premiumStore();};$('giftShortcut').onclick=()=>{if(s&&p&&!travelBusy)checkinMenu();};$('checkinShortcut').onclick=()=>{if(s&&p&&!travelBusy)checkinMenu();};
 $('exitShortcut').onclick=exitGame;
 $('logoutShortcut').onclick=logoutScreen;
@@ -303,7 +308,7 @@ function emailLoginScreen(){
 }
 function googleButton(force=false){if(net.hasAccount&&!force)return '';return button('googleLogin',t('เข้าสู่ระบบ / เชื่อมบัญชี Google'));}
 function bindAccountButtons(owned,selected){
- if(!$('welcomeSound')){const b=document.createElement('button');b.id='welcomeSound';const label=()=>{b.textContent=soundEnabled()?t('เสียง: เปิด'):t('เสียง: ปิด');b.setAttribute('aria-pressed',String(soundEnabled()));};label();b.onclick=()=>{const enabled=!soundEnabled();if(s)s.sound=enabled;try{localStorage.setItem('cockro-sound',enabled?'on':'off');}catch{}gameAudio.sync(enabled);label();};$('modalContent').append(b);}
+ if(!$('welcomeSound')){const b=document.createElement('button');b.id='welcomeSound';const label=()=>{b.textContent=soundEnabled()?t('เสียง: เปิด'):t('เสียง: ปิด');b.setAttribute('aria-pressed',String(soundEnabled()));};label();b.onclick=()=>{const enabled=!soundEnabled();if(s)s.sound=enabled;try{localStorage.setItem('cockro-sound',enabled?'on':'off');}catch{}gameAudio.unlock(enabled);if(enabled)gameAudio.tap();label();};$('modalContent').append(b);}
 
  if($('accountCenter'))$('accountCenter').onclick=accountCenter;
  if($('googleLogin'))$('googleLogin').onclick=googleLogin;
@@ -466,7 +471,7 @@ function hitEnemy(e,amount,quiet=false){if(onlineMode)return;if(e.hp<=0)return;e
   if(gift)groundDrops.push({...gift,hero:s.hero});
  }
  floating(e.x,e.y-30,'+'+huntXP(old)*expMultiplier(s)+' EXP','#b0f5d1');if(s.level>old){for(const learned of knownSkills(s).filter(k=>k.level>old&&k.level<=s.level)){const slot=[0,1,2,3,4].find(i=>!s.equipped[i]);if(slot!==undefined)s.equipped[slot]=learned.id;}p.hp=maxHP(s);celebrateProgress()}if(e.def.boss){toast(t('พิชิต ')+e.def.name+t(' • ได้รับรางวัลบอส'));}}}
-function hurt(amount){if(onlineMode)return;if(p.dead||p.inv>0)return;amount=Math.max(1,amount*100/(100+combatStats(s).defense));p.hp=Math.max(0,p.hp-amount);p.inv=.35;p.action=null;p.animDuration=.26;p.anim='hurt';p.animTime=0;floating(p.x,p.y,Math.round(amount),'#ff9191');beep(150);if(!p.hp){p.dead=true;p.anim='dead';p.animTime=0;move=null;target=null;setTimeout(()=>{if(!p.dead)return;show(ui`<h2>พลังงานแตกสลาย</h2><p>พักฟื้นที่เมืองแล้วกลับมาฝึกใหม่ได้<br>เลเวลและสิ่งของที่สะสมยังอยู่</p>${button('revive',t('เกิดที่ฐานฮีโร่'))}`);$('revive').onclick=()=>goHome();},800)}}
+function hurt(amount){if(onlineMode)return;if(p.dead||p.inv>0)return;amount=Math.max(1,amount*100/(100+combatStats(s).defense));p.hp=Math.max(0,p.hp-amount);p.inv=.35;p.action=null;p.animDuration=.26;p.anim='hurt';p.animTime=0;floating(p.x,p.y,Math.round(amount),'#ff9191');if(p.hp)gameAudio.hit();if(!p.hp){gameAudio.fall();p.dead=true;p.anim='dead';p.animTime=0;move=null;target=null;setTimeout(()=>{if(!p.dead)return;show(ui`<h2>พลังงานแตกสลาย</h2><p>พักฟื้นที่เมืองแล้วกลับมาฝึกใหม่ได้<br>เลเวลและสิ่งของที่สะสมยังอยู่</p>${button('revive',t('เกิดที่ฐานฮีโร่'))}`);$('revive').onclick=()=>goHome();},800)}}
 function actionLocked(){return !!p?.action||(onlineMode&&['attack','skill'].includes(p?.anim)&&p.animTime<(p.animDuration||.46))||(p?.anim==='hurt'&&p.animTime<.26);}
 function beginAction(kind,duration,resolve){
  if(kind==='attack'){p.combo=time-(p.lastComboAt??-10)<1.4?((p.combo||0)+1)%3:0;p.lastComboAt=time;}p.anim=kind;p.animTime=0;p.animDuration=duration;p.action={kind,elapsed:0,duration,impactAt:duration*.5,resolved:false,resolve};
@@ -535,6 +540,7 @@ function updateSkills(dt){if(onlineMode)return;if(!p||paused||p.dead)return;appl
 function dash(){if(onlineMode){if(p&&!paused&&net.ready)net.send({type:'dash',x:move?.x??p.x+p.face*150,y:move?.y??p.y-p.face*150});return;}if(!p||p.dead||paused||cooldown.dash>0||actionLocked())return;cooldown.dash=2;let dx=move?move.x-p.x:p.face,dy=move?move.y-p.y:-p.face;const n=Math.hypot(dx,dy)||1;safeMove(p,p.x+dx/n*150,p.y+dy/n*150);p.inv=.6;effects.push({type:'skill',x:p.x,y:p.y,color:'#d5f3df',life:.25,max:.25,radius:60});}
 function mpPotion(){if(onlineMode){if(p&&!p.dead&&!paused)net.send({type:'mpPotion'});return;}if(!p||p.dead||paused||(cooldown.mpPotion||0)>0)return;if(!s.mpPotions){toast(t('ยา MP หมด ซื้อเพิ่มได้ที่ร้าน'));return;}if(p.mp>=maxMP())return;p.mp=drinkPotion(s,'mp',p.mp,maxMP());cooldown.mpPotion=6;}
 function showPickup(drop){
+ gameAudio.pickup(drop.kind);
  const feed=$('pickupFeed'),name=lootName(drop,s.hero);
  let row=Array.from(feed.children).find(el=>el.dataset.name===name);
  if(!row){row=document.createElement('div');row.dataset.name=name;row.dataset.count='0';}
@@ -717,7 +723,7 @@ function settings(){
   if(!net.send({type:'language',language:selected,requestId}))done({ok:false});
  };
 
- $('toggleSound').onclick=()=>{s.sound=!s.sound;try{localStorage.setItem('cockro-sound',s.sound?'on':'off');}catch{}gameAudio.sync(s.sound);settings();};
+ $('toggleSound').onclick=()=>{s.sound=!s.sound;try{localStorage.setItem('cockro-sound',s.sound?'on':'off');}catch{}gameAudio.unlock(s.sound);if(s.sound)gameAudio.tap();settings();};
  $('toggleQuality').onclick=()=>{s.quality=s.quality==='low'?'auto':'low';resize();settings();};
  $('otherMenu').onclick=otherMenu;
  $('accountCenter').onclick=accountCenter;$('privacyButton').onclick=privacy;$('settingsBack').onclick=menu;
@@ -813,7 +819,7 @@ async function askPurchase(b){const qty=['buy','buyMP','buyUpgradeItem'].include
  if(price>s.stones){await notEnoughCoins({price,balance:s.stones,sound:()=>{gameAudio.sync(s?.sound===true);gameAudio.failure();}});return false;}
  const ok=await confirmPurchase({name,price,currency:'COCKRO',balance:s.stones,sound:()=>{gameAudio.sync(s?.sound===true);gameAudio.tap();}});
  if(ok){gameAudio.sync(s?.sound===true);gameAudio.buff?.();}return ok;}
-function coinSound(gain){gameAudio.sync(s?.sound===true);gain?gameAudio.success():gameAudio.tap();}
+function coinSound(gain){gameAudio.sync(s?.sound===true);gain?gameAudio.pickup('cockro'):gameAudio.tap();}
 function shop(){tutorial.note('shop');if(!town&&!atHome()){toast(t('คุยกับพ่อค้าทุ่งกุลาเพื่อซื้อของ'));return;}ads.refresh();if(onlineMode)return onlineMenu('shop');show(shopHTML()+button('return',t('กลับ')));document.querySelectorAll('[data-op]').forEach(b=>b.onclick=async()=>{const op=b.dataset.op;let ok=false;if(!await askPurchase(b))return;if(op==='exchangeGold'){if(!confirmExchange(b))return;ok=exchangeGold(s,Number(b.dataset.amount),s.bountyRevision);}else if(op==='buySkillBook')ok=buySkillBook(s,b.dataset.id);else if(op==='buyProtectionTicket')ok=buyProtectionTicket(s);else if(op==='buyPet')ok=buyPet(s,b.dataset.id);else if(op==='equipPet')ok=equipPet(s,b.dataset.id==='none'?null:b.dataset.id);else if(op==='buyShopGear')ok=buyShopGear(s,b.dataset.slot,Number(b.dataset.tier),b.dataset.term);else ok=buyMerchantStack(s,op,b.dataset.id,Number($('marketQuantity')?.value||1),UPGRADE_ITEMS);refreshOnlineShop();$('purchaseStatus').textContent=ok?t('ซื้อสำเร็จ'):t('ทำรายการไม่ได้ ตรวจเงินและพื้นที่เก็บของ');});bindMarket(refreshOnlineShop);$('shopRedeemGold').onclick=hunterMenu;bindRewardAds();$('return').onclick=menu;}
 function celebrateUpgrade(it,before){show(forgeResultHTML({success:true,icon:slotIcon(it.slot),name:itemName(it,s.hero),plus:it.plus,stats:statLine(it)}));$('forgeContinue').onclick=forge;gameAudio.sync(s.sound);gameAudio.jingle('win');}
 function upgradeFailure(message){show(forgeResultHTML({success:false,message}));$('forgeContinue').onclick=forge;gameAudio.sync(s.sound);gameAudio.jingle('lose');}

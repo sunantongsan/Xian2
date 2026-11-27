@@ -21,9 +21,17 @@ export class GameAudio {
   a.pause();a.currentTime=0;a.volume=volume;a.playbackRate=rate;a.preservesPitch=false;this.play(a);
  }
  skill(skill){const v=skillVoice(skill);this.effect(v.name,{...v,gap:160});}
- attack(hero){this.effect(hero==='sword-dragonfly'?'skill-bolt':'skill-dash',{volume:.16,rate:hero==='sword-cricket'?.8:1.2,gap:180});}
+ attack(hero){
+  if(hero==='sword-dragonfly'){this.effect('skill-bolt',{volume:.16,rate:1.2,gap:180});return;}
+  this.effect('sword-swing',{volume:.23,rate:hero==='sword-cricket'?.88:1,gap:300});
+ }
+ pickup(kind){
+  if(['cockro','gold','huntGold'].includes(kind))this.effect('coin-pickup',{volume:.22,gap:850});
+  else this.success();
+ }
+ fall(){this.effect('hero-fall',{volume:.38,gap:700});}
  hit(){this.effect('hit-soft',{volume:.16,gap:180});}
- tap(){this.effect('ui-tap',{volume:.18,gap:90});}
+ tap(){this.effect('menu-click',{volume:.32,gap:75});}
  buff(){this.effect('upgrade-success',{volume:.32,gap:1500});}
  failure(){this.effect('upgrade-failure',{volume:.4,rate:1,gap:1200});}
  levelUp(){this.effect('level-up',{volume:.58,rate:1,gap:1200});}
