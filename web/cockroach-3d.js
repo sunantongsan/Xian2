@@ -36,10 +36,16 @@ export function drawCockroach3D(ctx,actor,x,y,size){
  if(!frame){
   rig.play(mode,true);for(const [n,a]of Object.entries(rig.actions)){a.enabled=n===mode;if(n===mode){a.stopFading();a.setEffectiveWeight(1);}}
   rig.root.rotation.y=heading*Math.PI/4;rig.seek(step/(looping?12:15)*duration);renderer.render(scene,camera);
-  frame=document.createElement('canvas');frame.width=frame.height=SIZE;frame.getContext('2d').drawImage(renderer.domElement,0,0);cache.set(key,frame);
+  frame=document.createElement('canvas');frame.width=frame.height=SIZE;frame.getContext('2d').drawImage(renderer.domElement,0,0);frame.blade=bladeLine();cache.set(key,frame);
   if(cache.size>96)cache.delete(cache.keys().next().value);
  }
  const drawSize=size*(actor.sheet?1.5:1.8);
- if(actor.portrait)ctx.drawImage(frame,32,48,192,192,25,0,240,240);else ctx.drawImage(frame,x-drawSize/2,y-drawSize*feetAnchor,drawSize,drawSize);return true;
+ if(actor.portrait){ctx.drawImage(frame,32,48,192,192,25,0,240,240);return true;}
+ const left=x-drawSize/2,top=y-drawSize*feetAnchor;ctx.drawImage(frame,left,top,drawSize,drawSize);
+ // Screen position of the blade (hilt to tip) so enhancement fire can burn on the sword itself.
+ const b=frame.blade;return b?{blade:[left+b[0]/SIZE*drawSize,top+b[1]/SIZE*drawSize,left+b[2]/SIZE*drawSize,top+b[3]/SIZE*drawSize]}:true;
 }
+function bladeLine(){const blade=rig?.root?.getObjectByName?.('Blade');if(!blade?.geometry)return null;if(!blade.geometry.boundingBox)blade.geometry.computeBoundingBox();const bb=blade.geometry.boundingBox,ax=bb.max.y-bb.min.y>=bb.max.x-bb.min.x?'y':'x';
+ const a=new T.Vector3(),b=new T.Vector3();a[ax]=bb.min[ax];b[ax]=bb.max[ax];blade.updateWorldMatrix(true,false);a.applyMatrix4(blade.matrixWorld).project(camera);b.applyMatrix4(blade.matrixWorld).project(camera);
+ const px=v=>[(v.x+1)/2*SIZE,(1-v.y)/2*SIZE];return [...px(a),...px(b)];}
 

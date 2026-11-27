@@ -38,7 +38,7 @@ export function heroFrame(actor={}){
 }
 export function drawHero(ctx,images,hero,actor,x,y,size){
  drawEvolutionWings(ctx,hero,actor,x,y,size);
- if(drawCockroach3D(ctx,actor,x,y,size))return;
+ const drawn3d=drawCockroach3D(ctx,actor,x,y,size);if(drawn3d)return drawn3d;
  if(hero==='sword-cockro')return drawBaseHero(ctx,images,hero,actor,x,y,size);
  const human=drawHumanHero(ctx,images,hero,actor,x,y,size);if(human)return human;
  const visualActor={...actor,level:mutationVisualLevel({...actor,hero})};
