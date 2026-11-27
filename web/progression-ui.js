@@ -1,11 +1,10 @@
-import {t,ui} from './i18n.js';
+import {ui} from './i18n.js';
 export function createProgressionUI(){
- const overlay=document.createElement('div');overlay.id='levelCelebration';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');overlay.hidden=true;overlay.innerHTML='<span class="level-kicker" hidden>LEVEL UP</span><strong></strong><small hidden></small>';document.body.appendChild(overlay);let timer;
+ const overlay=document.createElement('div');overlay.id='levelCelebration';overlay.setAttribute('role','status');overlay.setAttribute('aria-live','polite');overlay.hidden=true;overlay.innerHTML='<span class="level-kicker" aria-hidden="true">✦ &nbsp; LEVEL UP &nbsp; ✦</span><strong></strong>';document.body.appendChild(overlay);let timer;
  return {
   celebrate(level){
    clearTimeout(timer);overlay.hidden=false;overlay.classList.remove('playing');void overlay.offsetWidth;overlay.classList.add('playing');
    overlay.querySelector('strong').textContent=ui`ยินดีด้วยคุณเข้าสู่เลเวล ${level}`;
-   overlay.querySelector('small').textContent=t('พลังของคุณเติบโตขึ้นแล้ว');
    timer=setTimeout(()=>{overlay.hidden=true;},2400);
   },
   hide(){overlay.hidden=true;clearTimeout(timer);}
@@ -25,6 +24,15 @@ export function drawLevelAura(g,x,y,k,progress,low=false){
  for(let i=0;i<(low?8:16);i++){const a=i*Math.PI*2/(low?8:16)+t*1.8;g.strokeStyle=i%2?'#8af5ff':'#fff2bd';g.lineWidth=2;g.beginPath();g.moveTo(Math.cos(a)*67,Math.sin(a)*19-3);g.lineTo(Math.cos(a)*74,Math.sin(a)*22-3);g.stroke();}
  if(!low){g.strokeStyle='#8bf5ff88';g.lineWidth=1.5;g.beginPath();for(let i=0;i<=48;i++){const u=i/48,a=u*Math.PI*4-t*7,px=Math.cos(a)*43,py=-u*170*rise+Math.sin(a)*12;i?g.lineTo(px,py):g.moveTo(px,py);}g.stroke();}
  const count=low?12:30;for(let i=0;i<count;i++){const u=(t*1.25+i/count)%1,a=i*2.399+t*2,r=28+(i%5)*9,px=Math.cos(a)*r,py=-u*195+Math.sin(a)*r*.24,size=2+(i%3);g.globalAlpha=fade*Math.sin(Math.PI*u);g.fillStyle=i%3?'#fff1b6':'#91f7ff';g.beginPath();g.moveTo(px,py-size*2);g.lineTo(px+size*.65,py);g.lineTo(px,py+size*2);g.lineTo(px-size*.65,py);g.closePath();g.fill();}
+ // Three gold chevrons rise above the hero in sequence.
+ for(let i=0;i<3;i++){
+  const phase=Math.max(0,Math.min(1,(t-i*.09)*2.2));
+  if(phase<=0||phase>=1)continue;
+  const y=-92-54*phase-i*6,w=10+i*3;
+  g.globalAlpha=fade*Math.sin(Math.PI*phase);g.fillStyle=i===1?'#9dffff':'#ffe199';
+  g.beginPath();g.moveTo(0,y-8);g.lineTo(w,y+2);g.lineTo(w,y+7);
+  g.lineTo(0,y-2);g.lineTo(-w,y+7);g.lineTo(-w,y+2);g.closePath();g.fill();
+ }
  // One soft expanding pulse, without flashing the whole screen.
  const pulse=Math.min(1,t/.38);g.globalAlpha=fade*(1-pulse)*.8;g.strokeStyle='#fff4ca';g.lineWidth=3;g.beginPath();g.ellipse(0,-3,35+pulse*90,10+pulse*28,0,0,Math.PI*2);g.stroke();g.restore();
 }

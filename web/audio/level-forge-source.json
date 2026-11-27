@@ -1,5 +1,9 @@
 {
-  "levelUp": {
+  "failure": {
+    "source": "Original synthesized descending two-note cue",
+    "durationSeconds": 0.6
+  },
+  "enhancement": {
     "source": "User supplied freesound_community-level-up-22268.mp3",
     "excerptSeconds": [
       0,
@@ -8,12 +12,17 @@
     "fadeOutSeconds": 0.25,
     "pitch": "unchanged",
     "uses": [
-      "level up",
       "successful enhancement"
     ]
   },
-  "failure": {
-    "source": "Original synthesized descending two-note cue",
-    "durationSeconds": 0.6
+  "levelUp": {
+    "title": "Next Level",
+    "author": "Ivan_Luzan",
+    "source": "https://pixabay.com/sound-effects/film-special-effects-next-level-160613/",
+    "license": "Pixabay Content License",
+    "sourceSha256": "b5d2603b0c23c2816795834f29855cf53bdc1a7792053a4169691da72e367eac",
+    "uses": [
+      "level up"
+    ]
   }
 }

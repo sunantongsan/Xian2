@@ -8,16 +8,31 @@ export function skillVoice(skill={}) {
  return {name:'skill-'+form,rate:Math.min(1.5,classPitch*(.94+(number%11)*.035)),volume:.32};
 }
 export class GameAudio {
- constructor(){this.enabled=true;this.suspended=false;this.unlocked=false;this.scene='welcome';this.music=new Audio('audio/welcome-loop.mp3');this.music.loop=true;this.music.volume=.28;this.music.preload='none';this.effects=new Map();this.last=new Map();}
+ constructor(){this.audioGeneration=0;this.enabled=true;this.suspended=false;this.unlocked=false;this.scene='welcome';this.music=new Audio('audio/welcome-loop.mp3');this.music.loop=true;this.music.volume=.28;this.music.preload='none';this.effects=new Map();this.last=new Map();}
  play(a){try{const result=a.play();result?.then(()=>{if(!this.enabled||this.suspended||document.hidden)a.pause();}).catch(()=>{});}catch{}}
- sync(enabled){this.enabled=!!enabled;if(!this.enabled||this.suspended||document.hidden){this.music.pause();for(const a of this.effects.values())a.pause();}else if(this.unlocked&&this.music.paused)this.play(this.music);}
+ sync(enabled){this.enabled=!!enabled;if(!this.enabled||this.suspended||document.hidden){this.audioGeneration++;this.chimeSource?.stop();this.music.pause();for(const a of this.effects.values())a.pause();}else if(this.unlocked&&this.music.paused)this.play(this.music);}
  suspend(value){this.suspended=!!value;this.sync(this.enabled);}
- unlock(enabled){this.unlocked=true;this.sync(enabled);}
+ unlock(enabled){
+  this.unlocked=true;this.sync(enabled);
+  if(!enabled||this.suspended||document.hidden)return;
+  // Android WebView requires a gesture to start the audio context. Unlock now,
+  // since the server announces level gains between gestures during auto-hunt.
+  const C=globalThis.AudioContext||globalThis.webkitAudioContext;
+  if(!C)return;
+  try{
+   this.ctx??=new C();
+   if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});
+   this.chimeReady??=fetch('audio/level-up.mp3').then(r=>{
+    if(!r.ok)throw Error('Level audio unavailable');
+    return r.arrayBuffer();
+   }).then(data=>this.ctx.decodeAudioData(data)).catch(()=>null);
+  }catch{}
+ }
  setScene(scene){if(!['welcome','create','world'].includes(scene)||scene===this.scene)return;this.scene=scene;this.music.pause();this.music.src='audio/'+scene+'-loop.mp3';this.music.load();this.sync(this.enabled);}
  effect(name,{volume=.25,rate=1,gap=100}={}){if(!this.enabled||this.suspended||!this.unlocked||document.hidden)return;const now=performance.now();if(now-(this.last.get(name)??-Infinity)<gap)return;this.last.set(name,now);
   let a=this.effects.get(name);if(!a){a=new Audio('audio/'+name+'.mp3');a.preload='none';this.effects.set(name,a);}
   // No more than three simultaneous effects, even during crowded combat.
-  const level=this.effects.get('level-up');const active=[...this.effects.values()].filter(x=>!x.paused&&x!==a).sort((a,b)=>Number(a===level)-Number(b===level));while(active.length>=3)active.shift().pause();
+  const level=this.effects.get('level-up');const active=[...this.effects.values()].filter(x=>!x.paused&&x!==a).sort((a,b)=>Number(a===level)-Number(b===level));while(active.length>=(this.chimeSource?2:3))active.shift().pause();
   a.pause();a.currentTime=0;a.volume=volume;a.playbackRate=rate;a.preservesPitch=false;this.play(a);
  }
  skill(skill){const v=skillVoice(skill);this.effect(v.name,{...v,gap:160});}
@@ -26,15 +41,38 @@ export class GameAudio {
   this.effect('sword-swing',{volume:.23,rate:hero==='sword-cricket'?.88:1,gap:300});
  }
  pickup(kind){
-  if(['cockro','gold','huntGold'].includes(kind))this.effect('coin-pickup',{volume:.22,gap:850});
-  else this.success();
+  if(!['cockro','gold','huntGold'].includes(kind))this.success();
  }
+ coinReward(){this.effect('coin-pickup',{volume:.11,gap:350});}
  fall(){this.effect('hero-fall',{volume:.38,gap:700});}
  hit(){this.effect('hit-soft',{volume:.16,gap:180});}
  tap(){this.effect('menu-click',{volume:.32,gap:75});}
  buff(){this.effect('upgrade-success',{volume:.32,gap:1500});}
  failure(){this.effect('upgrade-failure',{volume:.4,rate:1,gap:1200});}
- levelUp(){this.effect('level-up',{volume:.58,rate:1,gap:1200});}
+ levelUp(){
+  const fallback=()=>this.effect('level-up',{volume:.64,rate:1,gap:300});
+  if(!this.chimeReady||this.ctx.state!=='running'){fallback();return;}
+  if(!this.enabled||this.suspended||document.hidden)return;
+  const now=performance.now();
+  if(now-(this.lastLevel??-Infinity)<300)return;
+  this.lastLevel=now;
+  const generation=this.audioGeneration;
+  this.chimeReady.then(buffer=>{
+   if(!this.enabled||this.suspended||document.hidden||this.lastLevel!==now||generation!==this.audioGeneration)return;
+   if(!buffer||this.ctx.state!=='running'){fallback();return;}
+   this.chimeSource?.stop();
+   const active=[...this.effects.values()].filter(a=>!a.paused);
+   while(active.length>2)active.shift().pause();
+   const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();
+   source.buffer=buffer;gain.gain.value=.64;source.connect(gain);gain.connect(this.ctx.destination);
+   this.chimeSource=source;this.music.volume=.14;
+   source.onended=()=>{
+    source.disconnect();gain.disconnect();
+    if(this.chimeSource===source){this.chimeSource=null;this.music.volume=.28;}
+   };
+   source.start();
+  });
+ }
  success(){this.effect('ui-confirm',{volume:.32,gap:400});}
  // Short synthesized tunes for enhancement results: a bright fanfare or a sad "wah wah".
  jingle(kind){if(!this.enabled||this.suspended||document.hidden)return;try{
