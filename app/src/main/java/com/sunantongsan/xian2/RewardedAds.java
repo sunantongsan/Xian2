@@ -28,6 +28,8 @@ final class RewardedAds {
  private String failure="";
  private final android.os.Handler handler=new android.os.Handler(android.os.Looper.getMainLooper());
  private int requestId;
+ // Preloaded rewarded video so the player does not wait after pressing the button.
+ private RewardedAd ready;private long readyAt;private boolean preloading;
  private static final String ORIGIN="https://appassets.androidplatform.net";
  RewardedAds(Activity activity){this.activity=activity;consent=UserMessagingPlatform.getConsentInformation(activity);}
  private boolean canLoadAds(){return BuildConfig.TEST_ADS||consent.canRequestAds();}
@@ -38,7 +40,7 @@ final class RewardedAds {
  }
  private void initialize(){
   if(dead||!canLoadAds()||initialized||initializing)return;
-  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;syncBanner();syncFieldBanner();emit("status");}));
+  initializing=true;MobileAds.initialize(activity,status->activity.runOnUiThread(()->{initializing=false;initialized=true;syncBanner();syncFieldBanner();preload();emit("status");}));
  }
  void attach(WebView view){web=view;if(!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))return;
   WebViewCompat.addWebMessageListener(view,"CockroAds",Collections.singleton(ORIGIN),(v,message,origin,mainFrame,reply)->{
@@ -134,11 +136,30 @@ final class RewardedAds {
    web.evaluateJavascript(script,null);
   }catch(Exception ignored){}
  }
+ private void preload(){
+  if(dead||preloading||!initialized||!canLoadAds()||(ready!=null&&System.currentTimeMillis()-readyAt<50*60000L))return;
+  ready=null;preloading=true;
+  RewardedAd.load(activity,BuildConfig.ADMOB_REWARDED_UNIT_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
+   @Override public void onAdFailedToLoad(LoadAdError error){preloading=false;if(!dead)handler.postDelayed(RewardedAds.this::preload,60000);}
+   @Override public void onAdLoaded(RewardedAd ad){preloading=false;if(dead)return;ready=ad;readyAt=System.currentTimeMillis();}
+  });
+ }
+ private void present(RewardedAd ad,String nonce,String user){
+  if(activity.isFinishing()||!activity.hasWindowFocus()){busy=false;failure="วิดีโอโหลดแล้ว แต่เกมไม่ได้อยู่ด้านหน้า กรุณาลองใหม่";emit("unavailable");return;}
+  if(!BuildConfig.TEST_ADS)ad.setServerSideVerificationOptions(new ServerSideVerificationOptions.Builder().setUserId(user).setCustomData(nonce).build());
+  ad.setFullScreenContentCallback(new FullScreenContentCallback(){
+   @Override public void onAdDismissedFullScreenContent(){busy=false;emit("dismissed");preload();}
+   @Override public void onAdFailedToShowFullScreenContent(AdError error){busy=false;fail("เปิดวิดีโอไม่สำเร็จ",error);preload();}
+  });
+  ad.show(activity,reward->emit(BuildConfig.TEST_ADS?"test-earned":"verifying"));
+ }
  private void show(String nonce,String user){
   if(dead)return;
   if(busy||!initialized||!canLoadAds()||!activity.hasWindowFocus()){failure=busy?"มีคำขอโฆษณากำลังทำงาน":!activity.hasWindowFocus()?"กลับมาที่หน้าเกมแล้วลองใหม่":"ระบบโฆษณาหรือความยินยอมยังไม่พร้อม";emit("unavailable");return;}
   if(!BuildConfig.TEST_ADS&&(!nonce.matches("[a-f0-9]{48}")||!user.matches("[a-f0-9]{64}"))){emit("error");return;}
   failure="";busy=true;emit("loading");
+  if(ready!=null&&System.currentTimeMillis()-readyAt<55*60000L){RewardedAd ad=ready;ready=null;present(ad,nonce,user);return;}
+  ready=null;
   final int request=++requestId;
   final Runnable timeout=()->{if(dead||request!=requestId)return;requestId++;busy=false;failure="โหลดโฆษณาเกิน 45 วินาที กรุณาลองใหม่";emit("unavailable");};
   handler.postDelayed(timeout,45000);
@@ -146,15 +167,9 @@ final class RewardedAds {
    @Override public void onAdFailedToLoad(LoadAdError error){if(dead||request!=requestId)return;handler.removeCallbacks(timeout);busy=false;fail("โหลดโฆษณาไม่สำเร็จ",error);}
    @Override public void onAdLoaded(RewardedAd ad){
     if(dead||request!=requestId)return;handler.removeCallbacks(timeout);
-    if(activity.isFinishing()||!activity.hasWindowFocus()){busy=false;failure="วิดีโอโหลดแล้ว แต่เกมไม่ได้อยู่ด้านหน้า กรุณาลองใหม่";emit("unavailable");return;}
-    if(!BuildConfig.TEST_ADS)ad.setServerSideVerificationOptions(new ServerSideVerificationOptions.Builder().setUserId(user).setCustomData(nonce).build());
-    ad.setFullScreenContentCallback(new FullScreenContentCallback(){
-     @Override public void onAdDismissedFullScreenContent(){busy=false;emit("dismissed");}
-     @Override public void onAdFailedToShowFullScreenContent(AdError error){busy=false;fail("เปิดวิดีโอไม่สำเร็จ",error);}
-    });
-    ad.show(activity,reward->emit(BuildConfig.TEST_ADS?"test-earned":"verifying"));
+    present(ad,nonce,user);
    }
   });
  }
- void destroy(){dead=true;clearBanner();if(fieldAd!=null){if(fieldAd.getParent() instanceof FrameLayout)((FrameLayout)fieldAd.getParent()).removeView(fieldAd);fieldAd.destroy();fieldAd=null;}requestId++;handler.removeCallbacksAndMessages(null);web=null;}
+ void destroy(){dead=true;ready=null;clearBanner();if(fieldAd!=null){if(fieldAd.getParent() instanceof FrameLayout)((FrameLayout)fieldAd.getParent()).removeView(fieldAd);fieldAd.destroy();fieldAd=null;}requestId++;handler.removeCallbacksAndMessages(null);web=null;}
 }
