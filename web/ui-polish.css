@@ -101,3 +101,15 @@ body:not(.welcome-screen) #modal:has(.forge-panel){overflow-y:auto!important}
 #modal .forge-result-success h2{animation:forgeWinPulse 1.2s ease-out 2}
 @keyframes forgeWinPulse{0%{transform:scale(.9);opacity:.4}40%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
 .purchase-short h3{color:#ff9f8f}
+/* Guided tutorial card and pulsing highlight */
+#tutorialCard{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);z-index:40;width:min(360px,calc(100vw - 260px));min-width:220px;padding:10px 12px;border-radius:14px;background:rgba(12,18,30,.92);box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 0 0 1px rgba(243,200,108,.35);color:#eef1f6;font-size:12.5px;pointer-events:auto;animation:tutIn .35s ease-out}
+#tutorialCard[hidden]{display:none}
+#tutorialCard .tut-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+#tutorialCard .tut-head b{color:#f3c86c;font-size:12px}
+#tutorialCard p{margin:0 0 8px;line-height:1.45}
+#tutorialCard .tut-actions{display:flex;justify-content:flex-end}
+#tutorialCard button{min-height:26px;padding:3px 12px;border:0;border-radius:999px;background:rgba(255,255,255,.1);color:#dfe6ef;font-size:11.5px;box-shadow:none;text-shadow:none}
+#tutorialCard .tut-primary{background:linear-gradient(180deg,#f3c86c,#d99f3a);color:#2b1a04}
+.tut-target{outline:3px solid #ffd76a!important;outline-offset:4px;border-radius:50%;animation:tutPulse 1.2s ease-in-out infinite}
+@keyframes tutPulse{0%,100%{outline-color:rgba(255,215,106,.95)}50%{outline-color:rgba(255,215,106,.25)}}
+@keyframes tutIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}

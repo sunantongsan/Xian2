@@ -20,7 +20,7 @@ import {buyMerchantStack,normalizePotionStock} from './merchant.js';
 import {BALANCE_VERSION,levelXP,huntXP,migrateXP,PLAYER_GROWTH} from './balance.js';
 import {buffMultiplier,normalizeTownBuff} from './town-buff.js';
 export const VERSION=1;
-export function fresh(hero){const s={version:VERSION,economyVersion:4,mutationVersion:MUTATION_VERSION,mutationStage:0,jobBranch:null,statProgressionVersion:STAT_PROGRESSION_VERSION,legacyStatLevels:0,name:'',townBuffUntil:0,enhancementVersion:2,balanceVersion:BALANCE_VERSION,mpPotions:5,potionStock:{},adTickets:[],accountRewardReceipts:[],playReceipts:[],pvpReports:[],hero,level:1,xp:0,gold:0,potions:10,bountyRemainder:0,bountyRevision:0,hunterBoostUntil:0,divineTrialUntil:0,skillTrialUntil:0,adExpUntil:0,stones:0,upgrade:0,zone:0,kills:0,seen:[],bosses:[],sound:true,quality:'auto',attributes:{vit:0,str:0,int:0,agi:0},statPoints:0,skillPoints:0,skillRanks:{},reputation:0,autoAttack:false};normalizeEconomy(s);normalizePets(s);normalizeExpTickets(s);normalizeSkills(s);normalizeUpgradeItems(s);normalizeCheckin(s);freshGear(s);normalizeFashion(s);return s;}
+export function fresh(hero){const s={version:VERSION,economyVersion:4,mutationVersion:MUTATION_VERSION,mutationStage:0,jobBranch:null,statProgressionVersion:STAT_PROGRESSION_VERSION,legacyStatLevels:0,name:'',townBuffUntil:0,enhancementVersion:2,balanceVersion:BALANCE_VERSION,mpPotions:5,potionStock:{},adTickets:[],accountRewardReceipts:[],playReceipts:[],pvpReports:[],hero,level:1,xp:0,gold:0,potions:10,bountyRemainder:0,bountyRevision:0,hunterBoostUntil:0,divineTrialUntil:0,skillTrialUntil:0,adExpUntil:0,stones:0,upgrade:0,zone:0,kills:0,seen:[],bosses:[],sound:true,quality:'auto',attributes:{vit:0,str:0,int:0,agi:0},statPoints:0,skillPoints:0,skillRanks:{},reputation:0,autoAttack:false,tutorialRewarded:false};normalizeEconomy(s);normalizePets(s);normalizeExpTickets(s);normalizeSkills(s);normalizeUpgradeItems(s);normalizeCheckin(s);freshGear(s);normalizeFashion(s);return s;}
 export function xpNeed(level){return levelXP(level);}
 export function maxHP(s){return buffMultiplier(s)*Math.round((120+s.level*PLAYER_GROWTH.hp)*mutationGrowth(s.hero,s.level,mutationStage(s))+s.upgrade*12+(s.attributes?.vit||0)*12+gearTotals(s).hp);}
 export const HUNTER_BOOST_MINUTES=30;
@@ -45,7 +45,7 @@ export function normalizeProgress(s,v=s){
  s.attributes=attrs;s.statPoints=left;
  const ranks={};let points=(s.level-1)*10;
  for(const [id,value] of Object.entries(v.skillRanks||{})){if(!knownSkills(s).some(r=>r.id===id&&r.level<=s.level))continue;const rank=Math.min(points,integer(value,19));ranks[id]=rank;points-=rank;}
- s.skillRanks=ranks;s.skillPoints=points;s.reputation=integer(v.reputation??s.kills,1e10);s.autoAttack=v.autoAttack===true;return s;
+ s.skillRanks=ranks;s.skillPoints=points;s.reputation=integer(v.reputation??s.kills,1e10);s.autoAttack=v.autoAttack===true;s.tutorialRewarded=v.tutorialRewarded===true;return s;
 }
 export function allocateStats(s,values){
  if(!values||typeof values!=='object'||Array.isArray(values))return false;
