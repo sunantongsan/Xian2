@@ -103,7 +103,8 @@ export class World {
   if(!Number.isInteger(d.slot)||d.slot<0||d.slot>4)return;const r=knownSkills(s).find(r=>r.id===s.equipped[d.slot]&&r.level<=s.level);if(!r)return;const k=compileSkill(r);if(k.effect==='heal'){castHealing(this,p,k,now);return;}if(now<(p.cd[r.id]||0)||p.mp<k.mp)return;p.mp-=k.mp;p.cd[r.id]=now+k.cd;p.actionUntil=now+.5;p.actionKind='skill';p.anim='skill';p.animTime=0;p.castId=r.id;let aim=target?{x:target.x,y:target.y}:{x:p.x+p.face*150,y:p.y-p.face*150};const n=dist(p,aim);if(n>k.range)aim={x:p.x+(aim.x-p.x)/n*k.range,y:p.y+(aim.y-p.y)/n*k.range};
   const origin={x:p.x,y:p.y},length=dist(origin,aim)||1,direction={x:(aim.x-origin.x)/length,y:(aim.y-origin.y)/length};
   let endpoint={x:origin.x+direction.x*k.range,y:origin.y+direction.y*k.range};
-  if(k.form==='dash'){endpoint=traceStep(this.maps[p.map],origin,endpoint);k.range=dist(origin,endpoint);aim=endpoint;}
+  // Dash stops just past the target instead of flying the full range (no long jumps).
+  if(k.form==='dash'){if(target&&dist(origin,target)<k.range)endpoint={x:origin.x+direction.x*Math.min(k.range,dist(origin,target)+40),y:origin.y+direction.y*Math.min(k.range,dist(origin,target)+40)};endpoint=traceStep(this.maps[p.map],origin,endpoint);k.range=dist(origin,endpoint);aim=endpoint;}
   const victims=skillTargets(k,origin,aim,targets).filter(e=>dist(traceStep(this.maps[p.map],origin,e),e)<1);
   if(k.form==='bolt'&&victims.length)endpoint={x:victims.at(-1).x,y:victims.at(-1).y};
   for(const e of victims){if(dist(traceStep(this.maps[p.map],p,e),e)>1)continue;const amount=damage(s)*k.power*combatStats(s).spell*(1+(s.skillRanks[r.id]||0)*.06)*(k.element==='lightning'?1.2:1);this.hit(p,e,amount,now);if(k.mods.includes('drain'))p.hp=Math.min(maxHP(s),p.hp+Math.min(amount*.08,maxHP(s)*.08));if(e.hp>0&&['fire','poison'].includes(k.element))e.dot={owner:p.id,left:k.element==='fire'?3:6,dps:damage(s)*(k.element==='fire'?.15:.1)};if(k.element==='ice')e.slow=now+3;}

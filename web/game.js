@@ -174,7 +174,7 @@ function applyOnlineState(d){
  for(const [id,item] of Object.entries(UPGRADE_ITEMS)){if((d.self.save.upgradeItems?.[id]||0)>(s.upgradeItems?.[id]||0)&&adPending)toast(t('ได้รับ ')+item.name+t(' • บันทึกแล้ว'));}
  const oldForge=onlineView==='forge'?JSON.stringify([s.equip,s.upgradeItems,s.stones,s.stones]):'';const lastCheckin=s.checkin?.lastDay;const oldKills=s.kills,oldLevel=s.level,oldCoins=s.stones;const prefs={sound:s.sound,quality:s.quality,autoAttack:s.autoAttack};s={...d.self.save,...prefs};if(Number.isFinite(oldCoins)&&s.stones!==oldCoins)coinFlyout(s.stones-oldCoins,{anchor:$('money'),sound:Math.abs(s.stones-oldCoins)>=100000?coinSound:null});
  if(onlineView==='gifts'&&modal.open&&(lastCheckin!==s.checkin?.lastDay||Number($('claimDailyGift')?.dataset?.divisor||1)!==(d.economy?.checkinDivisor??1)))checkinMenu();
- const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));if(d.self.correction||Math.hypot(p.x-confirmed.x,p.y-confirmed.y)>70){net.movement.applied(p,confirmed);Object.assign(p,confirmed);}
+ const confirmed=net.movement.target(p,d.self,(from,to)=>traceStep(scene,from,to));const gap=Math.hypot(p.x-confirmed.x,p.y-confirmed.y);if(d.self.correction||gap>600){net.movement.applied(p,confirmed);Object.assign(p,confirmed);glide=null;}else if(gap>70){net.movement.applied(p,confirmed);glide={x:confirmed.x,y:confirmed.y};}
  const wasDead=p.dead;if(d.self.hp<p.hp&&d.self.hp>0)p.hurtAt=performance.now();p.hp=d.self.hp;p.mp=d.self.mp;p.dead=p.hp<=0;if(wasDead&&!p.dead){p.anim='idle';p.animTime=0;if($('onlineRevive'))close();}if(p.dead){if(!wasDead)p.animTime=0;p.anim='dead';}
  
  cooldown.attack=d.self.cooldowns.attack||0;cooldown.dash=d.self.cooldowns.dash||0;cooldown.potion=d.self.cooldowns.potion||0;cooldown.mpPotion=d.self.cooldowns.mpPotion||0;
@@ -461,7 +461,9 @@ function advanceAction(dt){
 // Base walking speed; the open world is large, so heroes move briskly (gear and agility add on top).
 function baseSpeed(){return s?.hero?.startsWith('sword')?165:160;}
 // Auto mode casts every equipped, ready, affordable skill whose range reaches the target, between basic attacks.
-function autoSkill(dist){if(actionLocked())return;for(let i=0;i<5;i++){const r=knownSkills(s).find(r=>r.id===s.equipped[i]&&r.level<=s.level);if(!r||(skillTimers[r.id]||0)>0)continue;const k=compileSkill(r);if(p.mp<k.mp||dist>Math.max(k.range,k.radius)+20)continue;skill(i);return;}}
+// Returns true when a skill was cast this frame, so the basic attack waits (skills first).
+const skillSentAt={};
+function autoSkill(dist){if(!onlineMode&&actionLocked())return false;for(let i=0;i<5;i++){const r=knownSkills(s).find(r=>r.id===s.equipped[i]&&r.level<=s.level);if(!r||(skillTimers[r.id]||0)>0||time-(skillSentAt[r.id]??-9)<.4)continue;const k=compileSkill(r);if(p.mp<k.mp||dist>Math.max(k.range,k.radius)+20)continue;skillSentAt[r.id]=time;skill(i);return true;}return false;}
 function lineClear(a,b){const end=traceStep(scene,a,b);return Math.hypot(end.x-b.x,end.y-b.y)<1;}
 function attackRange(){return baseAttackRange(s?.hero);}
 function attack(){
@@ -543,14 +545,16 @@ function enemyAI(e,dt){e.moving=false;e.flash=Math.max(0,e.flash-dt);e.recoilX=(
  else if(dist<480&&dist>range*.8){const speed=e.def.speed*(e.slow>0?.65:1);const nav=chasePoint(e,p),nd=Math.hypot(nav.x-e.x,nav.y-e.y)||1,step=Math.min(nd,Math.max(0,dist-range*.8),speed*dt),ox=e.x,oy=e.y;safeMove(e,e.x+(nav.x-e.x)/nd*step,e.y+(nav.y-e.y)/nd*step);const screenDX=(e.x-ox)-(e.y-oy);e.moving=Math.hypot(e.x-ox,e.y-oy)>.01;if(Math.abs(screenDX)>.05)e.face=screenDX>=0?1:-1;}
 }
 let lastRentalCheck=0;
-function update(dt){time+=dt;
+// Server corrections (dash skills, lag) slide the hero over ~0.2 s instead of teleporting.
+let glide=null;
+function update(dt){time+=dt;if(glide&&p){const k=Math.min(1,dt*14);p.x+=(glide.x-p.x)*k;p.y+=(glide.y-p.y)*k;if(Math.hypot(glide.x-p.x,glide.y-p.y)<3){p.x=glide.x;p.y=glide.y;glide=null;}}
  if(s&&!onlineMode&&time>=lastRentalCheck){lastRentalCheck=time+1;expireRentals(s);}
  if(toastClock>0){toastClock-=dt;if(toastClock<=0)$('toast').style.opacity=0;}if(p?.dead)p.animTime+=dt;if(!p||paused||(onlineMode&&!net.ready))return;updateSkills(dt);if(!p.dead)p.animTime+=dt;advanceAction(dt);p.inv=Math.max(0,p.inv-dt);Object.keys(cooldown).forEach(k=>cooldown[k]=Math.max(0,cooldown[k]-dt));if(!p.dead){autoUsePotions();let dx=0,dy=0;if(keys.has('w')||keys.has('arrowup')){dx--;dy--}if(keys.has('s')||keys.has('arrowdown')){dx++;dy++}if(keys.has('a')||keys.has('arrowleft')){dx--;dy++}if(keys.has('d')||keys.has('arrowright')){dx++;dy--}if(stick.id!==null){dx=stick.x+stick.y*2;dy=stick.y*2-stick.x;}let moving=false;if(dx||dy){autoHunt.reset();move=null;target=null;route=[];pendingPoi=null;moving=movePlayer(dx,dy,dt,Infinity,stick.id!==null?Math.min(1,Math.hypot(stick.x,stick.y)):1)}else{if(s.autoAttack&&!town&&!move&&!atHome()){
  const hunt=autoHunt.update(p,enemies,time,actionLocked()?0:dt,attackRange()-30,{route:(a,b)=>routeTo(scene,a,b,isStar()?1600:undefined),clear:lineClear});
  target=hunt?.target||null;
- if(hunt?.ready){autoSkill(Math.hypot(target.x-p.x,target.y-p.y));attack();}
+ if(hunt?.ready){if(!autoSkill(Math.hypot(target.x-p.x,target.y-p.y)))attack();}
  else if(hunt){const n=hunt.point;moving=movePlayer(n.x-p.x,n.y-p.y,dt,Math.hypot(n.x-p.x,n.y-p.y));}
- }else if(target?.hp>0){const dist=Math.hypot(target.x-p.x,target.y-p.y),reach=attackRange()-30;if(dist>reach||!lineClear(p,target)){const n=chasePoint(p,target);moving=movePlayer(n.x-p.x,n.y-p.y,dt,Math.hypot(n.x-p.x,n.y-p.y));}else {autoSkill(dist);attack();}}else if(move){const d=Math.hypot(move.x-p.x,move.y-p.y);if(d>.5)moving=movePlayer(move.x-p.x,move.y-p.y,dt,d);else move=route.shift()||null;}}if(pendingPoi&&!move){const w=pendingPoi.world||toWorld(pendingPoi.uv,scene);if(Math.hypot(p.x-w.x,p.y-w.y)<100){const poi=pendingPoi;pendingPoi=null;usePoi(poi);}}if(!actionLocked()&&(p.animTime>(p.animDuration||.7)||['idle','walk'].includes(p.anim))){p.anim=moving?'walk':'idle';}if(attackHeld||keys.has(' '))attack();if(!onlineMode&&(town||atHome()))p.hp=Math.min(maxHP(s),p.hp+dt*maxHP(s)*.1);}
+ }else if(target?.hp>0){const dist=Math.hypot(target.x-p.x,target.y-p.y),reach=attackRange()-30;if(dist>reach||!lineClear(p,target)){const n=chasePoint(p,target);moving=movePlayer(n.x-p.x,n.y-p.y,dt,Math.hypot(n.x-p.x,n.y-p.y));}else {if(!autoSkill(dist))attack();}}else if(move){const d=Math.hypot(move.x-p.x,move.y-p.y);if(d>.5)moving=movePlayer(move.x-p.x,move.y-p.y,dt,d);else move=route.shift()||null;}}if(pendingPoi&&!move){const w=pendingPoi.world||toWorld(pendingPoi.uv,scene);if(Math.hypot(p.x-w.x,p.y-w.y)<100){const poi=pendingPoi;pendingPoi=null;usePoi(poi);}}if(!actionLocked()&&(p.animTime>(p.animDuration||.7)||['idle','walk'].includes(p.anim))){p.anim=moving?'walk':'idle';}if(attackHeld||keys.has(' '))attack();if(!onlineMode&&(town||atHome()))p.hp=Math.min(maxHP(s),p.hp+dt*maxHP(s)*.1);}
  if(!town&&!onlineMode){enemies.forEach(e=>{if(e.hp<=0){e.clock-=dt;return;}if(Math.hypot(e.x-p.x,e.y-p.y)>1100){e.moving=false;return;}const x=e.x,y=e.y;enemyAI(e,dt);const moved=Math.hypot(e.x-x,e.y-y);e.moving=moved>.01;e.walkDistance=(e.walkDistance||0)+moved;});if(scene===MAPS.forest)updateRespawns(enemies,p,dt);else if(isStar())starTick(dt);}
 
  if(!onlineMode)groundDrops=groundDrops.filter(d=>{if(time>=d.expires)return false;if(!p.dead&&time-d.created>.35&&Math.hypot(d.x-p.x,d.y-p.y)<=LOOT_RADIUS&&collectLoot(s,d)){showPickup(d);return false;}return true;});
